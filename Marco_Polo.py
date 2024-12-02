@@ -318,3 +318,36 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
     write_csv_file(output_csv, results, fieldnames)
 
     return results
+
+def Overlap_Function(
+    csv_file: str, api_key: str, width_ratio: float = 0.5, threshold: float = 0.05
+) -> None:
+    """
+    Analyze route overlaps and optionally gather commuting information.
+
+    Args:
+        csv_file (str): Path to the input CSV file containing route data.
+        api_key (str): Google API key for route calculations.
+        width_ratio (float, optional): Width ratio parameter for overlap approximation. Defaults to 0.5.
+        threshold (float, optional): Threshold for determining overlapping nodes. Defaults to 0.05.
+
+    Interactive Prompts:
+        - Whether to approximate overlapping nodes.
+        - Whether to gather commuting information before and after overlap.
+    
+    The function calls specific processing methods based on user input.
+    """
+    option: str = input('Would you like to have approximation for the overlapping nodes? Please enter yes or no: ') 
+    if option.lower() == 'yes':
+        call: str = input('Would you like to have information regarding commuting before and after the overlap? Note that this can incur higher costs by calling Google API for multiple times. Please enter yes or no: ')
+        if call.lower() == 'yes':
+            process_routes_with_csv_Rec(csv_file, api_key, width_ratio, threshold)
+        elif call.lower() == 'no':
+            process_routes_with_csv_EI_only_overlap(csv_file, api_key, threshold)
+    elif option.lower() == 'no':
+        call: str = input('Would you like to have information regarding commuting before and after the overlap? Note that this can incur higher costs by calling Google API for multiple times. Please enter yes or no: ')
+        if call.lower() == 'yes':
+            process_routes_with_csv(csv_file, api_key)
+        elif call.lower() == 'no':
+            process_routes_only_overlap_with_csv(csv_file, api_key)
+
