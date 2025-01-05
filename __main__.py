@@ -18,7 +18,9 @@ Optional Arguments:
 """
 
 import argparse
-from CanterburyCommuto import Overlap_Function
+
+from .CanterburyCommuto import Overlap_Function
+
 
 def main() -> None:
     """
@@ -29,32 +31,28 @@ def main() -> None:
         description="CLI for CanterburyCommuto to analyze route overlaps and buffer intersections."
     )
     parser.add_argument(
-        "csv_file", 
-        type=str, 
-        help="Path to the input CSV file containing route data."
+        "csv_file", type=str, help="Path to the input CSV file containing route data."
     )
     parser.add_argument(
-        "api_key", 
-        type=str, 
-        help="Google API key for route calculations."
+        "api_key", type=str, help="Google API key for route calculations."
     )
     parser.add_argument(
-        "--threshold", 
-        type=float, 
-        default=50.0, 
-        help="Overlap threshold percentage for node overlap calculations (default: 50)."
+        "--threshold",
+        type=float,
+        default=50.0,
+        help="Overlap threshold percentage for node overlap calculations (default: 50).",
     )
     parser.add_argument(
-        "--width", 
-        type=float, 
-        default=100.0, 
-        help="Width for node overlap calculations in meters (default: 100)."
+        "--width",
+        type=float,
+        default=100.0,
+        help="Width for node overlap calculations in meters (default: 100).",
     )
     parser.add_argument(
-        "--buffer", 
-        type=float, 
-        default=100.0, 
-        help="Buffer distance for route buffer intersection analysis in meters (default: 100)."
+        "--buffer",
+        type=float,
+        default=100.0,
+        help="Buffer distance for route buffer intersection analysis in meters (default: 100).",
     )
 
     args = parser.parse_args()
@@ -66,10 +64,11 @@ def main() -> None:
             api_key=args.api_key,
             threshold=args.threshold,
             width=args.width,
-            buffer=args.buffer
+            buffer=args.buffer,
         )
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 if __name__ == "__main__":
     main()
