@@ -1085,57 +1085,6 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
 
-def compare_outputs(file_1: str, file_2: str, output_comparison_file: str) -> None:
-    """
-    Compare the distance overlap percentage from File 1 with the area ratio from File 2.
-    Append a status ('OK' or 'Non-consecutive overlaps potentially exist') to the comparison file.
-
-    Args:
-        file_1 (str): Path to the first output file (e.g., overlap percentage file).
-        file_2 (str): Path to the second output file (e.g., buffer intersection file).
-        output_comparison_file (str): Path to the comparison output file.
-
-    Returns:
-        None
-    """
-    # Read data from both files
-    data1 = read_csv_file(file_1)
-    data2 = read_csv_file(file_2)
-
-    # Ensure both files have matching lengths
-    if len(data1) != len(data2):
-        print("Warning: The two files have a mismatched number of rows. Comparison might not be accurate.")
-
-    # Compare the overlap percentage and area ratios
-    results = []
-    for row1, row2 in zip(data1, data2):
-        try:
-            # Extract relevant values from each file
-            distance_overlap_a = float(row1.get("A Overlap Distance Percentage", 0))
-            area_ratio_a = float(row2.get("Area Ratio over A (%)", 0))
-
-            # Check if the distance overlap percentage is within ±10% of the area ratio
-            if abs(distance_overlap_a - area_ratio_a) <= 10:
-                status = "OK"
-            else:
-                status = "Non-consecutive overlaps potentially exist"
-        except (ValueError, TypeError) as e:
-            # Handle any issues with missing or invalid data
-            print(f"Error processing row: {row1}, {row2} - {e}")
-            status = "Error in data"
-
-        # Append result to the list
-        results.append({
-            **row1,
-            "Area Ratio over A (%)": area_ratio_a,
-            "Comparison Status": status
-        })
-
-    # Write the comparison results to a new CSV file
-    fieldnames = list(results[0].keys()) if results else []
-    write_csv_file(output_comparison_file, results, fieldnames)
-    print(f"Comparison complete. Results saved in: {output_comparison_file}")
-
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
     """
@@ -1155,7 +1104,7 @@ def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: 
     output_buffer = None
 
     # Prompt user for overlap processing
-    option = input('Would you like to have approximation for the overlapping nodes? Please enter yes or no: ')
+    option = input('Would you like to have approximation for the overlapping nodes? Please enter yes, no, or yes with buffer. Note that the buffer method is only able to find the overlapping area ratios of the intersection over the buffer zones of the two routes.')
     if option.lower() == 'yes':
         call = input('Would you like to have information regarding commuting before and after the overlap? '
                      'Note that this can incur higher costs by calling Google API for multiple times. Please enter yes or no: ')
@@ -1175,17 +1124,6 @@ def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: 
         elif call.lower() == 'no':
             output_overlap = "outputRoutes_only_overlap.csv"
             process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap)
-
-    # Prompt user for buffer processing
-    option1 = input('Would you like to create a buffer over the two routes to find the ratios of the buffers\' intersection area over the routes\' buffer areas? (yes or no): ')
-    if option1.lower() == 'yes':
+    elif option.lower() == 'yes with buffer':
         output_buffer = "buffer_intersection_results.csv"
         process_routes_with_buffers(csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer)
-
-    # Compare the results if both files are available
-    if output_overlap and output_buffer:
-        output_comparison = "comparison_results.csv"
-        compare_outputs(output_overlap, output_buffer, output_comparison)
-        print(f"Comparison file generated: {output_comparison}")
-    else:
-        print("One or both outputs are missing. Cannot perform comparison.")
