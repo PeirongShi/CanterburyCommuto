@@ -4,7 +4,7 @@ import polyline
 import math
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Polygon
-from pyproj import Transformer
+from pyproj import Transformer, Geod
 from typing import Dict, List, Tuple
 
 # Global function to generate the URL
