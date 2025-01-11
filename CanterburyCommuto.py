@@ -1050,11 +1050,6 @@ def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Po
         "Area Ratio over B (%)": ratio_over_b
     }
 
-
-from typing import List
-from shapely.geometry import Polygon
-
-
 def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, buffer_distance: float = 100) -> None:
     """
     Process two routes from a CSV file, create buffers, find their intersection area, calculate area ratios, and save results to a CSV file.
@@ -1073,8 +1068,8 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
     for row in data:
         # Extract route data
-        origin_a, destination_a = row['Origin of A'], row['Destination of A']
-        origin_b, destination_b = row['Origin of B'], row['Destination of B']
+        origin_a, destination_a = row['OriginA'], row['DestinationA']
+        origin_b, destination_b = row['OriginB'], row['DestinationB']
 
         # Fetch route coordinates using get_route_data
         route_a_coords, _, _ = get_route_data(origin_a, destination_a, api_key)
@@ -1088,16 +1083,27 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         intersection: Polygon = buffer_a.intersection(buffer_b)
 
         # Calculate overall area ratios
-        overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
+        area_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
 
-        # Append results
-        results.append(overall_ratios)
+        # Append origins and destinations to results
+        results.append({
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "intersectionArea": area_ratios.get("intersection_area"),
+            "aAreaRatio": area_ratios.get("area_ratio_a"),
+            "bAreaRatio": area_ratios.get("area_ratio_b")
+        })
 
         # Plot the routes and buffers for visualization
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
 
     # Define CSV field names
-    fieldnames = ["Intersection Area", "Area Ratio over A (%)", "Area Ratio over B (%)"]
+    fieldnames = [
+        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "intersectionArea", "aAreaRatio", "bAreaRatio"
+    ]
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
