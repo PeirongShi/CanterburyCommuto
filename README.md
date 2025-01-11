@@ -31,7 +31,7 @@ If you answer 'no', then the function will consider that an overlap starts from 
 
 Otherwise, there are two types of approximation. 
 
-The first type uses route segments before the first common point and after the last common point, since humans are free entities that can move around and decide to meet early or part later from the common points. Rectangles are created around the route segments before and after the common points. The intersection of the rectangles of the given width is evaluated. If the intersection area over the smaller rectangle area is larger than a certain threshold, the route segment pairs will be kept. The first and last overlapping nodes will be redetermined through these route pairs kept by the rectangle approximation.
+The first type uses route segments before the first common point and after the last common point, since humans are free entities that can move around and decide to meet early or part later from the common points. Rectangles are created around the route segments before and after the common points. The intersection of the rectangles of the given width is evaluated. If the value of the intersection area over the smaller rectangle area is larger than a certain threshold, the route segment pairs will be kept. The first and last overlapping nodes will be redetermined through these route pairs kept by the rectangle approximation.
 
 After selecting any of the two methods mentioned above, you will receive a follow-up question asking if you would like to obtain the information before and after the overlap, but this will lead to higher costs, as your API is called for more times.
 
