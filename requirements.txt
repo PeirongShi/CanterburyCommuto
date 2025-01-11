@@ -1,5 +1,5 @@
-requests
-polyline
-matplotlib
-shapely
-pyproj
+requests==2.32.2
+polyline==2.0.2
+matplotlib==3.8.4
+shapely==2.0.5
+pyproj==3.6.1
