@@ -326,7 +326,8 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
 
 def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv: str = "output.csv") -> list:
     """
-    Processes routes from a CSV file, computes time and distance travelled during overlaps, and writes results to a CSV file.
+    Processes routes from a CSV file, computes time and distance travelled before, during, and after overlaps,
+    and writes results to a CSV file.
 
     Parameters:
     - csv_file (str): The path to the input CSV file.
@@ -375,13 +376,13 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
-        # Calculate overlap distance and time
+        # Calculate distances and times for A
         _, overlap_a_distance, overlap_a_time = get_route_data(
             f"{overlap_a[0][0]},{overlap_a[0][1]}",
             f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
             api_key
         )
-
+       
         # Compute percentages for A
         a_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_a)
         a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
@@ -390,7 +391,7 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
         b_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_b)
         b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
 
-        # Append results
+        # Append results, including the input columns
         results.append({
             "OriginA": origin_a,
             "DestinationA": destination_a,
