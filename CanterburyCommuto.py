@@ -889,12 +889,6 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
             api_key
         )
 
-        _, overlap_b_dist, overlap_b_time = get_route_data(
-            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-            api_key
-        )
-
         _, after_b_dist, after_b_time = get_route_data(
             f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
             destination_b,
@@ -904,8 +898,8 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
         # Calculate percentages
         a_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_a)
         a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-        b_overlap_dist_pct = compute_percentages(overlap_b_dist, total_distance_b)
-        b_overlap_time_pct = compute_percentages(overlap_b_time, total_time_b)
+        b_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_b)
+        b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
 
         a_before_dist_pct = compute_percentages(before_a_dist, total_distance_a)
         a_before_time_pct = compute_percentages(before_a_time, total_time_a)
@@ -981,6 +975,23 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
         origin_a, destination_a = row['OriginA'], row['DestinationA']
         origin_b, destination_b = row['OriginB'], row['DestinationB']
 
+        # Check if origins and destinations of A and B completely overlap
+        if origin_a == origin_b and destination_a == destination_b:
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "overlapDist": "total",
+                "overlapTime": "total",
+                "aOverlapDistPct": 100.0,
+                "aOverlapTimePct": 100.0,
+                "bOverlapDistPct": 100.0,
+                "bOverlapTimePct": 100.0
+            })
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            continue
+
         # Fetch route data
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
         coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
@@ -1001,11 +1012,15 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
         b_segment_distances = calculate_segment_distances(before_b, after_b)
 
         # Construct rectangles for segments
-        rectangles_a = create_segment_rectangles(a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=100)
-        rectangles_b = create_segment_rectangles(b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=100)
+        rectangles_a = create_segment_rectangles(
+            a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width
+        )
+        rectangles_b = create_segment_rectangles(
+            b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width
+        )
 
         # Filter combinations based on overlap
-        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=50)
+        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=threshold)
 
         # Find first and last nodes of overlap
         boundary_nodes = find_overlap_boundary_nodes(filtered_combinations, rectangles_a, rectangles_b)
@@ -1029,17 +1044,11 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
             api_key
         )
 
-        _, overlap_b_dist, overlap_b_time = get_route_data(
-            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-            api_key
-        )
-
         # Calculate percentages
         a_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_a)
         a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-        b_overlap_dist_pct = compute_percentages(overlap_b_dist, total_distance_b)
-        b_overlap_time_pct = compute_percentages(overlap_b_time, total_time_b)
+        b_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_b)
+        b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
 
         # Append results
         results.append({
@@ -1068,6 +1077,7 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
     write_csv_file(output_csv, results, fieldnames)
 
     return results
+    
 
 ##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def calculate_geodetic_area(polygon: Polygon) -> float:
