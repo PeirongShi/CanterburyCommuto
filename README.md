@@ -12,5 +12,7 @@ To use CanterburyCommuto, it is necessary to have your API key from Google. How 
 1. Go to Google Cloud Console.
 2. Create a billing account.
 3. Click on the button next to the Google Cloud logo to make a new project.
-4. 
+4. From Quick access, find APIs&Services. Click on it.
+5. Go to the API Library.
+6. 
 
