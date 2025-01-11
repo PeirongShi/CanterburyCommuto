@@ -25,7 +25,7 @@ Once imported from CanterburyCommuto, the Overlap_Function will implement the ma
 
 This function takes the csv file containing the GPS coordinates of route pairs and the API key as the necessary inputs. 
 Other optional inputs are a threshold, a width, and a buffer distance, which are used for approximations. 
-The function will first ask users about their willingness to have approximation in the overlaps. 
+The function will first ask users about their willingness to have approximations in the overlaps. 
 
 If you answer 'no', then the function will consider that an overlap starts from the first common point of a route pair and ends at the last common point.
 
