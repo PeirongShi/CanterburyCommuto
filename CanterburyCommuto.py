@@ -792,6 +792,31 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
         origin_a, destination_a = row['OriginA'], row['DestinationA']
         origin_b, destination_b = row['OriginB'], row['DestinationB']
 
+        # Check if the routes are identical
+        if origin_a == origin_b and destination_a == destination_b:
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "overlapDist": "total",
+                "overlapTime": "total",
+                "aOverlapDistPct": 100.0,
+                "aOverlapTimePct": 100.0,
+                "bOverlapDistPct": 100.0,
+                "bOverlapTimePct": 100.0,
+                "aBeforeDistPct": 0.0,
+                "aBeforeTimePct": 0.0,
+                "aAfterDistPct": 0.0,
+                "aAfterTimePct": 0.0,
+                "bBeforeDistPct": 0.0,
+                "bBeforeTimePct": 0.0,
+                "bAfterDistPct": 0.0,
+                "bAfterTimePct": 0.0
+            })
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            continue
+
         # Fetch route data
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
         coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
@@ -812,11 +837,15 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
         b_segment_distances = calculate_segment_distances(before_b, after_b)
 
         # Construct rectangles for segments
-        rectangles_a = create_segment_rectangles(a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=100)
-        rectangles_b = create_segment_rectangles(b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=100)
+        rectangles_a = create_segment_rectangles(
+            a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width
+        )
+        rectangles_b = create_segment_rectangles(
+            b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width
+        )
 
         # Filter combinations based on overlap
-        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=50)
+        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=threshold)
 
         # Find first and last nodes of overlap
         boundary_nodes = find_overlap_boundary_nodes(filtered_combinations, rectangles_a, rectangles_b)
@@ -926,6 +955,7 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
     write_csv_file(output_csv, results, fieldnames)
 
     return results
+
 
 def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", threshold=50, width=100) -> list:
     """
