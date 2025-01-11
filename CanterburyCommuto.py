@@ -1240,19 +1240,36 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         # Calculate intersection of the buffers
         intersection: Polygon = buffer_a.intersection(buffer_b)
 
-        # Calculate overall area ratios
-        overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
+        # If origins and destinations are identical
+        if origin_a == origin_b and destination_a == destination_b:
+            # Calculate buffer_a area in square meters
+            buffer_a_area = calculate_geodetic_area(buffer_a)
 
-        # Add origin and destination coordinates to the result
-        overall_ratios.update({
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-        })
+            # Append results with IntersectionArea as buffer_a's area
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "IntersectionArea": buffer_a_area,
+                "aAreaRatio": 100.0,
+                "bAreaRatio": 100.0
+            })
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+        else:
+            # Calculate actual intersection area and ratios
+            overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
 
-        # Append results
-        results.append(overall_ratios)
+            # Add origin and destination coordinates to the result
+            overall_ratios.update({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+            })
+
+            # Append results
+            results.append(overall_ratios)
 
         # Plot the routes and buffers for visualization
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
