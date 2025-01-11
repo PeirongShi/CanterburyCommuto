@@ -7,6 +7,21 @@ from shapely.geometry import LineString, Polygon
 from pyproj import Transformer
 from typing import Dict, List, Tuple
 
+# Global function to generate the URL
+def generate_url(origin: str, destination: str, api_key: str) -> str:
+    """
+    Generates the Google Maps Directions API URL with the given parameters.
+
+    Parameters:
+    - origin (str): The starting point of the route (latitude,longitude).
+    - destination (str): The endpoint of the route (latitude,longitude).
+    - api_key (str): The API key for accessing the Google Maps Directions API.
+
+    Returns:
+    - str: The full URL for the API request.
+    """
+    return f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
+
 # Function to read a CSV file
 def read_csv_file(csv_file: str) -> list:
     """
@@ -40,7 +55,6 @@ def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
         writer.writeheader()
         writer.writerows(results)
 
-# Function to fetch route data
 def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
     """
     Fetches route data from the Google Maps Directions API and decodes it.
@@ -56,7 +70,8 @@ def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
         - float: Total route distance in kilometers.
         - float: Total route time in minutes.
     """
-    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
+    # Use the global function to generate the URL
+    url = generate_url(origin, destination, api_key)
     response = requests.get(url)
     directions_data = response.json()
 
@@ -69,7 +84,6 @@ def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
     else:
         print("Error fetching directions:", directions_data['status'])
         return [], 0, 0
-
 
 # Function to find common nodes
 def find_common_nodes(coordinates_a: list, coordinates_b: list) -> tuple:
