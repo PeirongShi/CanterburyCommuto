@@ -354,7 +354,6 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
 
     return results
 
-
 ##The following functions are used for finding approximations around the first and last common node. The approximation is probably more relevant when two routes crosses each other. The code can still be improved.
 def great_circle_distance(coord1, coord2):  # Function from Urban Economics and Real Estate course Homework 1.
     """
