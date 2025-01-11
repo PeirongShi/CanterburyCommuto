@@ -34,7 +34,9 @@ The first type uses route segments before the first common point and after the l
 
 After selecting any of the two methods mentioned above, you will receive a follow-up question asking if you would like to obtain the information before and after the overlap, but this will lead to higher costs, as your API is called for more times.
 
-The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will be 
+The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
+
+The output will be a csv file including the GPS coordinates of the route pairs and the corresponding percentages or values describing the overlaps of route pairs. 
 
 If you have any question, feel free to write in the comment section.
 
