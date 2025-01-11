@@ -1,6 +1,6 @@
-This Python package CanterburyCommuto is created under the instruction of Professor Florian Grosset and Professor Emilien Schultz. 
+Dear users,
 
-Dear users, 
+This Python package CanterburyCommuto is created under the instruction of Professor Florian Grosset and Professor Emilien Schultz. 
 
 # Overview
 The aim of CanterburyCommuto is to find the percentages of time and distance travelled before, during, and after the overlap, if it exists, between two commuting routes. 
@@ -48,7 +48,6 @@ If you have any question, feel free to write in the comment section.
 Thank you!
 
 Best regards,
-
 Peirong Shi
 
 
