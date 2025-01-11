@@ -19,7 +19,7 @@ To use CanterburyCommuto, it is necessary to have your API key from Google. How 
 7. Enable the relevant APIs. (It is probably harmless to enable more APIs than needed.) You will be able to create an API key in this step.
 8. Go to Credentials, where you will find your key stored.
 
-Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high cost will be incurred. 
+Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high costs will be incurred. 
 
 Once imported from CanterburyCommuto, the Overlap_Function will implement the main goal of this package. 
 
