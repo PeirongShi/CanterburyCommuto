@@ -11,7 +11,7 @@ the origins and destinations of the route pairs.
 To use CanterburyCommuto, it is necessary to have your API key from Google. How to find this key?
 
 1. Go to Google Cloud Console.
-2. Create a billing account. If the usage of API is below certain threshold, no payment will be needed.
+2. Create a billing account. If the usage of API is below a certain threshold, no payment will be needed.
 3. Click on the button next to the Google Cloud logo to make a new project.
 4. From Quick access, find APIs&Services. Click on it.
 5. Go to the API Library.
