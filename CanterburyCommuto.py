@@ -22,20 +22,42 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
     """
     return f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
 
-# Function to read a CSV file
+#Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 def read_csv_file(csv_file: str) -> list:
     """
-    Reads a CSV file and returns its content as a list of dictionaries.
+    Reads a CSV file and dynamically maps user-defined column names to standardized names
+    (e.g., OriginA, DestinationA, OriginB, DestinationB). Returns a list of dictionaries
+    where the column names are replaced with the standardized names.
 
     Parameters:
     - csv_file (str): The path to the CSV file.
 
     Returns:
-    - list: A list of dictionaries, where each dictionary represents a row in the CSV.
+    - list: A list of dictionaries with standardized column names.
     """
     with open(csv_file, mode='r') as file:
         reader = csv.DictReader(file)
-        return [row for row in reader]
+        csv_columns = reader.fieldnames  # Extract column names from the CSV header
+
+        print("Available columns in your dataset:")
+        print(", ".join(csv_columns))  # Show the user all available columns
+
+        # Ask the user to map their dataset columns to standardized names
+        column_mapping = {}
+        for variable in ["OriginA", "DestinationA", "OriginB", "DestinationB"]:
+            user_column = input(f"What is the column name for {variable} in your dataset? ")
+            while user_column not in csv_columns:
+                print(f"Column '{user_column}' not found in the dataset. Please try again.")
+                user_column = input(f"What is the column name for {variable} in your dataset? ")
+            column_mapping[user_column] = variable
+
+        # Replace original column names with standardized names in each row
+        mapped_data = []
+        for row in reader:
+            mapped_row = {column_mapping.get(col, col): value for col, value in row.items()}
+            mapped_data.append(mapped_row)
+
+        return mapped_data
 
 # Function to write results to a CSV file
 def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
