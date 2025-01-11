@@ -10,7 +10,7 @@ Don't worry if the order of the columns in your csv file is different from that 
 the origins and destinations of the route pairs. 
 
 # Google API Key
-To use CanterburyCommuto, it is necessary to have your API key from Google. How to find this key?
+To use CanterburyCommuto, it is necessary to have your API key ready from Google. How to find this key?
 
 1. Go to Google Cloud Console.
 2. Create a billing account. If the usage of API is below a certain threshold, no payment will be needed.
