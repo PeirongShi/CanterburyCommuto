@@ -865,13 +865,15 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
 
 def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_only_overlap.csv", threshold=50, width=100) -> list:
     """
-    Processes routes from a CSV file, computes time and distance travelled before, during,
-    and after overlaps, and writes results to a CSV file.
+    Processes routes from a CSV file, computes time and distance travelled during overlaps,
+    and writes results to a CSV file.
 
     Parameters:
     - csv_file (str): The path to the input CSV file.
     - api_key (str): The API key for accessing the Google Maps Directions API.
     - output_csv (str): The path to the output CSV file.
+    - threshold (int): Overlap threshold percentage for filtering.
+    - width (int): Rectangle width for segment filtering.
 
     Returns:
     - list: A list of dictionaries containing the computed results.
@@ -882,8 +884,8 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
 
     for row in data:
         # Extract origins and destinations for routes A and B
-        origin_a, destination_a = row['Origin of A'], row['Destination of A']
-        origin_b, destination_b = row['Origin of B'], row['Destination of B']
+        origin_a, destination_a = row['OriginA'], row['DestinationA']
+        origin_b, destination_b = row['OriginB'], row['DestinationB']
 
         # Fetch route data
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
@@ -900,60 +902,37 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
-        # Calculate distances for segments
-        a_segment_distances = calculate_segment_distances(before_a, after_a)
-        b_segment_distances = calculate_segment_distances(before_b, after_b)
-
-        # Construct rectangles for segments
-        rectangles_a = create_segment_rectangles(a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=100)
-        rectangles_b = create_segment_rectangles(b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=100)
-
-        # Filter combinations based on overlap
-        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=50)
-
-        # Find first and last nodes of overlap
-        boundary_nodes = find_overlap_boundary_nodes(filtered_combinations, rectangles_a, rectangles_b)
-
-        # Fallback to first and last common nodes if boundary nodes are invalid
-        if not boundary_nodes["first_node_before_overlap"] or not boundary_nodes["last_node_after_overlap"]:
-            #print(f"Boundary nodes not found for routes: {origin_a} -> {destination_a} and {origin_b} -> {destination_b}")
-            boundary_nodes = {
-                "first_node_before_overlap": {
-                    "node_a": first_common_node,
-                    "node_b": first_common_node
-                },
-                "last_node_after_overlap": {
-                    "node_a": last_common_node,
-                    "node_b": last_common_node
-                }
-            }
-
-        _, overlap_a_distance, overlap_a_time = get_route_data(
+        # Find overlap distances and times
+        _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
             api_key
         )
 
-        _, overlap_b_distance, overlap_b_time = get_route_data(
+        _, overlap_b_dist, overlap_b_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
             api_key
         )
 
         # Calculate percentages
-        a_overlap_distance_percentage = compute_percentages(overlap_a_distance, total_distance_a)
-        a_overlap_time_percentage = compute_percentages(overlap_a_time, total_time_a)
-        b_overlap_distance_percentage = compute_percentages(overlap_b_distance, total_distance_b)
-        b_overlap_time_percentage = compute_percentages(overlap_b_time, total_time_b)
+        a_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_a)
+        a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
+        b_overlap_dist_pct = compute_percentages(overlap_b_dist, total_distance_b)
+        b_overlap_time_pct = compute_percentages(overlap_b_time, total_time_b)
 
         # Append results
         results.append({
-            "Overlap Distance": overlap_a_distance,
-            "Overlap Time": overlap_a_time,
-            "A Overlap Distance Percentage": a_overlap_distance_percentage,
-            "A Overlap Time Percentage": a_overlap_time_percentage,
-            "B Overlap Distance Percentage": b_overlap_distance_percentage,
-            "B Overlap Time Percentage": b_overlap_time_percentage
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "overlapDist": overlap_a_dist,
+            "overlapTime": overlap_a_time,
+            "aOverlapDistPct": a_overlap_dist_pct,
+            "aOverlapTimePct": a_overlap_time_pct,
+            "bOverlapDistPct": b_overlap_dist_pct,
+            "bOverlapTimePct": b_overlap_time_pct
         })
 
         # Plot routes
@@ -961,9 +940,10 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
 
     # Write results to CSV
     fieldnames = [
-        "Overlap Distance", "Overlap Time",
-        "A Overlap Distance Percentage", "A Overlap Time Percentage",
-        "B Overlap Distance Percentage", "B Overlap Time Percentage"
+        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "overlapDist", "overlapTime",
+        "aOverlapDistPct", "aOverlapTimePct",
+        "bOverlapDistPct", "bOverlapTimePct"
     ]
     write_csv_file(output_csv, results, fieldnames)
 
