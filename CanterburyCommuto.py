@@ -293,8 +293,8 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
     results = []
 
     for row in data:
-        origin_a, destination_a = row['Origin of A'], row['Destination of A']
-        origin_b, destination_b = row['Origin of B'], row['Destination of B']
+        origin_a, destination_a = row['OriginA'], row['DestinationA']
+        origin_b, destination_b = row['OriginB'], row['DestinationB']
 
         # Get full route details for A and B
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
@@ -312,24 +312,32 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
         # Calculate overlap distance and time
-        _, overlap_a_distance, overlap_a_time = get_route_data(f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
+        _, overlap_a_distance, overlap_a_time = get_route_data(
+            f"{overlap_a[0][0]},{overlap_a[0][1]}",
+            f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
+            api_key
+        )
 
         # Compute percentages for A
-        a_overlap_distance_percentage = compute_percentages(overlap_a_distance, total_distance_a)
-        a_overlap_time_percentage = compute_percentages(overlap_a_time, total_time_a)
+        a_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_a)
+        a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
 
         # Compute percentages for B
-        b_overlap_distance_percentage = compute_percentages(overlap_a_distance, total_distance_b)
-        b_overlap_time_percentage = compute_percentages(overlap_a_time, total_time_b)
+        b_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_b)
+        b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
 
         # Append results
         results.append({
-            "Overlap Distance": overlap_a_distance,
-            "Overlap Time": overlap_a_time,
-            "A Overlap Distance Percentage": a_overlap_distance_percentage,
-            "A Overlap Time Percentage": a_overlap_time_percentage,
-            "B Overlap Distance Percentage": b_overlap_distance_percentage,
-            "B Overlap Time Percentage": b_overlap_time_percentage
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "overlapDist": overlap_a_distance,
+            "overlapTime": overlap_a_time,
+            "aOverlapDistPct": a_overlap_dist_pct,
+            "aOverlapTimePct": a_overlap_time_pct,
+            "bOverlapDistPct": b_overlap_dist_pct,
+            "bOverlapTimePct": b_overlap_time_pct
         })
 
         # Plot routes
@@ -337,13 +345,15 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
 
     # Write results to CSV
     fieldnames = [
-        "Overlap Distance", "Overlap Time",
-        "A Overlap Distance Percentage", "A Overlap Time Percentage",
-        "B Overlap Distance Percentage", "B Overlap Time Percentage"
+        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "overlapDist", "overlapTime",
+        "aOverlapDistPct", "aOverlapTimePct",
+        "bOverlapDistPct", "bOverlapTimePct"
     ]
     write_csv_file(output_csv, results, fieldnames)
 
     return results
+
 
 ##The following functions are used for finding approximations around the first and last common node. The approximation is probably more relevant when two routes crosses each other. The code can still be improved.
 def great_circle_distance(coord1, coord2):  # Function from Urban Economics and Real Estate course Homework 1.
