@@ -863,10 +863,10 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
 
     return results
 
-def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_only_overlap.csv", threshold=50, width=100) -> list:
+def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", threshold=50, width=100) -> list:
     """
-    Processes routes from a CSV file, computes time and distance travelled during overlaps,
-    and writes results to a CSV file.
+    Processes routes from a CSV file, computes time and distance travelled before, during,
+    and after overlaps, and writes results to a CSV file.
 
     Parameters:
     - csv_file (str): The path to the input CSV file.
@@ -902,19 +902,33 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
-        # Determine boundary nodes for overlap
-        boundary_nodes = {
-            "first_node_before_overlap": {
-                "node_a": first_common_node,
-                "node_b": first_common_node
-            },
-            "last_node_after_overlap": {
-                "node_a": last_common_node,
-                "node_b": last_common_node
-            }
-        }
+        # Calculate distances for segments
+        a_segment_distances = calculate_segment_distances(before_a, after_a)
+        b_segment_distances = calculate_segment_distances(before_b, after_b)
 
-        # Find overlap distances and times
+        # Construct rectangles for segments
+        rectangles_a = create_segment_rectangles(a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=100)
+        rectangles_b = create_segment_rectangles(b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=100)
+
+        # Filter combinations based on overlap
+        filtered_combinations = filter_combinations_by_overlap(rectangles_a, rectangles_b, threshold=50)
+
+        # Find first and last nodes of overlap
+        boundary_nodes = find_overlap_boundary_nodes(filtered_combinations, rectangles_a, rectangles_b)
+
+        # Fallback to first and last common nodes if boundary nodes are invalid
+        if not boundary_nodes["first_node_before_overlap"] or not boundary_nodes["last_node_after_overlap"]:
+            boundary_nodes = {
+                "first_node_before_overlap": {
+                    "node_a": first_common_node,
+                    "node_b": first_common_node
+                },
+                "last_node_after_overlap": {
+                    "node_a": last_common_node,
+                    "node_b": last_common_node
+                }
+            }
+
         _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
@@ -959,6 +973,7 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
     ]
     write_csv_file(output_csv, results, fieldnames)
 
+    return results
 
 ##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def create_buffered_route(
