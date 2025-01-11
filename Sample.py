@@ -2,8 +2,6 @@
 #It includes 6 different combination pairs.
 import csv
 
-import csv
-
 # Data to be written in the CSV file
 data = [
     {
