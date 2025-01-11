@@ -793,7 +793,7 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
         origin_a, destination_a = row['OriginA'], row['DestinationA']
         origin_b, destination_b = row['OriginB'], row['DestinationB']
 
-        # Check if the routes are identical
+        # Check if origins and destinations of A and B completely overlap
         if origin_a == origin_b and destination_a == destination_b:
             results.append({
                 "OriginA": origin_a,
@@ -956,7 +956,6 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
     write_csv_file(output_csv, results, fieldnames)
 
     return results
-
 
 def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", threshold=50, width=100) -> list:
     """
