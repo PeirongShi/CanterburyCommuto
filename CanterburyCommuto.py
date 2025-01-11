@@ -902,6 +902,18 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
+        # Determine boundary nodes for overlap
+        boundary_nodes = {
+            "first_node_before_overlap": {
+                "node_a": first_common_node,
+                "node_b": first_common_node
+            },
+            "last_node_after_overlap": {
+                "node_a": last_common_node,
+                "node_b": last_common_node
+            }
+        }
+
         # Find overlap distances and times
         _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
@@ -947,7 +959,6 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec_o
     ]
     write_csv_file(output_csv, results, fieldnames)
 
-    return results
 
 ##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def create_buffered_route(
