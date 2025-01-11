@@ -976,6 +976,34 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
     return results
 
 ##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
+def calculate_geodetic_area(polygon: Polygon) -> float:
+    """
+    Calculate the geodetic area of a polygon or multipolygon in square meters using the WGS84 ellipsoid.
+
+    Args:
+        polygon (Polygon or MultiPolygon): A shapely Polygon or MultiPolygon object in geographic coordinates (latitude/longitude).
+
+    Returns:
+        float: The total area of the polygon or multipolygon in square meters (absolute value).
+    """
+    geod = Geod(ellps="WGS84")
+    
+    if polygon.geom_type == "Polygon":
+        lon, lat = zip(*polygon.exterior.coords)
+        area, _ = geod.polygon_area_perimeter(lon, lat)
+        return abs(area)
+    
+    elif polygon.geom_type == "MultiPolygon":
+        total_area = 0
+        for single_polygon in polygon.geoms:
+            lon, lat = zip(*single_polygon.exterior.coords)
+            area, _ = geod.polygon_area_perimeter(lon, lat)
+            total_area += abs(area)
+        return total_area
+    
+    else:
+        raise ValueError(f"Unsupported geometry type: {polygon.geom_type}")
+
 def create_buffered_route(
     route_coords: List[Tuple[float, float]], 
     buffer_distance_meters: float, 
@@ -1060,10 +1088,10 @@ def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Po
     Returns:
         Dict[str, float]: Dictionary containing the area ratios and intersection area.
     """
-    # Calculate areas
-    intersection_area = intersection.area
-    area_a = buffer_a.area
-    area_b = buffer_b.area
+    # Calculate areas using geodetic area function
+    intersection_area = calculate_geodetic_area(intersection)
+    area_a = calculate_geodetic_area(buffer_a)
+    area_b = calculate_geodetic_area(buffer_b)
 
     # Compute ratios
     ratio_over_a = (intersection_area / area_a) * 100 if area_a > 0 else 0
@@ -1071,9 +1099,9 @@ def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Po
 
     # Return results
     return {
-        "Intersection Area": intersection_area,
-        "Area Ratio over A (%)": ratio_over_a,
-        "Area Ratio over B (%)": ratio_over_b
+        "IntersectionArea": intersection_area,
+        "aAreaRatio": ratio_over_a,
+        "bAreaRatio": ratio_over_b
     }
 
 def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, buffer_distance: float = 100) -> None:
@@ -1109,18 +1137,18 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         intersection: Polygon = buffer_a.intersection(buffer_b)
 
         # Calculate overall area ratios
-        area_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
+        overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
 
-        # Append origins and destinations to results
-        results.append({
+        # Add origin and destination coordinates to the result
+        overall_ratios.update({
             "OriginA": origin_a,
             "DestinationA": destination_a,
             "OriginB": origin_b,
             "DestinationB": destination_b,
-            "intersectionArea": area_ratios.get("intersection_area"),
-            "aAreaRatio": area_ratios.get("area_ratio_a"),
-            "bAreaRatio": area_ratios.get("area_ratio_b")
         })
+
+        # Append results
+        results.append(overall_ratios)
 
         # Plot the routes and buffers for visualization
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
@@ -1128,7 +1156,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
     # Define CSV field names
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
-        "intersectionArea", "aAreaRatio", "bAreaRatio"
+        "IntersectionArea", "aAreaRatio", "bAreaRatio"
     ]
 
     # Write results to the output CSV
