@@ -343,6 +343,23 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
         origin_a, destination_a = row['OriginA'], row['DestinationA']
         origin_b, destination_b = row['OriginB'], row['DestinationB']
 
+        # Check if (origin, destination) for A and B are identical
+        if origin_a == origin_b and destination_a == destination_b:
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "overlapDist": "total",
+                "overlapTime": "total",
+                "aOverlapDistPct": 100.0,
+                "aOverlapTimePct": 100.0,
+                "bOverlapDistPct": 100.0,
+                "bOverlapTimePct": 100.0
+            })
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            continue
+
         # Get full route details for A and B
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
         coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
