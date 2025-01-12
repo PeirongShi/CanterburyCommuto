@@ -382,6 +382,7 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
                 "bOverlapTimePct": 100.0
             })
             print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            print('Since Google API is not called, probably the plot cannot be realized for completely overlapping routes.')
             continue
 
         # Get full route details for A and B
@@ -393,23 +394,36 @@ def process_routes_only_overlap_with_csv(csv_file: str, api_key: str, output_csv
 
         if not first_common_node or not last_common_node:
             print("No common nodes found for these routes.")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aOverlapDistPct": 0.0,
+                "aOverlapTimePct": 0.0,
+                "bOverlapDistPct": 0.0,
+                "bOverlapTimePct": 0.0
+            })
+            # Plot routes even when there are no common nodes
+            plot_routes(coordinates_a, coordinates_b, None, None)
             continue
 
         # Split segments
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
-
-        # Calculate distances and times for A
+       
         _, overlap_a_distance, overlap_a_time = get_route_data(
             f"{overlap_a[0][0]},{overlap_a[0][1]}",
             f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
             api_key
         )
-       
+        
         # Compute percentages for A
         a_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_a)
         a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-
+    
         # Compute percentages for B
         b_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_b)
         b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
