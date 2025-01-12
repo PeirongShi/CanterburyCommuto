@@ -1324,35 +1324,26 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         # Calculate intersection of the buffers
         intersection: Polygon = buffer_a.intersection(buffer_b)
 
-        # If origins and destinations are identical
-        if origin_a == origin_b and destination_a == destination_b:
-            # Calculate buffer_a area in square meters
-            buffer_a_area = calculate_geodetic_area(buffer_a)
-
-            # Append results with IntersectionArea as buffer_a's area
+        if intersection.is_empty:
+            print(f"No intersection found for routes {origin_a} -> {destination_a} and {origin_b} -> {destination_b}.")
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "IntersectionArea": buffer_a_area,
-                "aAreaRatio": 100.0,
-                "bAreaRatio": 100.0
+                "IntersectionArea": 0.0,
+                "aAreaRatio": 0.0,
+                "bAreaRatio": 0.0
             })
-            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
         else:
-            # Calculate actual intersection area and ratios
+            # Calculate intersection area and ratios
             overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
-
-            # Add origin and destination coordinates to the result
             overall_ratios.update({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
-                "DestinationB": destination_b,
+                "DestinationB": destination_b
             })
-
-            # Append results
             results.append(overall_ratios)
 
         # Plot the routes and buffers for visualization
@@ -1366,6 +1357,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
+
 
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
