@@ -238,6 +238,7 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
                 "bAfterTimePct": 0.0
             })
             print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            print('Since Google API is not called, probably the plot cannot be realized for completely overlapping routes.')
             continue
 
         # Get full route details for A and B
@@ -249,6 +250,28 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
 
         if not first_common_node or not last_common_node:
             print("No common nodes found for these routes.")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aOverlapDistPct": 0.0,
+                "aOverlapTimePct": 0.0,
+                "bOverlapDistPct": 0.0,
+                "bOverlapTimePct": 0.0,
+                "aBeforeDistPct": 'NA',
+                "aBeforeTimePct": 'NA',
+                "aAfterDistPct": 'NA',
+                "aAfterTimePct": 'NA',
+                "bBeforeDistPct": 'NA',
+                "bBeforeTimePct": 'NA',
+                "bAfterDistPct": 'NA',
+                "bAfterTimePct": 'NA'
+            })
+            # Plot routes even when there are no common nodes
+            plot_routes(coordinates_a, coordinates_b, None, None)
             continue
 
         # Split segments
