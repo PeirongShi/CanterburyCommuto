@@ -101,7 +101,7 @@ The second type of approximation uses a buffer, whose distance can be chosen by 
 The output will be a csv file including the GPS coordinates of the route pairs and the corresponding percentages or values describing the overlaps of route pairs. Graphs can also be produced to visualize the commuting paths, if the two routes are not completely identical.
 
 # Acknowledgment
-The Specification on API Usage section of this README.md was generated with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
+The Specification on API Usage section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
 If you have any question, feel free to write in the comment section.
 
