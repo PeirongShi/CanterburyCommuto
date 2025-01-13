@@ -23,6 +23,62 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 
 Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high costs will be incurred. 
 
+# Specification on API Usage
+
+This project utilizes the **Google Maps Directions API** to compute and retrieve route details. The implementation leverages this API to determine the shortest path between two geographic points (defined by their GPS coordinates), fetch the route polyline for visualization, and calculate the total distance and estimated travel time.
+
+#### Google Maps API Utilized
+
+The script interacts with the **Directions API** endpoint: `https://maps.googleapis.com/maps/api/directions/json`. This API provides the following capabilities:
+
+1. **Route Path**:
+   - The API returns a polyline representation of the route (“overview_polyline”), which is decoded into a list of latitude and longitude tuples for visualization.
+
+2. **Travel Distance**:
+   - The `legs[0].distance.value` field is extracted to compute the total distance in kilometers.
+
+3. **Travel Time**:
+   - The `legs[0].duration.value` field is extracted to compute the estimated travel time in minutes.
+
+#### Default Options
+
+- **Traffic Conditions**:
+  - The API calculates travel time and distance based on historical traffic data, which is the default behavior.
+
+#### Exclusivity of Directions API Usage
+
+Theoretically, this project uses only the **Google Maps Directions API**. However, if the code shows other APIs are needed, please enable the other APIs on Google Cloud Console, which may solve the problem.
+
+#### Code Snippets Related to this API
+
+- **Generating the API URL**:
+  ```python
+  def generate_url(origin: str, destination: str, api_key: str) -> str:
+      return f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
+  ```
+
+- **Fetching Route Data**:
+  ```python
+  def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
+      url = generate_url(origin, destination, api_key)
+      response = requests.get(url)
+      directions_data = response.json()
+      if directions_data['status'] == 'OK':
+          route_polyline = directions_data['routes'][0]['overview_polyline']['points']
+          coordinates = polyline.decode(route_polyline)
+          total_distance = directions_data['routes'][0]['legs'][0]['distance']['value'] / 1000  # km
+          total_time = directions_data['routes'][0]['legs'][0]['duration']['value'] / 60  # minutes
+          return coordinates, total_distance, total_time
+      else:
+          return [], 0, 0
+  ```
+
+#### Additional Documentation
+
+- Official Google Maps Directions API Documentation: [https://developers.google.com/maps/documentation/directions/start](https://developers.google.com/maps/documentation/directions/start)
+
+
+
 # Function Implementation
 
 Once imported from CanterburyCommuto, the Overlap_Function will implement the main goal of this package. 
