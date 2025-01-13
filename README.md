@@ -98,7 +98,9 @@ After selecting any of the two methods mentioned above, you will receive a follo
 The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
 
 # Output
-The output will be a csv file including the GPS coordinates of the route pairs and the corresponding percentages or values describing the overlaps of route pairs. Graphs can also be produced to visualize the commuting paths, if the two routes are not completely identical.
+The output will be a csv file including the GPS coordinates of the route pairs and the corresponding percentages or values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths. As shown below, the list explaining the meaning of the output variables:
+
+
 
 # Acknowledgment
 The Specification on API Usage section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
