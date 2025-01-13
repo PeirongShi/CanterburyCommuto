@@ -47,7 +47,7 @@ The script interacts with the **Directions API** endpoint: `https://maps.googlea
 
 #### Exclusivity of Directions API Usage
 
-Theoretically, this project uses only the **Google Maps Directions API**. However, if the code shows other APIs are needed, please enable the other APIs on Google Cloud Console, which may solve the problem.
+Theoretically, this project uses only the **Google Maps Directions API**. However, if the code shows other APIs are needed, which may not be the case, please enable the other APIs on Google Cloud Console, which may solve the problem.
 
 #### Code Snippets Related to this API
 
