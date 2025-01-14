@@ -103,7 +103,7 @@ The output will be a csv file including the GPS coordinates of the route pairs a
 
 
 # Acknowledgment
-The Specification on API Usage section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
+The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
 If you have any question, feel free to write in the comment section.
 
