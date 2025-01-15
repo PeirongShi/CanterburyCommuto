@@ -3,7 +3,7 @@ import requests
 import polyline
 import math
 import matplotlib.pyplot as plt
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, mapping
 from pyproj import Transformer, Geod
 import folium
 from IPython.display import IFrame
