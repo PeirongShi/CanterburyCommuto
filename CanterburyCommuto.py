@@ -1267,16 +1267,24 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
         # Check if origins and destinations are identical
         if origin_a == origin_b and destination_a == destination_b:
+            route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+
+            # Create identical buffer and route for B
+            route_b_coords = route_a_coords
+            buffer_b = buffer_a
+
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "IntersectionArea": "total",
+                "IntersectionArea": buffer_a.area,
                 "aAreaRatio": 100.0,
                 "bAreaRatio": 100.0
             })
-            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. No API calls made, and no graphs generated.")
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
+            plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)  # Plot Route A and its buffer
             continue
 
         # Fetch route coordinates using get_route_data
@@ -1323,6 +1331,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
+
 
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
