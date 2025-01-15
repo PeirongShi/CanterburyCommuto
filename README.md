@@ -122,6 +122,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 16. **aAfterTime**: Time spent on route A after the overlap ends.
 17. **bAfterDist**: Distance covered on route B after the overlap ends.
 18. **bAfterTime**: Time spent on route B after the overlap ends.
+19. **for the buffer** ...
 
 # Acknowledgment
 The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
