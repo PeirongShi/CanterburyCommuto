@@ -1246,7 +1246,7 @@ def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Po
 
 def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, buffer_distance: float = 100) -> None:
     """
-    Process two routes from a CSV file, create buffers, find their intersection area, calculate area ratios, and save results to a CSV file.
+    Process two routes from a CSV file, create buffers, find their intersection area, calculate buffer areas, and save results to a CSV file.
 
     Args:
         csv_file (str): Input CSV file containing route data.
@@ -1280,8 +1280,8 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
                 "IntersectionArea": buffer_a.area,
-                "aAreaRatio": 100.0,
-                "bAreaRatio": 100.0
+                "aArea": buffer_a.area,
+                "bArea": buffer_b.area
             })
             print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)  # Plot Route A and its buffer
@@ -1306,19 +1306,20 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
                 "IntersectionArea": 0.0,
-                "aAreaRatio": 0.0,
-                "bAreaRatio": 0.0
+                "aArea": buffer_a.area,
+                "bArea": buffer_b.area
             })
         else:
-            # Calculate intersection area and ratios
-            overall_ratios = calculate_area_ratios(buffer_a, buffer_b, intersection)
-            overall_ratios.update({
+            # Calculate intersection area and include buffer areas
+            results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
-                "DestinationB": destination_b
+                "DestinationB": destination_b,
+                "IntersectionArea": intersection.area,
+                "aArea": buffer_a.area,
+                "bArea": buffer_b.area
             })
-            results.append(overall_ratios)
 
         # Plot the routes and buffers for visualization
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
@@ -1326,12 +1327,11 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
     # Define CSV field names
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
-        "IntersectionArea", "aAreaRatio", "bAreaRatio"
+        "IntersectionArea", "aArea", "bArea"
     ]
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
-
 
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
