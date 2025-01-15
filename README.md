@@ -125,8 +125,8 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 19. **IntersectionArea**: The geographic area where the buffers of Route A and Route B intersect.
 20. **aArea**: The total area of the buffer around Route A.
 21. **bArea**: The total area of the buffer around Route B.
-# Acknowledgment
-The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
+
+Acknowledgment: The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
 If you have any question, feel free to write in the comment section.
 
