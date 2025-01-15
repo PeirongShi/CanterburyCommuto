@@ -1216,7 +1216,7 @@ def plot_routes_and_buffers(
     buffer_b: Polygon
 ) -> None:
     """
-    Plot two routes and their respective buffers.
+    Plot two routes and their respective buffers over an OpenStreetMap background and display it inline.
 
     Args:
         route_a_coords (List[Tuple[float, float]]): Route A coordinates (latitude, longitude).
@@ -1227,30 +1227,69 @@ def plot_routes_and_buffers(
     Returns:
         None
     """
-    # Extract buffer coordinates for plotting
-    buffer_a_x, buffer_a_y = zip(*list(buffer_a.exterior.coords))
-    buffer_b_x, buffer_b_y = zip(*list(buffer_b.exterior.coords))
+    import folium
+    from shapely.geometry import mapping
+    from IPython.display import IFrame, display
 
-    # Plot buffers
-    plt.fill(buffer_a_x, buffer_a_y, alpha=0.5, fc='blue', label='Route A Buffer')
-    plt.fill(buffer_b_x, buffer_b_y, alpha=0.5, fc='green', label='Route B Buffer')
+    # Calculate the center of the map
+    avg_lat = (sum(coord[0] for coord in route_a_coords + route_b_coords) /
+               len(route_a_coords + route_b_coords))
+    avg_lon = (sum(coord[1] for coord in route_a_coords + route_b_coords) /
+               len(route_a_coords + route_b_coords))
 
-    # Plot routes
-    route_a_x = [coord[1] for coord in route_a_coords]
-    route_a_y = [coord[0] for coord in route_a_coords]
-    plt.plot(route_a_x, route_a_y, color='red', linestyle='--', linewidth=2, label='Route A')
+    # Create a map centered at the average location of the routes
+    map_osm = folium.Map(location=[avg_lat, avg_lon], zoom_start=13)
 
-    route_b_x = [coord[1] for coord in route_b_coords]
-    route_b_y = [coord[0] for coord in route_b_coords]
-    plt.plot(route_b_x, route_b_y, color='orange', linestyle='--', linewidth=2, label='Route B')
+    # Add Route A to the map
+    folium.PolyLine(
+        locations=route_a_coords,
+        color="red",
+        weight=5,
+        opacity=0.8,
+        tooltip="Route A"
+    ).add_to(map_osm)
 
-    # Configure the plot
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
-    plt.legend()
-    plt.title("Routes with Buffers and Intersection Area")
-    plt.grid(True)
-    plt.show()
+    # Add Route B to the map
+    folium.PolyLine(
+        locations=route_b_coords,
+        color="orange",
+        weight=5,
+        opacity=0.8,
+        tooltip="Route B"
+    ).add_to(map_osm)
+
+    # Add Buffer A to the map
+    buffer_a_geojson = mapping(buffer_a)
+    folium.GeoJson(
+        buffer_a_geojson,
+        style_function=lambda x: {
+            'fillColor': 'blue',
+            'color': 'blue',
+            'fillOpacity': 0.5,
+            'weight': 2
+        },
+        tooltip="Buffer A"
+    ).add_to(map_osm)
+
+    # Add Buffer B to the map
+    buffer_b_geojson = mapping(buffer_b)
+    folium.GeoJson(
+        buffer_b_geojson,
+        style_function=lambda x: {
+            'fillColor': 'green',
+            'color': 'green',
+            'fillOpacity': 0.5,
+            'weight': 2
+        },
+        tooltip="Buffer B"
+    ).add_to(map_osm)
+
+    # Save the map as an HTML file
+    map_osm.save("routes_with_buffers_map.html")
+
+    # Display the map inline
+    display(IFrame("routes_with_buffers_map.html", width="100%", height="600px"))
+    print("Map has been displayed inline and saved as 'routes_with_buffers_map.html'.")
 
 def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Polygon) -> Dict[str, float]:
     """
