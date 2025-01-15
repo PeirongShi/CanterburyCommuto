@@ -98,9 +98,30 @@ After selecting any of the two methods mentioned above, you will receive a follo
 The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
 
 # Output
-The output will be a csv file including the GPS coordinates of the route pairs and the corresponding percentages or values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths. As shown below, the list explaining the meaning of the output variables:
+The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths. Distances are measured in kilometers and the time unit is minute. As shown below, the list explaining the meaning of the output variables:
 
+1. **OriginA**: The starting location of route A.
+2. **DestinationA**: The ending location of route A.
+3. **OriginB**: The starting location of route B.
+4. **DestinationB**: The ending location of route B.
 
+5. **aDist**: Total distance of route A. 
+6. **aTime**: Total time to traverse route A.
+7. **bDist**: Total distance of route B.
+8. **bTime**: Total time to traverse route B.
+
+9. **overlapDist**: Distance of the overlapping segment between route A and route B.
+10. **overlapTime**: Time to traverse the overlapping segment between route A and route B.
+
+11. **aBeforeDist**: Distance covered on route A before the overlap begins.
+12. **aBeforeTime**: Time spent on route A before the overlap begins.
+13. **bBeforeDist**: Distance covered on route B before the overlap begins.
+14. **bBeforeTime**: Time spent on route B before the overlap begins.
+
+15. **aAfterDist**: Distance covered on route A after the overlap ends.
+16. **aAfterTime**: Time spent on route A after the overlap ends.
+17. **bAfterDist**: Distance covered on route B after the overlap ends.
+18. **bAfterTime**: Time spent on route B after the overlap ends.
 
 # Acknowledgment
 The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
