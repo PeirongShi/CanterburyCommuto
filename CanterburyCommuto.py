@@ -217,28 +217,29 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
 
         # Check if (origin, destination) for A and B are identical
         if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)  # Extract total distance, time, and route
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "overlapDist": "total",
-                "overlapTime": "total",
-                "aOverlapDistPct": 100.0,
-                "aOverlapTimePct": 100.0,
-                "bOverlapDistPct": 100.0,
-                "bOverlapTimePct": 100.0,
-                "aBeforeDistPct": 0.0,
-                "aBeforeTimePct": 0.0,
-                "aAfterDistPct": 0.0,
-                "aAfterTimePct": 0.0,
-                "bBeforeDistPct": 0.0,
-                "bBeforeTimePct": 0.0,
-                "bAfterDistPct": 0.0,
-                "bAfterTimePct": 0.0
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0,
+                "bBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+                "bAfterDist": 0.0,
+                "bAfterTime": 0.0
             })
             print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
-            print('Since Google API is not called, probably the plot cannot be realized for completely overlapping routes.')
+            plot_routes(coordinates_a, [], None, None)  # Plot Route A
             continue
 
         # Get full route details for A and B
@@ -255,30 +256,29 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
+                "aDist": total_distance_a,
+                "aTime": total_time_a,
+                "bDist": total_distance_b,
+                "bTime": total_time_b,
                 "overlapDist": 0.0,
                 "overlapTime": 0.0,
-                "aOverlapDistPct": 0.0,
-                "aOverlapTimePct": 0.0,
-                "bOverlapDistPct": 0.0,
-                "bOverlapTimePct": 0.0,
-                "aBeforeDistPct": 'NA',
-                "aBeforeTimePct": 'NA',
-                "aAfterDistPct": 'NA',
-                "aAfterTimePct": 'NA',
-                "bBeforeDistPct": 'NA',
-                "bBeforeTimePct": 'NA',
-                "bAfterDistPct": 'NA',
-                "bAfterTimePct": 'NA'
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0,
+                "bBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+                "bAfterDist": 0.0,
+                "bAfterTime": 0.0
             })
-            # Plot routes even when there are no common nodes
-            plot_routes(coordinates_a, coordinates_b, None, None)
+            plot_routes(coordinates_a, coordinates_b, None, None)  # Plot routes without overlap
             continue
 
         # Split segments
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
-        # Calculate distances and times for A
+        # Calculate distances and times for segments of A
         _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", api_key)
         _, overlap_a_distance, overlap_a_time = get_route_data(
             f"{overlap_a[0][0]},{overlap_a[0][1]}",
@@ -287,25 +287,10 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
         )
         _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key)
 
-        # Calculate distances and times for B
+        # Calculate distances and times for segments of B
         _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key)
+        overlap_b_distance, overlap_b_time = overlap_a_distance, overlap_a_time  # Identical overlaps
         _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key)
-
-        # Compute percentages for A
-        a_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_a)
-        a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-        a_before_dist_pct = compute_percentages(before_a_distance, total_distance_a)
-        a_before_time_pct = compute_percentages(before_a_time, total_time_a)
-        a_after_dist_pct = compute_percentages(after_a_distance, total_distance_a)
-        a_after_time_pct = compute_percentages(after_a_time, total_time_a)
-
-        # Compute percentages for B
-        b_overlap_dist_pct = compute_percentages(overlap_a_distance, total_distance_b)
-        b_overlap_time_pct = compute_percentages(overlap_a_time, total_time_b)
-        b_before_dist_pct = compute_percentages(before_b_distance, total_distance_b)
-        b_before_time_pct = compute_percentages(before_b_time, total_time_b)
-        b_after_dist_pct = compute_percentages(after_b_distance, total_distance_b)
-        b_after_time_pct = compute_percentages(after_b_time, total_time_b)
 
         # Append results, including the input columns
         results.append({
@@ -313,35 +298,32 @@ def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "outp
             "DestinationA": destination_a,
             "OriginB": origin_b,
             "DestinationB": destination_b,
+            "aDist": total_distance_a,
+            "aTime": total_time_a,
+            "bDist": total_distance_b,
+            "bTime": total_time_b,
             "overlapDist": overlap_a_distance,
             "overlapTime": overlap_a_time,
-            "aOverlapDistPct": a_overlap_dist_pct,
-            "aOverlapTimePct": a_overlap_time_pct,
-            "bOverlapDistPct": b_overlap_dist_pct,
-            "bOverlapTimePct": b_overlap_time_pct,
-            "aBeforeDistPct": a_before_dist_pct,
-            "aBeforeTimePct": a_before_time_pct,
-            "aAfterDistPct": a_after_dist_pct,
-            "aAfterTimePct": a_after_time_pct,
-            "bBeforeDistPct": b_before_dist_pct,
-            "bBeforeTimePct": b_before_time_pct,
-            "bAfterDistPct": b_after_dist_pct,
-            "bAfterTimePct": b_after_time_pct
+            "aBeforeDist": before_a_distance,
+            "aBeforeTime": before_a_time,
+            "bBeforeDist": before_b_distance,
+            "bBeforeTime": before_b_time,
+            "aAfterDist": after_a_distance if after_a else 0.0,
+            "aAfterTime": after_a_time if after_a else 0.0,
+            "bAfterDist": after_b_distance if after_b else 0.0,
+            "bAfterTime": after_b_time if after_b else 0.0
         })
 
-        # Plot routes
+        # Plot routes with overlap
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
     # Write results to CSV
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
-        "aOverlapDistPct", "aOverlapTimePct",
-        "bOverlapDistPct", "bOverlapTimePct",
-        "aBeforeDistPct", "aBeforeTimePct",
-        "aAfterDistPct", "aAfterTimePct",
-        "bBeforeDistPct", "bBeforeTimePct",
-        "bAfterDistPct", "bAfterTimePct"
+        "aBeforeDist", "aBeforeTime", "bBeforeDist", "bBeforeTime",
+        "aAfterDist", "aAfterTime", "bAfterDist", "bAfterTime"
     ]
     write_csv_file(output_csv, results, fieldnames)
 
