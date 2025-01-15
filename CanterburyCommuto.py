@@ -807,27 +807,29 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
 
         # Check if origins and destinations of A and B completely overlap
         if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "overlapDist": "total",
-                "overlapTime": "total",
-                "aOverlapDistPct": 100.0,
-                "aOverlapTimePct": 100.0,
-                "bOverlapDistPct": 100.0,
-                "bOverlapTimePct": 100.0,
-                "aBeforeDistPct": 0.0,
-                "aBeforeTimePct": 0.0,
-                "aAfterDistPct": 0.0,
-                "aAfterTimePct": 0.0,
-                "bBeforeDistPct": 0.0,
-                "bBeforeTimePct": 0.0,
-                "bAfterDistPct": 0.0,
-                "bAfterTimePct": 0.0
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0,
+                "bBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+                "bAfterDist": 0.0,
+                "bAfterTime": 0.0
             })
-            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. No graphs generated as no API calls were made.")
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            plot_routes(coordinates_a, [], None, None)  # Plot one route (Route A)
             continue
 
         # Fetch route data
@@ -844,23 +846,22 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
+                "aDist": total_distance_a,
+                "aTime": total_time_a,
+                "bDist": total_distance_b,
+                "bTime": total_time_b,
                 "overlapDist": 0.0,
                 "overlapTime": 0.0,
-                "aOverlapDistPct": 0.0,
-                "aOverlapTimePct": 0.0,
-                "bOverlapDistPct": 0.0,
-                "bOverlapTimePct": 0.0,
-                "aBeforeDistPct": 'NA',
-                "aBeforeTimePct": 'NA',
-                "aAfterDistPct": 'NA',
-                "aAfterTimePct": 'NA',
-                "bBeforeDistPct": 'NA',
-                "bBeforeTimePct": 'NA',
-                "bAfterDistPct": 'NA',
-                "bAfterTimePct": 'NA'
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0,
+                "bBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+                "bAfterDist": 0.0,
+                "bAfterTime": 0.0
             })
-            # Plot routes even when there are no common nodes
-            plot_routes(coordinates_a, coordinates_b, None, None)
+            plot_routes(coordinates_a, coordinates_b, None, None)  # Plot both routes without overlap
             continue
 
         # Split the segments
@@ -935,42 +936,26 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
             api_key
         )
 
-        # Calculate percentages
-        a_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_a)
-        a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-        b_overlap_dist_pct = compute_percentages(overlap_b_dist, total_distance_b)
-        b_overlap_time_pct = compute_percentages(overlap_b_time, total_time_b)
-
-        a_before_dist_pct = compute_percentages(before_a_dist, total_distance_a)
-        a_before_time_pct = compute_percentages(before_a_time, total_time_a)
-        a_after_dist_pct = compute_percentages(after_a_dist, total_distance_a)
-        a_after_time_pct = compute_percentages(after_a_time, total_time_a)
-
-        b_before_dist_pct = compute_percentages(before_b_dist, total_distance_b)
-        b_before_time_pct = compute_percentages(before_b_time, total_time_b)
-        b_after_dist_pct = compute_percentages(after_b_dist, total_distance_b)
-        b_after_time_pct = compute_percentages(after_b_time, total_time_b)
-
         # Append results
         results.append({
             "OriginA": origin_a,
             "DestinationA": destination_a,
             "OriginB": origin_b,
             "DestinationB": destination_b,
-            "overlapDist": overlap_b_dist,
-            "overlapTime": overlap_b_time,
-            "aOverlapDistPct": a_overlap_dist_pct,
-            "aOverlapTimePct": a_overlap_time_pct,
-            "bOverlapDistPct": b_overlap_dist_pct,
-            "bOverlapTimePct": b_overlap_time_pct,
-            "aBeforeDistPct": a_before_dist_pct,
-            "aBeforeTimePct": a_before_time_pct,
-            "aAfterDistPct": a_after_dist_pct,
-            "aAfterTimePct": a_after_time_pct,
-            "bBeforeDistPct": b_before_dist_pct,
-            "bBeforeTimePct": b_before_time_pct,
-            "bAfterDistPct": b_after_dist_pct,
-            "bAfterTimePct": b_after_time_pct
+            "aDist": total_distance_a,
+            "aTime": total_time_a,
+            "bDist": total_distance_b,
+            "bTime": total_time_b,
+            "overlapDist": overlap_a_dist,
+            "overlapTime": overlap_a_time,
+            "aBeforeDist": before_a_dist,
+            "aBeforeTime": before_a_time,
+            "bBeforeDist": before_b_dist,
+            "bBeforeTime": before_b_time,
+            "aAfterDist": after_a_dist,
+            "aAfterTime": after_a_time,
+            "bAfterDist": after_b_dist,
+            "bAfterTime": after_b_time
         })
 
         # Plot routes
@@ -979,13 +964,10 @@ def overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.csv", 
     # Write results to CSV
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
-        "aOverlapDistPct", "aOverlapTimePct",
-        "bOverlapDistPct", "bOverlapTimePct",
-        "aBeforeDistPct", "aBeforeTimePct",
-        "aAfterDistPct", "aAfterTimePct",
-        "bBeforeDistPct", "bBeforeTimePct",
-        "bAfterDistPct", "bAfterTimePct"
+        "aBeforeDist", "aBeforeTime", "bBeforeDist", "bBeforeTime",
+        "aAfterDist", "aAfterTime", "bAfterDist", "bAfterTime"
     ]
     write_csv_file(output_csv, results, fieldnames)
 
@@ -1017,19 +999,21 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
 
         # Check if origins and destinations of A and B completely overlap
         if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "overlapDist": "total",
-                "overlapTime": "total",
-                "aOverlapDistPct": 100.0,
-                "aOverlapTimePct": 100.0,
-                "bOverlapDistPct": 100.0,
-                "bOverlapTimePct": 100.0
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time
             })
-            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. No graphs generated as no API calls were made.")
+            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}")
+            plot_routes(coordinates_a, [], None, None)  # Plot one route (Route A)
             continue
 
         # Fetch route data
@@ -1046,15 +1030,14 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
+                "aDist": total_distance_a,
+                "aTime": total_time_a,
+                "bDist": total_distance_b,
+                "bTime": total_time_b,
                 "overlapDist": 0.0,
-                "overlapTime": 0.0,
-                "aOverlapDistPct": 0.0,
-                "aOverlapTimePct": 0.0,
-                "bOverlapDistPct": 0.0,
-                "bOverlapTimePct": 0.0
+                "overlapTime": 0.0
             })
-            # Plot routes even when there are no common nodes
-            plot_routes(coordinates_a, coordinates_b, None, None)
+            plot_routes(coordinates_a, coordinates_b, None, None)  # Plot both routes without overlap
             continue
 
         # Split the segments
@@ -1104,24 +1087,18 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
             api_key
         )
 
-        # Calculate percentages
-        a_overlap_dist_pct = compute_percentages(overlap_a_dist, total_distance_a)
-        a_overlap_time_pct = compute_percentages(overlap_a_time, total_time_a)
-        b_overlap_dist_pct = compute_percentages(overlap_b_dist, total_distance_b)
-        b_overlap_time_pct = compute_percentages(overlap_b_time, total_time_b)
-
         # Append results
         results.append({
             "OriginA": origin_a,
             "DestinationA": destination_a,
             "OriginB": origin_b,
             "DestinationB": destination_b,
-            "overlapDist": overlap_b_dist,
-            "overlapTime": overlap_b_time,
-            "aOverlapDistPct": a_overlap_dist_pct,
-            "aOverlapTimePct": a_overlap_time_pct,
-            "bOverlapDistPct": b_overlap_dist_pct,
-            "bOverlapTimePct": b_overlap_time_pct
+            "aDist": total_distance_a,
+            "aTime": total_time_a,
+            "bDist": total_distance_b,
+            "bTime": total_time_b,
+            "overlapDist": overlap_a_dist,
+            "overlapTime": overlap_a_time
         })
 
         # Plot routes
@@ -1130,13 +1107,13 @@ def only_overlap_rec(csv_file: str, api_key: str, output_csv: str = "outputRec.c
     # Write results to CSV
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
-        "overlapDist", "overlapTime",
-        "aOverlapDistPct", "aOverlapTimePct",
-        "bOverlapDistPct", "bOverlapTimePct"
+        "aDist", "aTime", "bDist", "bTime",
+        "overlapDist", "overlapTime"
     ]
     write_csv_file(output_csv, results, fieldnames)
 
     return results
+    
 
 ##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def calculate_geodetic_area(polygon: Polygon) -> float:
