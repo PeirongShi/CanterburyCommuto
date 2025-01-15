@@ -98,7 +98,7 @@ After selecting any of the two methods mentioned above, you will receive a follo
 The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
 
 # Output
-The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths. Distances are measured in kilometers and the time unit is minute. Areas are measured in square meters. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the output variables:
+The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the OpenStreetMap background. Distances are measured in kilometers and the time unit is minute. Areas are measured in square meters. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the output variables:
 
 1. **OriginA**: The starting location of route A.
 2. **DestinationA**: The ending location of route A.
