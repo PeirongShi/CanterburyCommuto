@@ -5,6 +5,8 @@ import math
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Polygon
 from pyproj import Transformer, Geod
+import folium
+from IPython.display import IFrame
 from typing import Dict, List, Tuple
 
 # Global function to generate the URL
@@ -161,10 +163,10 @@ def compute_percentages(segment_value: float, total_value: float) -> float:
     """
     return (segment_value / total_value) * 100 if total_value > 0 else 0
 
-# Function to plot routes
+#Function to plot routes to display on maps
 def plot_routes(coordinates_a: list, coordinates_b: list, first_common: tuple, last_common: tuple) -> None:
     """
-    Plots routes A and B with common nodes highlighted.
+    Plots routes A and B with common nodes highlighted over an OpenStreetMap background.
 
     Parameters:
     - coordinates_a (list): A list of (latitude, longitude) tuples for route A.
@@ -175,25 +177,59 @@ def plot_routes(coordinates_a: list, coordinates_b: list, first_common: tuple, l
     Returns:
     - None
     """
-    fig, ax = plt.subplots(figsize=(10, 8))
-    latitudes_a = [coord[0] for coord in coordinates_a]
-    longitudes_a = [coord[1] for coord in coordinates_a]
-    latitudes_b = [coord[0] for coord in coordinates_b]
-    longitudes_b = [coord[1] for coord in coordinates_b]
 
-    ax.plot(longitudes_a, latitudes_a, marker='o', color='blue', label='Route A')
-    ax.plot(longitudes_b, latitudes_b, marker='o', color='red', label='Route B')
+    # If the routes completely overlap, set Route B to be the same as Route A
+    if not coordinates_b:
+        coordinates_b = coordinates_a
 
+    # Calculate the center of the map
+    avg_lat = (sum(coord[0] for coord in coordinates_a + coordinates_b) / 
+               len(coordinates_a + coordinates_b))
+    avg_lon = (sum(coord[1] for coord in coordinates_a + coordinates_b) / 
+               len(coordinates_a + coordinates_b))
+
+    # Create a map centered at the average location of the routes
+    map_osm = folium.Map(location=[avg_lat, avg_lon], zoom_start=13)
+
+    # Add Route A to the map
+    folium.PolyLine(
+        locations=coordinates_a,
+        color="blue",
+        weight=5,
+        opacity=0.8,
+        tooltip="Route A"
+    ).add_to(map_osm)
+
+    # Add Route B to the map
+    folium.PolyLine(
+        locations=coordinates_b,
+        color="red",
+        weight=5,
+        opacity=0.8,
+        tooltip="Route B"
+    ).add_to(map_osm)
+
+    # Add markers for the first common node
     if first_common:
-        ax.scatter(*reversed(first_common), color='green', label='First Common Node', zorder=5)
-    if last_common:
-        ax.scatter(*reversed(last_common), color='orange', label='Last Common Node', zorder=5)
+        folium.Marker(
+            location=[first_common[0], first_common[1]],
+            icon=folium.Icon(color="green"),
+            tooltip="First Common Node"
+        ).add_to(map_osm)
 
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.set_title("Route Visualization with Common Nodes")
-    ax.legend()
-    plt.show()
+    # Add markers for the last common node
+    if last_common:
+        folium.Marker(
+            location=[last_common[0], last_common[1]],
+            icon=folium.Icon(color="orange"),
+            tooltip="Last Common Node"
+        ).add_to(map_osm)
+
+    # Save the map as an HTML file
+    map_osm.save("routes_map.html")
+    
+    # Display the map inline (for Jupyter Notebooks)
+    display(IFrame("routes_map.html", width="100%", height="500px"))
 
 def process_routes_with_csv(csv_file: str, api_key: str, output_csv: str = "output.csv") -> list:
     """
