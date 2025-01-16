@@ -122,7 +122,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 16. **aAfterTime**: Time spent on route A after the overlap ends.
 17. **bAfterDist**: Distance covered on route B after the overlap ends.
 18. **bAfterTime**: Time spent on route B after the overlap ends.
-19. **IntersectionArea**: The geographic area where the buffers of Route A and Route B intersect.
+19. **IntersectionArea**: The geographic area where the buffers of route A and route B intersect.
 20. **aArea**: The total area of the buffer around Route A.
 21. **bArea**: The total area of the buffer around Route B.
 
