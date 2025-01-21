@@ -1457,6 +1457,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
+    return results
 
 
 ##This is the main function with user interaction. 
