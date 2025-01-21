@@ -122,9 +122,14 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 16. **aAfterTime**: Time spent on route A after the overlap ends.
 17. **bAfterDist**: Distance covered on route B after the overlap ends.
 18. **bAfterTime**: Time spent on route B after the overlap ends.
-19. **IntersectionArea**: The geographic area where the buffers of route A and route B intersect.
-20. **aArea**: The total area of the buffer around Route A.
-21. **bArea**: The total area of the buffer around Route B.
+19. **aIntersecRatio**: The proportion of the buffer area of Route A that intersects with the buffer of Route B. It is calculated as:
+
+    `aIntersecRatio = IntersectionArea / aArea`
+
+20. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A. It is calculated as:
+
+    `bIntersecRatio = IntersectionArea / bArea`
+
 
 **Acknowledgment**: The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
