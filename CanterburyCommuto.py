@@ -1284,12 +1284,46 @@ def plot_routes_and_buffers(
         tooltip="Buffer B"
     ).add_to(map_osm)
 
+    # Add markers for O1, O2, D1, D2 with distinct shapes
+    folium.Marker(
+        location=route_a_coords[0],
+        tooltip="O1",
+        icon=folium.DivIcon(html=f"""
+            <div style="font-size: 16px; color: red; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+        """)  # Red star shape for O1
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=route_b_coords[0],
+        tooltip="O2",
+        icon=folium.Icon(color='orange', icon='info-sign')  # Normal icon for O2
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=route_a_coords[-1],
+        tooltip="D1",
+        icon=folium.DivIcon(html=f"""
+            <div style="font-size: 16px; color: red; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+        """)  # Red star shape for D1
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=route_b_coords[-1],
+        tooltip="D2",
+        icon=folium.Icon(color='orange', icon='info-sign')  # Normal icon for D2
+    ).add_to(map_osm)
+
     # Save the map as an HTML file
     map_osm.save("routes_with_buffers_map.html")
 
     # Display the map inline
     display(IFrame("routes_with_buffers_map.html", width="100%", height="600px"))
     print("Map has been displayed inline and saved as 'routes_with_buffers_map.html'.")
+
 
 def calculate_area_ratios(buffer_a: Polygon, buffer_b: Polygon, intersection: Polygon) -> Dict[str, float]:
     """
