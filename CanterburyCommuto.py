@@ -1354,17 +1354,20 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "IntersectionArea": buffer_a.area,
-                "aArea": buffer_a.area,
-                "bArea": buffer_b.area
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "aIntersecRatio": 1.0,
+                "bIntersecRatio": 1.0
             })
             print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)  # Plot Route A and its buffer
             continue
 
         # Fetch route coordinates using get_route_data
-        route_a_coords, _, _ = get_route_data(origin_a, destination_a, api_key)
-        route_b_coords, _, _ = get_route_data(origin_b, destination_b, api_key)
+        route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
         # Create buffers around the routes
         buffer_a: Polygon = create_buffered_route(route_a_coords, buffer_distance)
@@ -1380,20 +1383,32 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "IntersectionArea": 0.0,
-                "aArea": buffer_a.area,
-                "bArea": buffer_b.area
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "aIntersecRatio": 0.0,
+                "bIntersecRatio": 0.0
             })
         else:
             # Calculate intersection area and include buffer areas
+            intersection_area = intersection.area
+            a_area = buffer_a.area
+            b_area = buffer_b.area
+            a_intersec_ratio = intersection_area / a_area
+            b_intersec_ratio = intersection_area / b_area
+
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
                 "DestinationB": destination_b,
-                "IntersectionArea": intersection.area,
-                "aArea": buffer_a.area,
-                "bArea": buffer_b.area
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "aIntersecRatio": a_intersec_ratio,
+                "bIntersecRatio": b_intersec_ratio
             })
 
         # Plot the routes and buffers for visualization
@@ -1402,11 +1417,13 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
     # Define CSV field names
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
-        "IntersectionArea", "aArea", "bArea"
+        "aDist", "aTime", "bDist", "bTime",
+        "aIntersecRatio", "bIntersecRatio"
     ]
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
+
 
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
