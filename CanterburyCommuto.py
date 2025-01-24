@@ -1380,6 +1380,67 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         # Extract route data
         origin_a, destination_a = row['OriginA'], row['DestinationA']
         origin_b, destination_b = row['OriginB'], row['DestinationB']
+        # Fetch route coordinates using get_route_data
+        #print(f"Processing OriginA: {origin_a}, DestinationA: {destination_a}")
+        #print(f"Processing OriginB: {origin_b}, DestinationB: {destination_b}")
+        # Case 1: Origin A == Destination A and Origin B == Destination B
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0,
+                "aTime": 0,
+                "bDist": 0,
+                "bTime": 0,
+                "aIntersecRatio": 0.0,
+                "bIntersecRatio": 0.0
+            })
+            continue
+
+        # Case 2: Origin A == Destination A but Origin B != Destination B
+        if origin_a == destination_a and origin_b != destination_b:
+            print(f"Processing row: Origin A == Destination A but Origin B != Destination B ({origin_a}, {destination_a})")
+            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+            buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0,
+                "aTime": 0,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "aIntersecRatio": 0.0,
+                "bIntersecRatio": 0.0
+            })
+            continue
+
+        # Case 3: Origin A != Destination A but Origin B == Destination B
+        if origin_a != destination_a and origin_b == destination_b:
+            print(f"Processing row: Origin A != Destination A but Origin B == Destination B ({origin_b}, {destination_b})")
+            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+            buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": 0,
+                "bTime": 0,
+                "aIntersecRatio": 0.0,
+                "bIntersecRatio": 0.0
+            })
+            continue
+
+
+        route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
         # Check if origins and destinations are identical
         if origin_a == origin_b and destination_a == destination_b:
@@ -1402,7 +1463,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
                 "aIntersecRatio": 1.0,
                 "bIntersecRatio": 1.0
             })
-            print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
+            #print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)  # Plot Route A and its buffer
             continue
 
@@ -1418,7 +1479,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         intersection: Polygon = buffer_a.intersection(buffer_b)
 
         if intersection.is_empty:
-            print(f"No intersection found for routes {origin_a} -> {destination_a} and {origin_b} -> {destination_b}.")
+            #print(f"No intersection found for routes {origin_a} -> {destination_a} and {origin_b} -> {destination_b}.")
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
@@ -1464,8 +1525,6 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
 
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
-    return results
-
 
 ##This is the main function with user interaction. 
 def Overlap_Function(csv_file: str, api_key: str, threshold: float = 50, width: float = 100, buffer: float = 100) -> None:
