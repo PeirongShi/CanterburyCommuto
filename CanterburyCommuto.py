@@ -1403,8 +1403,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         # Case 2: Origin A == Destination A but Origin B != Destination B
         if origin_a == destination_a and origin_b != destination_b:
             print(f"Processing row: Origin A == Destination A but Origin B != Destination B ({origin_a}, {destination_a})")
-            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
-            buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+            route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
@@ -1422,8 +1421,7 @@ def process_routes_with_buffers(csv_file: str, output_csv: str, api_key: str, bu
         # Case 3: Origin A != Destination A but Origin B == Destination B
         if origin_a != destination_a and origin_b == destination_b:
             print(f"Processing row: Origin A != Destination A but Origin B == Destination B ({origin_b}, {destination_b})")
-            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
-            buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+            route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
             results.append({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
