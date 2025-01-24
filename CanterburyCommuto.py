@@ -1196,11 +1196,18 @@ def create_buffered_route(
     Returns:
         Polygon: Buffered polygon around the route in geographic coordinates (lat/lon).
     """
+        # Validate input route coordinates
+    if not route_coords or len(route_coords) < 2:
+        raise ValueError("Route coordinates must contain at least two points to create a LineString.")
     transformer = Transformer.from_crs("EPSG:4326", projection, always_xy=True)
     inverse_transformer = Transformer.from_crs(projection, "EPSG:4326", always_xy=True)
 
     # Transform coordinates to the specified projection
     projected_coords = [transformer.transform(lon, lat) for lat, lon in route_coords]
+   
+    if len(projected_coords) < 2:
+        print("Error: Not enough points to create a LineString")
+        return None  # Skip creating the LineString for this row
     projected_line = LineString(projected_coords)
     buffered_polygon = projected_line.buffer(buffer_distance_meters)
 
