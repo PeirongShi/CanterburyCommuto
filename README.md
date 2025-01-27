@@ -23,8 +23,9 @@ pip install -r requirements.txt
 
 ### Get Google API Key
 
-To use CanterburyCommuto, it is necessary to have your API key ready from Google. How to find this key?
+To use CanterburyCommuto, it is necessary to have your API key ready from Google. 
 
+0. You need a Google Account.
 1. Go to Google Cloud Console.
 2. Create a billing account. If the usage of API is below a certain threshold, no payment will be needed.
 3. Click on the button next to the Google Cloud logo to make a new project.
