@@ -5,7 +5,9 @@ This script serves as the main entry point for the CanterburyCommuto package, pr
 command-line interface to process routes, analyze overlaps, and compare outputs.
 
 Usage:
-    python -m your_project.main <csv_file> <api_key> [--threshold VALUE] [--width VALUE] [--buffer VALUE]
+    python -m your_project.main <csv_file> <api_key> [--threshold VALUE] [--width VALUE] [--buffer VALUE] 
+        [--approximation] [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME] [--colorib COLUMN_NAME] 
+        [--colfestb COLUMN_NAME]
 
 Arguments:
     csv_file: Path to the input CSV file containing route data.
@@ -15,6 +17,11 @@ Optional Arguments:
     --threshold: Overlap threshold percentage for node overlap calculations (default: 50).
     --width: Width for node overlap calculations in meters (default: 100).
     --buffer: Buffer distance for route buffer intersection analysis in meters (default: 100).
+    --approximation: Enable approximation for overlapping nodes (default: disabled).
+    --colorna: Column name for the origin of route A.
+    --coldesta: Column name for the destination of route A.
+    --colorib: Column name for the origin of route B.
+    --colfestb: Column name for the destination of route B.
 """
 
 import argparse
@@ -104,6 +111,31 @@ def main() -> None:
         default=100.0, 
         help="Buffer distance for route buffer intersection analysis in meters (default: 100)."
     )
+    parser.add_argument(
+        "--approximation", 
+        action="store_true", 
+        help="Enable approximation for overlapping nodes (default: disabled)."
+    )
+    parser.add_argument(
+        "--colorna", 
+        type=str, 
+        help="Column name for the origin of route A."
+    )
+    parser.add_argument(
+        "--coldesta", 
+        type=str, 
+        help="Column name for the destination of route A."
+    )
+    parser.add_argument(
+        "--colorib", 
+        type=str, 
+        help="Column name for the origin of route B."
+    )
+    parser.add_argument(
+        "--colfestb", 
+        type=str, 
+        help="Column name for the destination of route B."
+    )
 
     args = parser.parse_args()
 
@@ -118,7 +150,12 @@ def main() -> None:
             api_key=args.api_key,
             threshold=args.threshold,
             width=args.width,
-            buffer=args.buffer
+            buffer=args.buffer,
+            approximation=args.approximation,
+            colorna=args.colorna,
+            coldesta=args.coldesta,
+            colorib=args.colorib,
+            colfestb=args.colfestb
         )
     except ValueError as ve:
         print(f"Input Validation Error: {ve}")
