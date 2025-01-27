@@ -47,7 +47,10 @@ python canterburycommuto/Sample.py
 
 Otherwise, you need to create a csv file with the following columns:
 
-**DESCRIBE HERE THE COLUMNS**
+1. **OriginA**: The GPS coordiantes of the starting location of route A in each route pair.
+2. **DestinationA**: The GPS coordiantes of the ending location of route A in every route pair.
+3. **OriginB**: The starting location of route B.
+4. **DestinationB**: The ending location of route B.
 
 Then, to use CanterburyCommuto, you need to run the following command in your terminal:
 
