@@ -28,46 +28,50 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
 
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
-def read_csv_file(csv_file: str) -> list:
+def read_csv_file(
+    csv_file: str,
+    colorna: str,
+    coldesta: str,
+    colorib: str,
+    colfestb: str
+) -> List[Dict[str, str]]:
     """
-    Reads a CSV file and dynamically maps user-defined column names to standardized names
-    (e.g., OriginA, DestinationA, OriginB, DestinationB). Returns a list of dictionaries
-    where the column names are replaced with the standardized names.
+    Reads a CSV file and maps user-specified column names to standardized names
+    (OriginA, DestinationA, OriginB, DestinationB). Returns a list of dictionaries
+    with standardized column names.
 
     Parameters:
-    - csv_file (str): The path to the CSV file.
+    - csv_file (str): Path to the CSV file.
+    - colorna (str): Column name for the origin of route A.
+    - coldesta (str): Column name for the destination of route A.
+    - colorib (str): Column name for the origin of route B.
+    - colfestb (str): Column name for the destination of route B.
 
     Returns:
-    - list: A list of dictionaries with standardized column names.
+    - List[Dict[str, str]]: List of dictionaries with standardized column names.
     """
     with open(csv_file, mode="r") as file:
         reader = csv.DictReader(file)
         csv_columns = reader.fieldnames  # Extract column names from the CSV header
 
-        print("Available columns in your dataset:")
-        print(", ".join(csv_columns))  # Show the user all available columns
+        # Validate column names
+        required_columns = [colorna, coldesta, colorib, colfestb]
+        for column in required_columns:
+            if column not in csv_columns:
+                raise ValueError(f"Column '{column}' not found in the CSV file.")
 
-        # Ask the user to map their dataset columns to standardized names
-        column_mapping = {}
-        for variable in ["OriginA", "DestinationA", "OriginB", "DestinationB"]:
-            user_column = input(
-                f"What is the column name for {variable} in your dataset? "
-            )
-            while user_column not in csv_columns:
-                print(
-                    f"Column '{user_column}' not found in the dataset. Please try again."
-                )
-                user_column = input(
-                    f"What is the column name for {variable} in your dataset? "
-                )
-            column_mapping[user_column] = variable
+        # Map specified column names to standardized names
+        column_mapping = {
+            colorna: "OriginA",
+            coldesta: "DestinationA",
+            colorib: "OriginB",
+            colfestb: "DestinationB",
+        }
 
         # Replace original column names with standardized names in each row
         mapped_data = []
         for row in reader:
-            mapped_row = {
-                column_mapping.get(col, col): value for col, value in row.items()
-            }
+            mapped_row = {column_mapping.get(col, col): value for col, value in row.items()}
             mapped_data.append(mapped_row)
 
         return mapped_data
