@@ -72,3 +72,6 @@ The first type uses route segments before the first common point and after the l
 After selecting any of the two methods mentioned above, you will receive a follow-up question asking if you would like to obtain the information before and after the overlap, but this will lead to higher costs, as your API is called for more times. You may answer 'no', if you are operating on a tight budget. 
 
 The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
+
+The Command-Line Interface explains the meaning of each input of the function. 
+
