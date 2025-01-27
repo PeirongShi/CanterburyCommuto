@@ -8,10 +8,17 @@ It relies on the Google Maps API.
 
 ### Install the package
 
-To use CanterburyCommuto, you need to install the package first. You can do this by running the following command in your terminal:
+To use CanterburyCommuto, you need to clone the respository first. You can do this by running the following command in your terminal:
 
 ```bash
-pip install git+https://github.com/PeirongShi/CanterburyCommuto.git
+git clone https://github.com/PeirongShi/CanterburyCommuto.git
+```
+
+And then install the requirements
+
+```bash
+cd CanterburyCommuto
+pip install -r requirements.txt
 ```
 
 ### Get Google API Key
