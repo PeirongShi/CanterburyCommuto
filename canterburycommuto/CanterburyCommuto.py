@@ -1823,6 +1823,10 @@ def Overlap_Function(
     threshold: float = 50,
     width: float = 100,
     buffer: float = 100,
+    approximation: str = "no",  # New argument for approximation option: "yes", "no", or "yes with buffer"
+    commuting_info: str = "no",  # New argument for commuting info: "yes" or "no"
+    output_overlap: str = None,  # Optional output file for overlap results
+    output_buffer: str = None,  # Optional output file for buffer results
 ) -> None:
     """
     Main function to process overlapping routes and buffers, and compare outputs.
@@ -1833,24 +1837,18 @@ def Overlap_Function(
         threshold (float): Overlap threshold (default: 50%).
         width (float): Width for node overlap calculations (default: 100 meters).
         buffer (float): Buffer distance for buffer intersections (default: 100 meters).
+        approximation (str): Overlap processing method ("yes", "no", or "yes with buffer").
+        commuting_info (str): Whether to include commuting information ("yes" or "no").
+        output_overlap (str): Optional output file for overlap results.
+        output_buffer (str): Optional output file for buffer intersection results.
 
     Returns:
         None
     """
-    output_overlap = None
-    output_buffer = None
-
-    # Prompt user for overlap processing
-    option = input(
-        "Would you like to have approximation for the overlapping nodes? Please enter yes, no, or yes with buffer. Note that the buffer method is only able to find the overlapping area ratios of the intersection over the buffer zones of the two routes."
-    )
-    if option.lower() == "yes":
-        call = input(
-            "Would you like to have information regarding commuting before and after the overlap? "
-            "Note that this can incur higher costs by calling Google API for multiple times. Please enter yes or no: "
-        )
-        if call.lower() == "yes":
-            output_overlap = "outputRec.csv"
+    # Process based on the approximation argument
+    if approximation == "yes":
+        if commuting_info == "yes":
+            output_overlap = output_overlap or "outputRec.csv"
             overlap_rec(
                 csv_file,
                 api_key,
@@ -1858,8 +1856,8 @@ def Overlap_Function(
                 threshold=threshold,
                 width=width,
             )
-        elif call.lower() == "no":
-            output_overlap = "outputRec_only_overlap.csv"
+        elif commuting_info == "no":
+            output_overlap = output_overlap or "outputRec_only_overlap.csv"
             only_overlap_rec(
                 csv_file,
                 api_key,
@@ -1868,21 +1866,17 @@ def Overlap_Function(
                 width=width,
             )
 
-    elif option.lower() == "no":
-        call = input(
-            "Would you like to have information regarding commuting before and after the overlap? "
-            "Note that this can incur higher costs by calling Google API for multiple times. Please enter yes or no: "
-        )
-        if call.lower() == "yes":
-            output_overlap = "outputRoutes.csv"
+    elif approximation == "no":
+        if commuting_info == "yes":
+            output_overlap = output_overlap or "outputRoutes.csv"
             process_routes_with_csv(csv_file, api_key, output_csv=output_overlap)
-        elif call.lower() == "no":
-            output_overlap = "outputRoutes_only_overlap.csv"
+        elif commuting_info == "no":
+            output_overlap = output_overlap or "outputRoutes_only_overlap.csv"
             process_routes_only_overlap_with_csv(
                 csv_file, api_key, output_csv=output_overlap
             )
-    elif option.lower() == "yes with buffer":
-        output_buffer = "buffer_intersection_results.csv"
+    elif approximation == "yes with buffer":
+        output_buffer = output_buffer or "buffer_intersection_results.csv"
         process_routes_with_buffers(
             csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer
         )
