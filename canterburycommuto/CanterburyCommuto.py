@@ -442,7 +442,13 @@ def process_routes_with_csv(
 
 
 def process_routes_only_overlap_with_csv(
-    csv_file: str, api_key: str, output_csv: str = "output.csv"
+    csv_file: str,  # Pass the file path, not the preloaded data
+    api_key: str,
+    output_csv: str = "output.csv",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during, and after overlaps,
@@ -452,11 +458,23 @@ def process_routes_only_overlap_with_csv(
     - csv_file (str): The path to the input CSV file.
     - api_key (str): The API key for accessing the Google Maps Directions API.
     - output_csv (str): The path to the output CSV file.
+    - colorna (str): Column name for the origin of route A.
+    - coldesta (str): Column name for the destination of route A.
+    - colorib (str): Column name for the origin of route B.
+    - colfestb (str): Column name for the destination of route B.
 
     Returns:
     - list: A list of dictionaries containing the computed results.
     """
-    data = read_csv_file(csv_file)
+    # Read data from CSV with column mappings
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb
+    )
+
     results = []
 
     for row in data:
