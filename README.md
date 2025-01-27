@@ -37,13 +37,24 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 
 *Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high costs will be incurred.*
 
-### Use it
+### Launch the computation
 
-For 2 points, you can use the following code to find the overlap between two commuting routes:
-
-```python
-CODE HERE
+You can generate a test dataset with the script
+  
+```bash
+python canterburycommuto/Sample.py
 ```
+
+Otherwise, you need to create a csv file with the following columns:
+
+**DESCRIBE HERE THE COLUMNS**
+
+Then, to use CanterburyCommuto, you need to run the following command in your terminal:
+
+```bash
+python -m canterburycommuto origin_destination_coordinates.csv YOUR_KEY
+```
+
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
 Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as CanterburyCommuto will ask you to manually fill in the column names corresponding to the origins and destinations of the route pairs. 
