@@ -77,6 +77,11 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --output_overlap "overlap_output.csv" \
     --output_buffer "buffer_output.csv"
 ```
+'threshold' has default 50, which is useful when approximations are made around the first and last common locations of the route pairs. rectangles are created for each segment before and after the overlap. If the ratio of the intersection area over the smaller area in the segment pair is above 50, then this segment pair is kept to extend the exact overlap.
+
+'width' has a default of 100 meters. It is the width of the rectangle created around the segments before and after the overlap. 
+
+'buffer' has a default of 100 meters as well. It specifies the width of the buffer created along the route.
 
 ### Results
 
