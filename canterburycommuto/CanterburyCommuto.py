@@ -956,11 +956,15 @@ def find_overlap_boundary_nodes(
 
 
 def overlap_rec(
-    csv_file: str,
+    csv_file: str,  # Pass the file path, not the preloaded data
     api_key: str,
     output_csv: str = "outputRec.csv",
-    threshold=50,
-    width=100,
+    threshold: int = 50,
+    width: int = 100,
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during,
@@ -972,12 +976,23 @@ def overlap_rec(
     - output_csv (str): The path to the output CSV file.
     - threshold (int): Overlap threshold percentage for filtering.
     - width (int): Rectangle width for segment filtering.
+    - colorna (str): Column name for the origin of route A.
+    - coldesta (str): Column name for the destination of route A.
+    - colorib (str): Column name for the origin of route B.
+    - colfestb (str): Column name for the destination of route B.
 
     Returns:
     - list: A list of dictionaries containing the computed results.
     """
-    # Read data from CSV
-    data = read_csv_file(csv_file)
+    # Read data from CSV with column mappings
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb
+    )
+
     results = []
 
     for row in data:
