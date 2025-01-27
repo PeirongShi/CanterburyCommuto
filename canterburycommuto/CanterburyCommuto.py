@@ -1216,28 +1216,42 @@ def overlap_rec(
 
 
 def only_overlap_rec(
-    csv_file: str,
+    csv_file: str,  # Pass the file path, not the preloaded data
     api_key: str,
     output_csv: str = "outputRec.csv",
-    threshold=50,
-    width=100,
+    threshold: float = 50,
+    width: float = 100,
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None
 ) -> list:
     """
-    Processes routes from a CSV file, computes time and distance travelled before, during,
-    and after overlaps, and writes results to a CSV file.
+    Processes a CSV file to calculate overlap between routes, using user-defined column mappings.
 
-    Parameters:
-    - csv_file (str): The path to the input CSV file.
-    - api_key (str): The API key for accessing the Google Maps Directions API.
-    - output_csv (str): The path to the output CSV file.
-    - threshold (int): Overlap threshold percentage for filtering.
-    - width (int): Rectangle width for segment filtering.
+    Args:
+        csv_file (str): Path to the input CSV file.
+        api_key (str): Google API key for route calculations.
+        output_csv (str): Path to save the output CSV file (default: "outputRec.csv").
+        threshold (float): Overlap threshold percentage (default: 50).
+        width (float): Width in meters for route overlap calculations (default: 100).
+        colorna (str): Column name for the origin of route A.
+        coldesta (str): Column name for the destination of route A.
+        colorib (str): Column name for the origin of route B.
+        colfestb (str): Column name for the destination of route B.
 
     Returns:
-    - list: A list of dictionaries containing the computed results.
+        list: A list containing overlap information.
     """
     # Read data from CSV
-    data = read_csv_file(csv_file)
+    # Read the CSV file with column mappings
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb
+    )
     results = []
 
     for row in data:
