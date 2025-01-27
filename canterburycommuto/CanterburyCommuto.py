@@ -1610,7 +1610,7 @@ def calculate_area_ratios(
 
 
 def process_routes_with_buffers(
-    csv_file=csv_file,  # Pass the file path, not the preloaded data
+    csv_file: str,  # Pass the file path, not the preloaded data
     output_csv: str,
     api_key: str,
     buffer_distance: float = 100,
