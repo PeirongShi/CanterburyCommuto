@@ -58,10 +58,25 @@ Then, to use CanterburyCommuto, you need to run the following command in your te
 python -m canterburycommuto origin_destination_coordinates.csv YOUR_KEY
 ```
 
-
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
-Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as CanterburyCommuto will ask you to manually fill in the column names corresponding to the origins and destinations of the route pairs. 
+Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as you can manually fill in the column names corresponding to the origins and destinations of the route pairs in CanterburyCommuto. 
 
+For example, if you would like to find the intersection ratio of buffers created along two routes, you can type in the following command. 
+
+```bash
+python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_KEY \
+    --threshold 60 \
+    --width 120 \
+    --buffer 150 \
+    --approximation "yes with buffer" \
+    --commuting_info "yes" \
+    --colorna "Start_A" \
+    --coldesta "End_A" \
+    --colorib "Start_B" \
+    --colfestb "End_B" \
+    --output_overlap "overlap_output.csv" \
+    --output_buffer "buffer_output.csv"
+```
 
 ### Results
 
