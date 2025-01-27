@@ -1610,22 +1610,41 @@ def calculate_area_ratios(
 
 
 def process_routes_with_buffers(
-    csv_file: str, output_csv: str, api_key: str, buffer_distance: float = 100
+    csv_file=csv_file,  # Pass the file path, not the preloaded data
+    output_csv: str,
+    api_key: str,
+    buffer_distance: float = 100,
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None
 ) -> None:
     """
-    Process two routes from a CSV file, create buffers, find their intersection area, calculate buffer areas, and save results to a CSV file.
+    Process two routes from a CSV file, create buffers, find their intersection area, 
+    calculate buffer areas, and save results to a CSV file.
 
     Args:
-        csv_file (str): Input CSV file containing route data.
-        output_csv (str): Output CSV file to save results.
-        api_key (str): API key for fetching route data.
-        buffer_distance (float): Buffer distance in meters (default: 100).
+        csv_file (str): Input CSV file containing routes.
+        output_csv (str): Path to the output CSV file.
+        api_key (str): Google API key for route calculations.
+        buffer_distance (float): Distance for buffer zones in meters.
+        colorna (str): Column name for the origin of route A.
+        coldesta (str): Column name for the destination of route A.
+        colorib (str): Column name for the origin of route B.
+        colfestb (str): Column name for the destination of route B.
 
     Returns:
         None
     """
     results: List[dict] = []
-    data = read_csv_file(csv_file)
+    # Read the CSV file with column mappings
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb
+    )
 
     for row in data:
         # Extract route data
