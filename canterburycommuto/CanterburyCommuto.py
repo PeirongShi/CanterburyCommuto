@@ -1910,10 +1910,14 @@ def Overlap_Function(
     threshold: float = 50,
     width: float = 100,
     buffer: float = 100,
-    approximation: str = "no",  # New argument for approximation option: "yes", "no", or "yes with buffer"
-    commuting_info: str = "no",  # New argument for commuting info: "yes" or "no"
-    output_overlap: str = None,  # Optional output file for overlap results
-    output_buffer: str = None,  # Optional output file for buffer results
+    approximation: str = "no",
+    commuting_info: str = "no",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None,
+    output_overlap: str = None,
+    output_buffer: str = None,
 ) -> None:
     """
     Main function to process overlapping routes and buffers, and compare outputs.
@@ -1926,13 +1930,16 @@ def Overlap_Function(
         buffer (float): Buffer distance for buffer intersections (default: 100 meters).
         approximation (str): Overlap processing method ("yes", "no", or "yes with buffer").
         commuting_info (str): Whether to include commuting information ("yes" or "no").
+        colorna (str): Column name for the origin of route A.
+        coldesta (str): Column name for the destination of route A.
+        colorib (str): Column name for the origin of route B.
+        colfestb (str): Column name for the destination of route B.
         output_overlap (str): Optional output file for overlap results.
         output_buffer (str): Optional output file for buffer intersection results.
 
     Returns:
         None
     """
-    # Process based on the approximation argument
     if approximation == "yes":
         if commuting_info == "yes":
             output_overlap = output_overlap or "outputRec.csv"
@@ -1942,6 +1949,10 @@ def Overlap_Function(
                 output_csv=output_overlap,
                 threshold=threshold,
                 width=width,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
             )
         elif commuting_info == "no":
             output_overlap = output_overlap or "outputRec_only_overlap.csv"
@@ -1951,19 +1962,43 @@ def Overlap_Function(
                 output_csv=output_overlap,
                 threshold=threshold,
                 width=width,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
             )
-
     elif approximation == "no":
         if commuting_info == "yes":
             output_overlap = output_overlap or "outputRoutes.csv"
-            process_routes_with_csv(csv_file, api_key, output_csv=output_overlap)
+            process_routes_with_csv(
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
         elif commuting_info == "no":
             output_overlap = output_overlap or "outputRoutes_only_overlap.csv"
             process_routes_only_overlap_with_csv(
-                csv_file, api_key, output_csv=output_overlap
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
             )
     elif approximation == "yes with buffer":
         output_buffer = output_buffer or "buffer_intersection_results.csv"
         process_routes_with_buffers(
-            csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer
+            csv_file=csv_file,
+            output_csv=output_buffer,
+            api_key=api_key,
+            buffer_distance=buffer,
+            colorna=colorna,
+            coldesta=coldesta,
+            colorib=colorib,
+            colfestb=colfestb,
         )
