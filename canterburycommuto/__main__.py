@@ -6,8 +6,9 @@ command-line interface to process routes, analyze overlaps, and compare outputs.
 
 Usage:
     python -m your_project.main <csv_file> <api_key> [--threshold VALUE] [--width VALUE] [--buffer VALUE] 
-        [--approximation] [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME] [--colorib COLUMN_NAME] 
-        [--colfestb COLUMN_NAME]
+        [--approximation VALUE] [--commuting_info VALUE] 
+        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME] [--colorib COLUMN_NAME] 
+        [--colfestb COLUMN_NAME] [--output_overlap FILENAME] [--output_buffer FILENAME]
 
 Arguments:
     csv_file: Path to the input CSV file containing route data.
@@ -17,11 +18,14 @@ Optional Arguments:
     --threshold: Overlap threshold percentage for node overlap calculations (default: 50).
     --width: Width for node overlap calculations in meters (default: 100).
     --buffer: Buffer distance for route buffer intersection analysis in meters (default: 100).
-    --approximation: Enable approximation for overlapping nodes (default: disabled).
+    --approximation: Overlap processing method ("yes", "no", or "yes with buffer").
+    --commuting_info: Whether to include commuting information ("yes" or "no").
     --colorna: Column name for the origin of route A.
     --coldesta: Column name for the destination of route A.
     --colorib: Column name for the origin of route B.
     --colfestb: Column name for the destination of route B.
+    --output_overlap: Path to save the overlap results (optional).
+    --output_buffer: Path to save the buffer intersection results (optional).
 """
 
 import argparse
@@ -41,15 +45,12 @@ def validate_csv_file(csv_file: str) -> None:
     Raises:
         ValueError: If the file does not exist, is not a valid CSV file, or has fewer than 4 columns.
     """
-    # Check if the file exists
     if not os.path.exists(csv_file):
         raise ValueError(f"The CSV file '{csv_file}' does not exist.")
 
-    # Check if the file has a valid CSV extension
     if not csv_file.lower().endswith('.csv'):
         raise ValueError(f"The file '{csv_file}' is not a valid CSV file.")
-    
-    # Check if the file has at least 4 columns
+
     try:
         with open(csv_file, mode='r') as file:
             reader = csv.reader(file)
@@ -70,7 +71,6 @@ def validate_api_key(api_key: str) -> None:
     Raises:
         ValueError: If the API key format does not match the expected pattern.
     """
-    # A basic check for API key format (adjust regex based on your specific API provider)
     if not re.match(r"^[A-Za-z0-9_-]{35,}$", api_key):
         raise ValueError("The provided API key does not have the correct format.")
 
@@ -84,57 +84,76 @@ def main() -> None:
         description="CLI for CanterburyCommuto to analyze route overlaps and buffer intersections."
     )
     parser.add_argument(
-        "csv_file", 
-        type=str, 
+        "csv_file",
+        type=str,
         help="Path to the input CSV file containing route data."
     )
     parser.add_argument(
-        "api_key", 
-        type=str, 
+        "api_key",
+        type=str,
         help="Google API key for route calculations."
     )
     parser.add_argument(
-        "--threshold", 
-        type=float, 
-        default=50.0, 
+        "--threshold",
+        type=float,
+        default=50.0,
         help="Overlap threshold percentage for node overlap calculations (default: 50)."
     )
     parser.add_argument(
-        "--width", 
-        type=float, 
-        default=100.0, 
+        "--width",
+        type=float,
+        default=100.0,
         help="Width for node overlap calculations in meters (default: 100)."
     )
     parser.add_argument(
-        "--buffer", 
-        type=float, 
-        default=100.0, 
+        "--buffer",
+        type=float,
+        default=100.0,
         help="Buffer distance for route buffer intersection analysis in meters (default: 100)."
     )
     parser.add_argument(
-        "--approximation", 
-        action="store_true", 
-        help="Enable approximation for overlapping nodes (default: disabled)."
+        "--approximation",
+        type=str,
+        choices=["yes", "no", "yes with buffer"],
+        default="no",
+        help="Overlap processing method: 'yes', 'no', or 'yes with buffer' (default: no)."
     )
     parser.add_argument(
-        "--colorna", 
-        type=str, 
+        "--commuting_info",
+        type=str,
+        choices=["yes", "no"],
+        default="no",
+        help="Include commuting information: 'yes' or 'no' (default: no)."
+    )
+    parser.add_argument(
+        "--colorna",
+        type=str,
         help="Column name for the origin of route A."
     )
     parser.add_argument(
-        "--coldesta", 
-        type=str, 
+        "--coldesta",
+        type=str,
         help="Column name for the destination of route A."
     )
     parser.add_argument(
-        "--colorib", 
-        type=str, 
+        "--colorib",
+        type=str,
         help="Column name for the origin of route B."
     )
     parser.add_argument(
-        "--colfestb", 
-        type=str, 
+        "--colfestb",
+        type=str,
         help="Column name for the destination of route B."
+    )
+    parser.add_argument(
+        "--output_overlap",
+        type=str,
+        help="Path to save the overlap results (optional)."
+    )
+    parser.add_argument(
+        "--output_buffer",
+        type=str,
+        help="Path to save the buffer intersection results (optional)."
     )
 
     args = parser.parse_args()
@@ -152,10 +171,13 @@ def main() -> None:
             width=args.width,
             buffer=args.buffer,
             approximation=args.approximation,
+            commuting_info=args.commuting_info,
             colorna=args.colorna,
             coldesta=args.coldesta,
             colorib=args.colorib,
-            colfestb=args.colfestb
+            colfestb=args.colfestb,
+            output_overlap=args.output_overlap,
+            output_buffer=args.output_buffer,
         )
     except ValueError as ve:
         print(f"Input Validation Error: {ve}")
