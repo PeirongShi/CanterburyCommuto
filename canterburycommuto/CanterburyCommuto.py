@@ -1,6 +1,9 @@
 import csv
 import math
 from typing import Dict, List, Tuple
+import os
+import datetime
+import random
 
 import folium
 import matplotlib.pyplot as plt
@@ -1903,6 +1906,19 @@ def process_routes_with_buffers(
     write_csv_file(output_csv, results, fieldnames)
 
 
+def generate_unique_filename(base_name: str, extension: str = ".csv") -> str:
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    random_id = random.randint(10000, 99999)
+    return f"{base_name}-{timestamp}_{random_id}{extension}"
+
+def write_log(file_path: str, options: dict) -> None:
+    log_file_path = file_path.replace(".csv", ".log")
+    with open(log_file_path, "w") as log_file:
+        log_file.write("Options:\n")
+        for key, value in options.items():
+            log_file.write(f"{key}: {value}\n")
+        log_file.write(f"Generated on: {datetime.datetime.now()}\n")
+
 ##This is the main function with user interaction.
 def Overlap_Function(
     csv_file: str,
@@ -1940,9 +1956,26 @@ def Overlap_Function(
     Returns:
         None
     """
+    os.makedirs("results", exist_ok=True)
+
+    # Prepare log and unique filename
+    options = {
+        "csv_file": csv_file,
+        "api_key": "********",  # Mask sensitive data in logs
+        "threshold": threshold,
+        "width": width,
+        "buffer": buffer,
+        "approximation": approximation,
+        "commuting_info": commuting_info,
+        "colorna": colorna,
+        "coldesta": coldesta,
+        "colorib": colorib,
+        "colfestb": colfestb,
+    }
+
     if approximation == "yes":
         if commuting_info == "yes":
-            output_overlap = output_overlap or "outputRec.csv"
+            output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
             overlap_rec(
                 csv_file,
                 api_key,
@@ -1955,7 +1988,7 @@ def Overlap_Function(
                 colfestb=colfestb,
             )
         elif commuting_info == "no":
-            output_overlap = output_overlap or "outputRec_only_overlap.csv"
+            output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
             only_overlap_rec(
                 csv_file,
                 api_key,
@@ -1969,7 +2002,7 @@ def Overlap_Function(
             )
     elif approximation == "no":
         if commuting_info == "yes":
-            output_overlap = output_overlap or "outputRoutes.csv"
+            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
             process_routes_with_csv(
                 csv_file,
                 api_key,
@@ -1980,7 +2013,7 @@ def Overlap_Function(
                 colfestb=colfestb,
             )
         elif commuting_info == "no":
-            output_overlap = output_overlap or "outputRoutes_only_overlap.csv"
+            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
             process_routes_only_overlap_with_csv(
                 csv_file,
                 api_key,
@@ -1991,7 +2024,7 @@ def Overlap_Function(
                 colfestb=colfestb,
             )
     elif approximation == "yes with buffer":
-        output_buffer = output_buffer or "buffer_intersection_results.csv"
+        output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
         process_routes_with_buffers(
             csv_file=csv_file,
             output_csv=output_buffer,
@@ -2002,3 +2035,7 @@ def Overlap_Function(
             colorib=colorib,
             colfestb=colfestb,
         )
+
+    # Write log
+    log_path = output_overlap or output_buffer
+    write_log(log_path, options)
