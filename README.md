@@ -1,6 +1,6 @@
 # CanterburyCommuto
 
-The aim of CanterburyCommuto is to find the percentages of time and distance travelled before, during, and after the overlap, if it exists, between two commuting routes. 
+The aim of CanterburyCommuto is to find commuting information including time and distance travelled before, during, and after the overlap, if it exists, between two routes. 
 
 It relies on the Google Maps API. 
 
