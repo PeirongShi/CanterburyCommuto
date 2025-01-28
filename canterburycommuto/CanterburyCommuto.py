@@ -620,7 +620,7 @@ def process_routes_only_overlap_with_csv(
 ##The following functions are used for finding approximations around the first and last common node. The approximation is probably more relevant when two routes crosses each other. The code can still be improved.
 def great_circle_distance(
     coord1, coord2
-):  # Function from Urban Economics and Real Estate course Homework 1.
+):  # Function from Urban Economics and Real Estate course, taught by Professor Benoit Schmutz, Homework 1.
     """
     Compute the great-circle distance between two points using the provided formula.
 
