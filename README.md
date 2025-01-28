@@ -61,7 +61,7 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_KEY
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
 Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as you can manually fill in the column names corresponding to the origins and destinations of the route pairs in CanterburyCommuto. 
 
-For example, if you would like to find the intersection ratio of 150 meters buffers created along two routes, you can type in the following command. 
+For example, if you would like to find the intersection ratios of 150-meter buffers created along two routes, you can type in the following command. 
 
 ```bash
 python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_KEY \
@@ -117,7 +117,7 @@ This Python package CanterburyCommuto is created under the instruction of Profes
 
 The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
-If you have any question, please open a issue.
+If you have any question, please open an issue.
 
 
 
