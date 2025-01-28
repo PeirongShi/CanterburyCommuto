@@ -77,6 +77,7 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --output_overlap "overlap_output.csv" \
     --output_buffer "buffer_output.csv"
 ```
+In this case, the result would be a csv file: buffer_output.csv.
 
 ### Results
 
