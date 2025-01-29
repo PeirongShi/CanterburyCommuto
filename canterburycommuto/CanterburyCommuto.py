@@ -1543,7 +1543,6 @@ def create_buffered_route(
         ]
     )
 
-
 def plot_routes_and_buffers(
     route_a_coords: List[Tuple[float, float]],
     route_b_coords: List[Tuple[float, float]],
@@ -1654,12 +1653,12 @@ def plot_routes_and_buffers(
         icon=folium.Icon(color="orange", icon="info-sign"),  # Normal icon for D2
     ).add_to(map_osm)
 
-    # Save the map as an HTML file
-    map_osm.save("routes_with_buffers_map.html")
+    # Save the map using save_map function
+    map_filename = save_map(map_osm, "routes_with_buffers_map")
 
     # Display the map inline
-    display(IFrame("routes_with_buffers_map.html", width="100%", height="600px"))
-    print("Map has been displayed inline and saved as 'routes_with_buffers_map.html'.")
+    display(IFrame(map_filename, width="100%", height="600px"))
+    print(f"Map has been displayed inline and saved as '{map_filename}'.")
 
 
 def calculate_area_ratios(
