@@ -1984,7 +1984,9 @@ def Overlap_Function(
     Returns:
         None
     """
-    os.makedirs("results", exist_ok=True)  # Ensure results folder exists
+    # Ensure the results folder exists
+    os.makedirs("results", exist_ok=True)
+
     # Read routes from the CSV file
     routes = read_csv_file(csv_file, colorna, coldesta, colorib, colfestb)
 
@@ -2002,6 +2004,13 @@ def Overlap_Function(
         "colorib": colorib,
         "colfestb": colfestb,
     }
+
+    # Ensure output files are saved in the "results" folder
+    if output_overlap:
+        output_overlap = os.path.join("results", os.path.basename(output_overlap))
+    if output_buffer:
+        output_buffer = os.path.join("results", os.path.basename(output_buffer))
+
     # Process overlap calculations
     if approximation == "yes":
         if commuting_info == "yes":
@@ -2026,6 +2035,6 @@ def Overlap_Function(
         process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer,
                                     colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
 
-    # Write log
+    # Write log file in the results folder
     log_path = output_overlap or output_buffer
     write_log(log_path, options)
