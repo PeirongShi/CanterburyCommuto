@@ -268,14 +268,14 @@ def plot_routes(
             tooltip="Last Common Node",
         ).add_to(map_osm)
 
-    # Save the map as an HTML file
-    map_osm.save("routes_map.html")
-
+    # Save the map using the save_map function
+    map_filename = save_map(map_osm, "routes_map")
+    
     # Display the map inline (only for Jupyter Notebooks)
     try:
-        display(IFrame("routes_map.html", width="100%", height="500px"))
+        display(IFrame(map_filename, width="100%", height="500px"))
     except NameError:
-        print("Map saved as 'routes_map.html'. Open it in a browser.")
+        print(f"Map saved as '{map_filename}'. Open it in a browser.")
 
 
 def process_routes_with_csv(
