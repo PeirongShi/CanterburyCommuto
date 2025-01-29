@@ -1023,7 +1023,7 @@ def overlap_rec(
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during,
-    and after overlaps, and writes results to a CSV file.
+    and after overlaps, and writes results to a CSV file. The overlap is approximated.
 
     Parameters:
     - csv_file (str): The path to the input CSV file.
@@ -1282,7 +1282,7 @@ def only_overlap_rec(
     colfestb: str = None
 ) -> list:
     """
-    Processes a CSV file to calculate overlap between routes, using user-defined column mappings.
+    Processes a CSV file to calculate overlap between routes, using user-defined column mappings. The overlap is approximated.
 
     Args:
         csv_file (str): Path to the input CSV file.
