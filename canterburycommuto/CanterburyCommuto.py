@@ -196,6 +196,19 @@ def compute_percentages(segment_value: float, total_value: float) -> float:
     """
     return (segment_value / total_value) * 100 if total_value > 0 else 0
 
+#Function to generate unique file names for storing the outputs and maps
+def generate_unique_filename(base_name: str, extension: str = ".csv") -> str:
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    random_id = random.randint(10000, 99999)
+    return f"{base_name}-{timestamp}_{random_id}{extension}"
+
+#Function to save the maps
+def save_map(map_object, base_name: str) -> str:
+    os.makedirs("results", exist_ok=True)
+    filename = generate_unique_filename(os.path.join("results", base_name), ".html")
+    map_object.save(filename)
+    print(f"✅ Map saved to: {os.path.abspath(filename)}")
+    return filename
 
 # Function to plot routes to display on maps
 def plot_routes(
