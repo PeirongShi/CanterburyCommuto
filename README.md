@@ -61,10 +61,10 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --buffer 150 \
     --approximation "yes with buffer" \
     --commuting_info "yes" \
-    --colorna "Start_A" \
-    --coldesta "End_A" \
-    --colorib "Start_B" \
-    --colfestb "End_B" \
+    --colorna "home_A" \
+    --coldesta "work_A" \
+    --colorib "home_B" \
+    --colfestb "work_B" \
     --output_overlap "overlap_output.csv" \
     --output_buffer "buffer_output.csv"
 ```
