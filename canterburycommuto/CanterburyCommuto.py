@@ -1919,12 +1919,33 @@ def process_routes_with_buffers(
 
 # Function to write txt file for displaying inputs for the package to run.  
 def write_log(file_path: str, options: dict) -> None:
-    log_file_path = file_path.replace(".csv", ".log")
-    with open(log_file_path, "w") as log_file:
+    """
+    Writes a log file summarizing the inputs used for running the package.
+
+    Args:
+        file_path (str): Path of the main CSV result file.
+        options (dict): Dictionary of options and their values.
+
+    Returns:
+        None
+    """
+    # Ensure results folder exists
+    os.makedirs("results", exist_ok=True)
+
+    # Extract only the filename without path (in case file_path includes directories)
+    base_filename = os.path.basename(file_path).replace(".csv", ".log")
+
+    # Force the log file to be saved inside the results folder
+    log_file_path = os.path.join("results", base_filename)
+
+    # Write the log file
+    with open(log_file_path, "w", encoding="utf-8") as log_file:
         log_file.write("Options:\n")
         for key, value in options.items():
             log_file.write(f"{key}: {value}\n")
         log_file.write(f"Generated on: {datetime.datetime.now()}\n")
+
+    print(f"Log file saved to: {os.path.abspath(log_file_path)}")
 
 ##This is the main function with user interaction.
 def Overlap_Function(
