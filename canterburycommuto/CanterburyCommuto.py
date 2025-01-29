@@ -207,7 +207,7 @@ def save_map(map_object, base_name: str) -> str:
     os.makedirs("results", exist_ok=True)
     filename = generate_unique_filename(os.path.join("results", base_name), ".html")
     map_object.save(filename)
-    print(f"✅ Map saved to: {os.path.abspath(filename)}")
+    print(f"Map saved to: {os.path.abspath(filename)}")
     return filename
 
 # Function to plot routes to display on maps
