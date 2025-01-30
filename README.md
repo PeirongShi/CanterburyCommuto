@@ -110,7 +110,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 
 This Python package CanterburyCommuto is created under the instruction of Professor Florian Grosset and Professor Émilien Schultz. 
 
-The **Specification on API Usage** section of this README.md was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
+The **Specification on API Usage** section, located in doc, was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
 If you have any question, please open an issue.
 
