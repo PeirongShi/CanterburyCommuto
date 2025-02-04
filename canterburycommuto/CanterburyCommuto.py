@@ -1,12 +1,11 @@
 import csv
-import math
-from typing import Dict, List, Tuple
-import os
 import datetime
+import math
+import os
 import random
+from typing import Dict, List, Tuple
 
 import folium
-import matplotlib.pyplot as plt
 import polyline
 import requests
 from IPython.display import IFrame
@@ -32,11 +31,7 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 def read_csv_file(
-    csv_file: str,
-    colorna: str,
-    coldesta: str,
-    colorib: str,
-    colfestb: str
+    csv_file: str, colorna: str, coldesta: str, colorib: str, colfestb: str
 ) -> List[Dict[str, str]]:
     """
     Reads a CSV file and maps user-specified column names to standardized names
@@ -74,7 +69,9 @@ def read_csv_file(
         # Replace original column names with standardized names in each row
         mapped_data = []
         for row in reader:
-            mapped_row = {column_mapping.get(col, col): value for col, value in row.items()}
+            mapped_row = {
+                column_mapping.get(col, col): value for col, value in row.items()
+            }
             mapped_data.append(mapped_row)
 
         return mapped_data
@@ -196,19 +193,22 @@ def compute_percentages(segment_value: float, total_value: float) -> float:
     """
     return (segment_value / total_value) * 100 if total_value > 0 else 0
 
-#Function to generate unique file names for storing the outputs and maps
+
+# Function to generate unique file names for storing the outputs and maps
 def generate_unique_filename(base_name: str, extension: str = ".csv") -> str:
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     random_id = random.randint(10000, 99999)
     return f"{base_name}-{timestamp}_{random_id}{extension}"
 
-#Function to save the maps
+
+# Function to save the maps
 def save_map(map_object, base_name: str) -> str:
     os.makedirs("results", exist_ok=True)
     filename = generate_unique_filename(os.path.join("results", base_name), ".html")
     map_object.save(filename)
     print(f"Map saved to: {os.path.abspath(filename)}")
     return filename
+
 
 # Function to plot routes to display on maps
 def plot_routes(
@@ -270,7 +270,7 @@ def plot_routes(
 
     # Save the map using the save_map function
     map_filename = save_map(map_osm, "routes_map")
-    
+
     # Display the map inline (only for Jupyter Notebooks)
     try:
         display(IFrame(map_filename, width="100%", height="500px"))
@@ -285,7 +285,7 @@ def process_routes_with_csv(
     colorna: str = None,
     coldesta: str = None,
     colorib: str = None,
-    colfestb: str = None
+    colfestb: str = None,
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during, and after overlaps,
@@ -309,7 +309,7 @@ def process_routes_with_csv(
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
-        colfestb=colfestb
+        colfestb=colfestb,
     )
     results = []
 
@@ -485,7 +485,7 @@ def process_routes_only_overlap_with_csv(
     colorna: str = None,
     coldesta: str = None,
     colorib: str = None,
-    colfestb: str = None
+    colfestb: str = None,
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during, and after overlaps,
@@ -509,7 +509,7 @@ def process_routes_only_overlap_with_csv(
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
-        colfestb=colfestb
+        colfestb=colfestb,
     )
 
     results = []
@@ -1019,7 +1019,7 @@ def overlap_rec(
     colorna: str = None,
     coldesta: str = None,
     colorib: str = None,
-    colfestb: str = None
+    colfestb: str = None,
 ) -> list:
     """
     Processes routes from a CSV file, computes time and distance travelled before, during,
@@ -1045,7 +1045,7 @@ def overlap_rec(
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
-        colfestb=colfestb
+        colfestb=colfestb,
     )
 
     results = []
@@ -1279,7 +1279,7 @@ def only_overlap_rec(
     colorna: str = None,
     coldesta: str = None,
     colorib: str = None,
-    colfestb: str = None
+    colfestb: str = None,
 ) -> list:
     """
     Processes a CSV file to calculate overlap between routes, using user-defined column mappings. The overlap is approximated.
@@ -1305,7 +1305,7 @@ def only_overlap_rec(
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
-        colfestb=colfestb
+        colfestb=colfestb,
     )
     results = []
 
@@ -1543,6 +1543,7 @@ def create_buffered_route(
         ]
     )
 
+
 def plot_routes_and_buffers(
     route_a_coords: List[Tuple[float, float]],
     route_b_coords: List[Tuple[float, float]],
@@ -1563,7 +1564,6 @@ def plot_routes_and_buffers(
     """
     import folium
     from IPython.display import IFrame, display
-    from shapely.geometry import mapping
 
     # Calculate the center of the map
     avg_lat = sum(coord[0] for coord in route_a_coords + route_b_coords) / len(
@@ -1621,7 +1621,7 @@ def plot_routes_and_buffers(
         location=route_a_coords[0],
         tooltip="O1",
         icon=folium.DivIcon(
-            html=f"""
+            html="""
             <div style="font-size: 16px; color: red; transform: scale(1.4);">
                 <i class='fa fa-star'></i>
             </div>
@@ -1639,7 +1639,7 @@ def plot_routes_and_buffers(
         location=route_a_coords[-1],
         tooltip="D1",
         icon=folium.DivIcon(
-            html=f"""
+            html="""
             <div style="font-size: 16px; color: red; transform: scale(1.4);">
                 <i class='fa fa-star'></i>
             </div>
@@ -1700,10 +1700,10 @@ def process_routes_with_buffers(
     colorna: str = None,
     coldesta: str = None,
     colorib: str = None,
-    colfestb: str = None
+    colfestb: str = None,
 ) -> None:
     """
-    Process two routes from a CSV file, create buffers, find their intersection area, 
+    Process two routes from a CSV file, create buffers, find their intersection area,
     calculate buffer areas, and save results to a CSV file.
 
     Args:
@@ -1726,7 +1726,7 @@ def process_routes_with_buffers(
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
-        colfestb=colfestb
+        colfestb=colfestb,
     )
 
     for row in data:
@@ -1917,7 +1917,8 @@ def process_routes_with_buffers(
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
 
-# Function to write txt file for displaying inputs for the package to run.  
+
+# Function to write txt file for displaying inputs for the package to run.
 def write_log(file_path: str, options: dict) -> None:
     """
     Writes a log file summarizing the inputs used for running the package.
@@ -1946,6 +1947,7 @@ def write_log(file_path: str, options: dict) -> None:
         log_file.write(f"Generated on: {datetime.datetime.now()}\n")
 
     print(f"Log file saved to: {os.path.abspath(log_file_path)}")
+
 
 ##This is the main function with user interaction.
 def Overlap_Function(
@@ -2014,26 +2016,76 @@ def Overlap_Function(
     # Process overlap calculations
     if approximation == "yes":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
-            overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width,
-                        colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            output_overlap = output_overlap or generate_unique_filename(
+                "results/outputRec", ".csv"
+            )
+            overlap_rec(
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                threshold=threshold,
+                width=width,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
-            only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width,
-                             colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            output_overlap = output_overlap or generate_unique_filename(
+                "results/outputRec_only_overlap", ".csv"
+            )
+            only_overlap_rec(
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                threshold=threshold,
+                width=width,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
     elif approximation == "no":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
-            process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna,
-                                    coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            output_overlap = output_overlap or generate_unique_filename(
+                "results/outputRoutes", ".csv"
+            )
+            process_routes_with_csv(
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
-            process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna,
-                                                 coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            output_overlap = output_overlap or generate_unique_filename(
+                "results/outputRoutes_only_overlap", ".csv"
+            )
+            process_routes_only_overlap_with_csv(
+                csv_file,
+                api_key,
+                output_csv=output_overlap,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
     elif approximation == "yes with buffer":
-        output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
-        process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer,
-                                    colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+        output_buffer = output_buffer or generate_unique_filename(
+            "results/buffer_intersection_results", ".csv"
+        )
+        process_routes_with_buffers(
+            csv_file=csv_file,
+            output_csv=output_buffer,
+            api_key=api_key,
+            buffer_distance=buffer,
+            colorna=colorna,
+            coldesta=coldesta,
+            colorib=colorib,
+            colfestb=colfestb,
+        )
 
     # Write log file in the results folder
     log_path = output_overlap or output_buffer
