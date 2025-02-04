@@ -14,12 +14,11 @@ dynamic = ["version", "description"]
 Home = "https://github.com/PeirongShi/CanterburyCommuto"
 
 requires = [
-
-    "requests",
+"requests",
 "polyline",
 "matplotlib",
 "shapely",
-"pyproj"，
-"foliums"，
-"IPython"
+"pyproj",
+"foliums",
+"IPython",
 ]
