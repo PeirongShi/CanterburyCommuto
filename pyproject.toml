@@ -9,16 +9,17 @@ readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
-
-[project.urls]
-Home = "https://github.com/PeirongShi/CanterburyCommuto"
-
 requires = [
 "requests",
 "polyline",
 "matplotlib",
 "shapely",
 "pyproj",
-"foliums",
+"folium",
 "IPython",
 ]
+
+[project.urls]
+Home = "https://github.com/PeirongShi/CanterburyCommuto"
+
+
