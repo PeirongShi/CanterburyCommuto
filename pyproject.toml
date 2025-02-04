@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "CanterburyCommuto"
+name = "canterburycommuto"
 authors = [{name = "Peirong Shi", email = "shipr1003@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
