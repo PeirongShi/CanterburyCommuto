@@ -1588,7 +1588,6 @@ def create_buffered_route(
         ]
     )
 
-
 def plot_routes_and_buffers(
     route_a_coords: List[Tuple[float, float]],
     route_b_coords: List[Tuple[float, float]],
@@ -1607,8 +1606,6 @@ def plot_routes_and_buffers(
     Returns:
         None
     """
-    import folium
-    from IPython.display import IFrame, display
 
     # Calculate the center of the map
     avg_lat = sum(coord[0] for coord in route_a_coords + route_b_coords) / len(
@@ -1623,16 +1620,12 @@ def plot_routes_and_buffers(
 
     # Add Route A to the map
     folium.PolyLine(
-        locations=route_a_coords, color="red", weight=5, opacity=0.8, tooltip="Route A"
+        locations=route_a_coords, color="red", weight=5, opacity=1, tooltip="Route A"
     ).add_to(map_osm)
 
     # Add Route B to the map
     folium.PolyLine(
-        locations=route_b_coords,
-        color="orange",
-        weight=5,
-        opacity=0.8,
-        tooltip="Route B",
+        locations=route_b_coords, color="orange", weight=5, opacity=1, tooltip="Route B"
     ).add_to(map_osm)
 
     # Add Buffer A to the map
@@ -1653,49 +1646,50 @@ def plot_routes_and_buffers(
     folium.GeoJson(
         buffer_b_geojson,
         style_function=lambda x: {
-            "fillColor": "green",
-            "color": "green",
+            "fillColor": "lightgreen",
+            "color": "lightgreen",
             "fillOpacity": 0.5,
             "weight": 2,
         },
         tooltip="Buffer B",
     ).add_to(map_osm)
 
-    # Add markers for O1, O2, D1, D2 with distinct shapes
+    # Add markers for O1 (Origin A) and O2 (Origin B)
     folium.Marker(
-        location=route_a_coords[0],
-        tooltip="O1",
-        icon=folium.DivIcon(
-            html="""
-            <div style="font-size: 16px; color: red; transform: scale(1.4);">
-                <i class='fa fa-star'></i>
-            </div>
-        """
-        ),  # Red star shape for O1
+        location=route_a_coords[0],  
+        icon=folium.Icon(color="red", icon="info-sign"), 
+        tooltip="O1 (Origin A)"
     ).add_to(map_osm)
 
     folium.Marker(
-        location=route_b_coords[0],
-        tooltip="O2",
-        icon=folium.Icon(color="orange", icon="info-sign"),  # Normal icon for O2
+        location=route_b_coords[0],  
+        icon=folium.Icon(color="green", icon="info-sign"), 
+        tooltip="O2 (Origin B)"
     ).add_to(map_osm)
 
+    # Add markers for D1 (Destination A) and D2 (Destination B) as stars
     folium.Marker(
         location=route_a_coords[-1],
-        tooltip="D1",
+        tooltip="D1 (Destination A)",
         icon=folium.DivIcon(
             html="""
             <div style="font-size: 16px; color: red; transform: scale(1.4);">
                 <i class='fa fa-star'></i>
             </div>
-        """
-        ),  # Red star shape for D1
+            """
+        ),
     ).add_to(map_osm)
 
     folium.Marker(
         location=route_b_coords[-1],
-        tooltip="D2",
-        icon=folium.Icon(color="orange", icon="info-sign"),  # Normal icon for D2
+        tooltip="D2 (Destination B)",
+        icon=folium.DivIcon(
+            html="""
+            <div style="font-size: 16px; color: green; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+            """
+        ),
     ).add_to(map_osm)
 
     # Save the map using save_map function
