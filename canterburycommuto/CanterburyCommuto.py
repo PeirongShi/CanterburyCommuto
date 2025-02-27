@@ -209,7 +209,6 @@ def save_map(map_object, base_name: str) -> str:
     print(f"Map saved to: {os.path.abspath(filename)}")
     return filename
 
-
 # Function to plot routes to display on maps
 def plot_routes(
     coordinates_a: list, coordinates_b: list, first_common: tuple, last_common: tuple
@@ -244,29 +243,75 @@ def plot_routes(
 
     # Add Route A to the map
     folium.PolyLine(
-        locations=coordinates_a, color="blue", weight=5, opacity=0.8, tooltip="Route A"
+        locations=coordinates_a, color="blue", weight=5, opacity=1, tooltip="Route A"
     ).add_to(map_osm)
 
     # Add Route B to the map
     folium.PolyLine(
-        locations=coordinates_b, color="red", weight=5, opacity=0.8, tooltip="Route B"
+        locations=coordinates_b, color="red", weight=5, opacity=1, tooltip="Route B"
     ).add_to(map_osm)
 
-    # Add markers for the first common node
+    # Add circular marker for the first common node (Cadet Blue)
     if first_common:
-        folium.Marker(
+        folium.CircleMarker(
             location=[first_common[0], first_common[1]],
-            icon=folium.Icon(color="green"),
+            radius=8,  
+            color="cadetblue",  
+            fill=True,
+            fill_color="cadetblue",  
+            fill_opacity=1,
             tooltip="First Common Node",
         ).add_to(map_osm)
 
-    # Add markers for the last common node
+    # Add circular marker for the last common node (Pink)
     if last_common:
-        folium.Marker(
+        folium.CircleMarker(
             location=[last_common[0], last_common[1]],
-            icon=folium.Icon(color="orange"),
+            radius=8,
+            color="pink",
+            fill=True,
+            fill_color="pink",
+            fill_opacity=1,
             tooltip="Last Common Node",
         ).add_to(map_osm)
+
+    # Add origin markers for Route A (Red) and Route B (Green)
+    folium.Marker(
+        location=coordinates_a[0],  
+        icon=folium.Icon(color="red", icon="info-sign"), 
+        tooltip="Origin A"
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=coordinates_b[0],  
+        icon=folium.Icon(color="green", icon="info-sign"), 
+        tooltip="Origin B"
+    ).add_to(map_osm)
+
+    # Add destination markers as stars using DivIcon
+    folium.Marker(
+        location=coordinates_a[-1],
+        icon=folium.DivIcon(
+            html=f"""
+            <div style="font-size: 16px; color: red; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+            """
+        ),
+        tooltip="Destination A",
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=coordinates_b[-1],
+        icon=folium.DivIcon(
+            html=f"""
+            <div style="font-size: 16px; color: green; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+            """
+        ),
+        tooltip="Destination B",
+    ).add_to(map_osm)
 
     # Save the map using the save_map function
     map_filename = save_map(map_osm, "routes_map")
