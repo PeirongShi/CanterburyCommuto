@@ -73,7 +73,7 @@ def main():
         type=str,
         choices=["yes", "no", "yes with buffer", "closer to precision", "exact"],
         default="no",
-        help="Overlap processing method: 'yes', 'no', or 'yes with buffer' (default: no)."
+        help="Overlap processing method: 'yes', 'no', 'yes with buffer', 'closer to precision', or 'exact'. (default: no)."
     )
     parser.add_argument(
         "--commuting_info",
