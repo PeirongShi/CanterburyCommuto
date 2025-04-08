@@ -1646,8 +1646,8 @@ def plot_routes_and_buffers(
     folium.GeoJson(
         buffer_b_geojson,
         style_function=lambda x: {
-            "fillColor": "lightgreen",
-            "color": "lightgreen",
+            "fillColor": "darkred",
+            "color": "darkred",
             "fillOpacity": 0.5,
             "weight": 2,
         },
@@ -1956,6 +1956,366 @@ def process_routes_with_buffers(
     # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
 
+def get_buffer_intersection(buffer1: Polygon, buffer2: Polygon) -> Polygon:
+    """
+    Returns the intersection of two buffer polygons.
+
+    Args:
+        buffer1 (Polygon): First buffer polygon.
+        buffer2 (Polygon): Second buffer polygon.
+
+    Returns:
+        Polygon: Intersection polygon of the two buffers, or None if no intersection.
+    """
+    intersection = buffer1.intersection(buffer2)
+    return intersection if not intersection.is_empty else None
+
+def get_route_polygon_intersections(route_coords: List[Tuple[float, float]], polygon: Polygon) -> List[Tuple[float, float]]:
+    """
+    Finds exact intersection points between a route LineString and a polygon.
+
+    Args:
+        route_coords (List[Tuple[float, float]]): The route as list of (lat, lon).
+        polygon (Polygon): Polygon to intersect with.
+
+    Returns:
+        List[Tuple[float, float]]: List of intersection points in (lat, lon).
+    """
+    route_line = LineString([(lon, lat) for lat, lon in route_coords])  # shapely uses (x, y) = (lon, lat)
+    intersection = route_line.intersection(polygon)
+
+    if intersection.is_empty:
+        return []
+    
+    # Handle different geometry types
+    if isinstance(intersection, Point):
+        return [(intersection.y, intersection.x)]
+    elif isinstance(intersection, MultiPoint):
+        return [(pt.y, pt.x) for pt in intersection.geoms]
+    elif isinstance(intersection, LineString):
+        return [(pt[1], pt[0]) for pt in intersection.coords]
+    else:
+        # Can include cases like MultiLineString or GeometryCollection
+        return [
+            (pt.y, pt.x) for geom in getattr(intersection, 'geoms', []) 
+            if isinstance(geom, Point) for pt in [geom]
+        ]
+
+def process_routes_with_closest_nodes(
+    csv_file: str,
+    api_key: str,
+    buffer_distance: float = 100.0,
+    output_csv: str = "output_closest_nodes.csv",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None,
+) -> list:
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb,
+    )
+    results = []
+
+    for row in data:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+
+        buffer_a = create_buffered_route(coords_a, buffer_distance)
+        buffer_b = create_buffered_route(coords_b, buffer_distance)
+        intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
+
+        # Plot the map
+        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+
+        if not intersection_polygon:
+            print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
+            overlap_segments = {
+                "during_distance": 0.0,
+                "during_time": 0.0,
+                "before_distance": 0.0,
+                "before_time": 0.0,
+                "after_distance": 0.0,
+                "after_time": 0.0,
+            }
+        else:
+            nodes_inside = [pt for pt in coords_a if Point(pt[1], pt[0]).within(intersection_polygon)]
+
+            if len(nodes_inside) >= 2:
+                entry_point, exit_point = nodes_inside[0], nodes_inside[-1]
+                overlap_segments = calculate_precise_travel_segments(coords_a, [entry_point, exit_point], api_key)
+            else:
+                print("Not enough route points inside intersection polygon.")
+                overlap_segments = {
+                    "during_distance": 0.0,
+                    "during_time": 0.0,
+                    "before_distance": 0.0,
+                    "before_time": 0.0,
+                    "after_distance": 0.0,
+                    "after_time": 0.0,
+                }
+
+        results.append({
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "aDist": a_dist,
+            "aTime": a_time,
+            "bDist": b_dist,
+            "bTime": b_time,
+            "overlapDist": overlap_segments["during_distance"],
+            "overlapTime": overlap_segments["during_time"],
+            "aBeforeDist": overlap_segments["before_distance"],
+            "aBeforeTime": overlap_segments["before_time"],
+            "aAfterDist": overlap_segments["after_distance"],
+            "aAfterTime": overlap_segments["after_time"],
+        })
+
+    if results:
+        fieldnames = list(results[0].keys())
+        with open(output_csv, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+    return results
+
+def process_routes_with_closest_nodes_simple(
+    csv_file: str,
+    api_key: str,
+    buffer_distance: float = 100.0,
+    output_csv: str = "output_closest_nodes_simple.csv",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None,
+) -> list:
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb,
+    )
+    results = []
+
+    for row in data:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+
+        buffer_a = create_buffered_route(coords_a, buffer_distance)
+        buffer_b = create_buffered_route(coords_b, buffer_distance)
+        intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
+
+        # Plot
+        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+
+        if not intersection_polygon:
+            print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
+            overlap_distance = 0.0
+            overlap_time = 0.0
+        else:
+            nodes_inside = [pt for pt in coords_a if Point(pt[1], pt[0]).within(intersection_polygon)]
+
+            if len(nodes_inside) >= 2:
+                entry_point, exit_point = nodes_inside[0], nodes_inside[-1]
+                segments = calculate_precise_travel_segments(coords_a, [entry_point, exit_point], api_key)
+                overlap_distance = segments.get("during_distance", 0.0)
+                overlap_time = segments.get("during_time", 0.0)
+            else:
+                print("Not enough route points inside intersection polygon.")
+                overlap_distance = 0.0
+                overlap_time = 0.0
+
+        results.append({
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "aDist": a_dist,
+            "aTime": a_time,
+            "bDist": b_dist,
+            "bTime": b_time,
+            "overlapDist": overlap_distance,
+            "overlapTime": overlap_time,
+        })
+
+    if results:
+        fieldnames = list(results[0].keys())
+        with open(output_csv, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+    return results
+
+def process_routes_with_exact_intersections(
+    csv_file: str,
+    api_key: str,
+    buffer_distance: float = 100.0,
+    output_csv: str = "output_exact_intersections.csv",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None,
+) -> list:
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb,
+    )
+    results = []
+
+    for row in data:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+
+        buffer_a = create_buffered_route(coords_a, buffer_distance)
+        buffer_b = create_buffered_route(coords_b, buffer_distance)
+        intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
+
+        # Plot the map
+        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+
+        if not intersection_polygon:
+            print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
+            overlap_segments = {
+                "during_distance": 0.0,
+                "during_time": 0.0,
+                "before_distance": 0.0,
+                "before_time": 0.0,
+                "after_distance": 0.0,
+                "after_time": 0.0,
+            }
+        else:
+            intersection_points = get_route_polygon_intersections(coords_a, intersection_polygon)
+
+            if len(intersection_points) >= 2:
+                entry_point, exit_point = intersection_points[0], intersection_points[-1]
+                overlap_segments = calculate_precise_travel_segments(coords_a, [entry_point, exit_point], api_key)
+            else:
+                print("Not enough geometric intersections.")
+                overlap_segments = {
+                    "during_distance": 0.0,
+                    "during_time": 0.0,
+                    "before_distance": 0.0,
+                    "before_time": 0.0,
+                    "after_distance": 0.0,
+                    "after_time": 0.0,
+                }
+
+        results.append({
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "aDist": a_dist,
+            "aTime": a_time,
+            "bDist": b_dist,
+            "bTime": b_time,
+            "overlapDist": overlap_segments["during_distance"],
+            "overlapTime": overlap_segments["during_time"],
+            "aBeforeDist": overlap_segments["before_distance"],
+            "aBeforeTime": overlap_segments["before_time"],
+            "aAfterDist": overlap_segments["after_distance"],
+            "aAfterTime": overlap_segments["after_time"],
+        })
+
+    if results:
+        fieldnames = list(results[0].keys())
+        with open(output_csv, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+    return results
+
+def process_routes_with_exact_intersections_simple(
+    csv_file: str,
+    api_key: str,
+    buffer_distance: float = 100.0,
+    output_csv: str = "output_exact_intersections_simple.csv",
+    colorna: str = None,
+    coldesta: str = None,
+    colorib: str = None,
+    colfestb: str = None,
+) -> list:
+    data = read_csv_file(
+        csv_file=csv_file,
+        colorna=colorna,
+        coldesta=coldesta,
+        colorib=colorib,
+        colfestb=colfestb,
+    )
+    results = []
+
+    for row in data:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+
+        buffer_a = create_buffered_route(coords_a, buffer_distance)
+        buffer_b = create_buffered_route(coords_b, buffer_distance)
+        intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
+
+        # Plot
+        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+
+        if not intersection_polygon:
+            print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
+            overlap_distance = 0.0
+            overlap_time = 0.0
+        else:
+            intersection_points = get_route_polygon_intersections(coords_a, intersection_polygon)
+
+            if len(intersection_points) >= 2:
+                entry_point, exit_point = intersection_points[0], intersection_points[-1]
+                segments = calculate_precise_travel_segments(coords_a, [entry_point, exit_point], api_key)
+                overlap_distance = segments.get("during_distance", 0.0)
+                overlap_time = segments.get("during_time", 0.0)
+            else:
+                print("Not enough geometric intersections.")
+                overlap_distance = 0.0
+                overlap_time = 0.0
+
+        results.append({
+            "OriginA": origin_a,
+            "DestinationA": destination_a,
+            "OriginB": origin_b,
+            "DestinationB": destination_b,
+            "aDist": a_dist,
+            "aTime": a_time,
+            "bDist": b_dist,
+            "bTime": b_time,
+            "overlapDist": overlap_distance,
+            "overlapTime": overlap_time,
+        })
+
+    if results:
+        fieldnames = list(results[0].keys())
+        with open(output_csv, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+    return results
 
 # Function to write txt file for displaying inputs for the package to run.
 def write_log(file_path: str, options: dict) -> None:
@@ -2013,7 +2373,7 @@ def Overlap_Function(
         threshold (float): Overlap threshold (default: 50%).
         width (float): Width for node overlap calculations (default: 100 meters).
         buffer (float): Buffer distance for buffer intersections (default: 100 meters).
-        approximation (str): Overlap processing method ("yes", "no", or "yes with buffer").
+        approximation (str): Overlap processing method ("yes", "no", "yes with buffer", "closer to precision", "exact").
         commuting_info (str): Whether to include commuting information ("yes" or "no").
         colorna (str): Column name for the origin of route A.
         coldesta (str): Column name for the destination of route A.
@@ -2084,6 +2444,7 @@ def Overlap_Function(
                 colorib=colorib,
                 colfestb=colfestb,
             )
+
     elif approximation == "no":
         if commuting_info == "yes":
             output_overlap = output_overlap or generate_unique_filename(
@@ -2111,6 +2472,7 @@ def Overlap_Function(
                 colorib=colorib,
                 colfestb=colfestb,
             )
+
     elif approximation == "yes with buffer":
         output_buffer = output_buffer or generate_unique_filename(
             "results/buffer_intersection_results", ".csv"
@@ -2125,6 +2487,66 @@ def Overlap_Function(
             colorib=colorib,
             colfestb=colfestb,
         )
+
+    elif approximation == "closer to precision":
+        if commuting_info == "yes":
+            output_buffer = output_buffer or generate_unique_filename(
+                "results/closest_nodes_buffer_results", ".csv"
+            )
+            process_routes_with_closest_nodes(
+                csv_file=csv_file,
+                api_key=api_key,
+                buffer_distance=buffer,
+                output_csv=output_buffer,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
+        elif commuting_info == "no":
+            output_buffer = output_buffer or generate_unique_filename(
+                "results/closest_nodes_buffer_only_overlap", ".csv"
+            )
+            process_routes_with_closest_nodes_simple(
+                csv_file=csv_file,
+                api_key=api_key,
+                buffer_distance=buffer,
+                output_csv=output_buffer,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
+
+    elif approximation == "exact":
+        if commuting_info == "yes":
+            output_buffer = output_buffer or generate_unique_filename(
+                "results/exact_intersection_buffer_results", ".csv"
+            )
+            process_routes_with_exact_intersections(
+                csv_file=csv_file,
+                api_key=api_key,
+                buffer_distance=buffer,
+                output_csv=output_buffer,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
+        elif commuting_info == "no":
+            output_buffer = output_buffer or generate_unique_filename(
+                "results/exact_intersection_buffer_only_overlap", ".csv"
+            )
+            process_routes_with_exact_intersections_simple(
+                csv_file=csv_file,
+                api_key=api_key,
+                buffer_distance=buffer,
+                output_csv=output_buffer,
+                colorna=colorna,
+                coldesta=coldesta,
+                colorib=colorib,
+                colfestb=colfestb,
+            )
 
     # Write log file in the results folder
     log_path = output_overlap or output_buffer
