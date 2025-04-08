@@ -71,7 +71,7 @@ def main():
     parser.add_argument(
         "--approximation",
         type=str,
-        choices=["yes", "no", "yes with buffer"],
+        choices=["yes", "no", "yes with buffer", "closer to precision", "exact"],
         default="no",
         help="Overlap processing method: 'yes', 'no', or 'yes with buffer' (default: no)."
     )
