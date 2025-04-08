@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 import folium
 import polyline
 import requests
-from IPython.display import IFrame
+from IPython.display import display, IFrame
 from pyproj import Geod, Transformer
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
