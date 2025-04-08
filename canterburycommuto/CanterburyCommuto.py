@@ -10,8 +10,7 @@ import polyline
 import requests
 from IPython.display import IFrame
 from pyproj import Geod, Transformer
-from shapely.geometry import LineString, Polygon, mapping
-
+from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
 # Global function to generate the URL
 def generate_url(origin: str, destination: str, api_key: str) -> str:
