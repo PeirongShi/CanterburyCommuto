@@ -42,7 +42,7 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 You can generate a test dataset with the script
   
 ```bash
-python canterburycommuto/Sample.py
+python CanterburyCommuto/canterburycommuto/Sample.py
 ```
 
 Otherwise, you need to create a csv file with the following columns:
