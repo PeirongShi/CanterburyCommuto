@@ -73,5 +73,9 @@ After selecting any of the two methods mentioned above, you will receive a follo
 
 The second type of approximation uses a buffer, whose distance can be chosen by the user optionally. The intersection area of the buffers created along the two routes within a pair will be recorded. The ratios of the intersection over the two buffers will then be calculated. 
 
-The Command-Line Interface explains the meaning of each input of the function. 
+The third type of approximation considers the buffer intersection as a geometrical shape that intersects with the routes, which are considered as lines in this case. The road nodes that are closest to the intersection points are found, and then the relevant commuting information is calculated accordingly.
+
+The last option for approximation is called 'exact'. In some sense, it is even better than the case where no approximation is made. When no approximation is made, there can be underestimation of the overlap if, for example, the first common node is found way after the two routes meet. With the 'exact' option, one is able to find the exact locations where the buffer intersection meets the road, so relatively accurate commuting information can be determined.
+
+The Command-Line Interface specifies each input of the function. 
 
