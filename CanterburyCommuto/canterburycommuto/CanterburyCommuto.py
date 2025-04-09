@@ -2744,34 +2744,8 @@ def Overlap_Function(
     output_overlap: str = None,
     output_buffer: str = None,
 ) -> None:
-    """
-    Main function to process overlapping routes, save results, and generate maps.
-
-    Args:
-        csv_file (str): Input CSV file containing routes.
-        api_key (str): Google API key for route calculations.
-        threshold (float): Overlap threshold (default: 50%).
-        width (float): Width for node overlap calculations (default: 100 meters).
-        buffer (float): Buffer distance for buffer intersections (default: 100 meters).
-        approximation (str): Overlap processing method ("yes", "no", "yes with buffer", "closer to precision", "exact").
-        commuting_info (str): Whether to include commuting information ("yes" or "no").
-        colorna (str): Column name for the origin of route A.
-        coldesta (str): Column name for the destination of route A.
-        colorib (str): Column name for the origin of route B.
-        colfestb (str): Column name for the destination of route B.
-        output_overlap (str): Optional output file for overlap results.
-        output_buffer (str): Optional output file for buffer intersection results.
-
-    Returns:
-        None
-    """
-    # Ensure the results folder exists
     os.makedirs("results", exist_ok=True)
 
-    # Read routes from the CSV file
-    routes = read_csv_file(csv_file, colorna, coldesta, colorib, colfestb)
-
-    # Prepare log and unique filename
     options = {
         "csv_file": csv_file,
         "api_key": "********",
@@ -2786,148 +2760,52 @@ def Overlap_Function(
         "colfestb": colfestb,
     }
 
-    # Ensure output files are saved in the "results" folder
     if output_overlap:
         output_overlap = os.path.join("results", os.path.basename(output_overlap))
     if output_buffer:
         output_buffer = os.path.join("results", os.path.basename(output_buffer))
 
-    # Process overlap calculations
     if approximation == "yes":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename(
-                "results/outputRec", ".csv"
-            )
-            overlap_rec(
-                csv_file,
-                api_key,
-                output_csv=output_overlap,
-                threshold=threshold,
-                width=width,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
+            overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_overlap, options)
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename(
-                "results/outputRec_only_overlap", ".csv"
-            )
-            only_overlap_rec(
-                csv_file,
-                api_key,
-                output_csv=output_overlap,
-                threshold=threshold,
-                width=width,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
+            only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_overlap, options)
 
     elif approximation == "no":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename(
-                "results/outputRoutes", ".csv"
-            )
-            process_routes_with_csv(
-                csv_file,
-                api_key,
-                output_csv=output_overlap,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
+            process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_overlap, options)
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename(
-                "results/outputRoutes_only_overlap", ".csv"
-            )
-            process_routes_only_overlap_with_csv(
-                csv_file,
-                api_key,
-                output_csv=output_overlap,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
+            process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_overlap, options)
 
     elif approximation == "yes with buffer":
-        output_buffer = output_buffer or generate_unique_filename(
-            "results/buffer_intersection_results", ".csv"
-        )
-        process_routes_with_buffers(
-            csv_file=csv_file,
-            output_csv=output_buffer,
-            api_key=api_key,
-            buffer_distance=buffer,
-            colorna=colorna,
-            coldesta=coldesta,
-            colorib=colorib,
-            colfestb=colfestb,
-        )
+        output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
+        process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+        write_log(output_buffer, options)
 
     elif approximation == "closer to precision":
         if commuting_info == "yes":
-            output_buffer = output_buffer or generate_unique_filename(
-                "results/closest_nodes_buffer_results", ".csv"
-            )
-            process_routes_with_closest_nodes(
-                csv_file=csv_file,
-                api_key=api_key,
-                buffer_distance=buffer,
-                output_csv=output_buffer,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_results", ".csv")
+            process_routes_with_closest_nodes(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_buffer, options)
         elif commuting_info == "no":
-            output_buffer = output_buffer or generate_unique_filename(
-                "results/closest_nodes_buffer_only_overlap", ".csv"
-            )
-            process_routes_with_closest_nodes_simple(
-                csv_file=csv_file,
-                api_key=api_key,
-                buffer_distance=buffer,
-                output_csv=output_buffer,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_only_overlap", ".csv")
+            process_routes_with_closest_nodes_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_buffer, options)
 
     elif approximation == "exact":
         if commuting_info == "yes":
-            output_buffer = output_buffer or generate_unique_filename(
-                "results/exact_intersection_buffer_results", ".csv"
-            )
-            process_routes_with_exact_intersections(
-                csv_file=csv_file,
-                api_key=api_key,
-                buffer_distance=buffer,
-                output_csv=output_buffer,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
+            output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_results", ".csv")
+            process_routes_with_exact_intersections(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_buffer, options)
         elif commuting_info == "no":
-            output_buffer = output_buffer or generate_unique_filename(
-                "results/exact_intersection_buffer_only_overlap", ".csv"
-            )
-            process_routes_with_exact_intersections_simple(
-                csv_file=csv_file,
-                api_key=api_key,
-                buffer_distance=buffer,
-                output_csv=output_buffer,
-                colorna=colorna,
-                coldesta=coldesta,
-                colorib=colorib,
-                colfestb=colfestb,
-            )
-
-    # Write log file in the results folder
-    log_path = output_overlap or output_buffer
-    write_log(log_path, options)
+            output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_only_overlap", ".csv")
+            process_routes_with_exact_intersections_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            write_log(output_buffer, options)
