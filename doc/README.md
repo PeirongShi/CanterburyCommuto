@@ -65,7 +65,7 @@ The function will first ask the user about his/her willingness to have approxima
 
 If you answer 'no', then the function will consider that an overlap starts from the first common point of a route pair and ends at the last common point.
 
-Otherwise, there are two types of approximation. 
+Otherwise, there are four options for approximation. 
 
 The first type uses route segments before the first common point and after the last common point, since humans are free entities that can move around and decide to meet early or part later from the common points. Rectangles are created around the route segments before and after the common points. The intersection of the rectangles of the given width is evaluated. If the value of the intersection area over the smaller rectangle area is larger than a certain threshold, the route segment pairs will be kept. The first and last overlapping nodes will be redetermined through these route pairs kept by the rectangle approximation.
 
