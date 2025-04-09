@@ -1545,7 +1545,6 @@ def calculate_geodetic_area(polygon: Polygon) -> float:
     else:
         raise ValueError(f"Unsupported geometry type: {polygon.geom_type}")
 
-
 def create_buffered_route(
     route_coords: List[Tuple[float, float]],
     buffer_distance_meters: float,
@@ -1560,32 +1559,28 @@ def create_buffered_route(
         projection (str): EPSG code for the projection (default: Web Mercator - EPSG:3857).
 
     Returns:
-        Polygon: Buffered polygon around the route in geographic coordinates (lat/lon).
+        Polygon: Buffered polygon around the route in geographic coordinates (lat/lon), or None if not possible.
     """
-    # Validate input route coordinates
     if not route_coords or len(route_coords) < 2:
-        raise ValueError(
-            "Route coordinates must contain at least two points to create a LineString."
-        )
+        print("Warning: Not enough points to create buffer. Returning None.")
+        return None
+
     transformer = Transformer.from_crs("EPSG:4326", projection, always_xy=True)
     inverse_transformer = Transformer.from_crs(projection, "EPSG:4326", always_xy=True)
 
-    # Transform coordinates to the specified projection
     projected_coords = [transformer.transform(lon, lat) for lat, lon in route_coords]
 
     if len(projected_coords) < 2:
-        print("Error: Not enough points to create a LineString")
-        return None  # Skip creating the LineString for this row
+        print("Error: Not enough points after projection to create LineString.")
+        return None
+
     projected_line = LineString(projected_coords)
     buffered_polygon = projected_line.buffer(buffer_distance_meters)
 
-    # Transform the buffered polygon back to geographic coordinates (lat/lon)
-    return Polygon(
-        [
-            inverse_transformer.transform(x, y)
-            for x, y in buffered_polygon.exterior.coords
-        ]
-    )
+    return Polygon([
+        inverse_transformer.transform(x, y)
+        for x, y in buffered_polygon.exterior.coords
+    ])
 
 def plot_routes_and_buffers(
     route_a_coords: List[Tuple[float, float]],
@@ -2040,8 +2035,12 @@ def get_buffer_intersection(buffer1: Polygon, buffer2: Polygon) -> Polygon:
         buffer2 (Polygon): Second buffer polygon.
 
     Returns:
-        Polygon: Intersection polygon of the two buffers, or None if no intersection.
+        Polygon: Intersection polygon of the two buffers, or None if no intersection or invalid input.
     """
+    if buffer1 is None or buffer2 is None:
+        print("Warning: One or both buffer polygons are None. Cannot compute intersection.")
+        return None
+
     intersection = buffer1.intersection(buffer2)
     return intersection if not intersection.is_empty else None
 
