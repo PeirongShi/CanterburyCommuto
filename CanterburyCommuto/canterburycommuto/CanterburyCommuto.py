@@ -2098,6 +2098,90 @@ def process_routes_with_closest_nodes(
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a == destination_a and origin_b != destination_b:
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a != destination_a and origin_b == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a == origin_b and destination_a == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            buffer_a = create_buffered_route(coords_a, buffer_distance)
+            coords_b = coords_a
+            buffer_b = buffer_a
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+            continue
+
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
@@ -2105,7 +2189,6 @@ def process_routes_with_closest_nodes(
         buffer_b = create_buffered_route(coords_b, buffer_distance)
         intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
 
-        # Plot the map
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
 
         if not intersection_polygon:
@@ -2184,6 +2267,74 @@ def process_routes_with_closest_nodes_simple(
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        if origin_a == destination_a and origin_b != destination_b:
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        if origin_a != destination_a and origin_b == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        if origin_a == origin_b and destination_a == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            buffer_a = create_buffered_route(coords_a, buffer_distance)
+            coords_b = coords_a
+            buffer_b = buffer_a
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+            })
+            plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+            continue
+
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
@@ -2191,7 +2342,6 @@ def process_routes_with_closest_nodes_simple(
         buffer_b = create_buffered_route(coords_b, buffer_distance)
         intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
 
-        # Plot
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
 
         if not intersection_polygon:
@@ -2256,6 +2406,90 @@ def process_routes_with_exact_intersections(
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a == destination_a and origin_b != destination_b:
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a != destination_a and origin_b == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            continue
+
+        if origin_a == origin_b and destination_a == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            buffer_a = create_buffered_route(coords_a, buffer_distance)
+            coords_b = coords_a
+            buffer_b = buffer_a
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+                "aBeforeDist": 0.0,
+                "aBeforeTime": 0.0,
+                "aAfterDist": 0.0,
+                "aAfterTime": 0.0,
+            })
+            plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+            continue
+
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
@@ -2263,7 +2497,6 @@ def process_routes_with_exact_intersections(
         buffer_b = create_buffered_route(coords_b, buffer_distance)
         intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
 
-        # Plot the map
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
 
         if not intersection_polygon:
@@ -2342,6 +2575,80 @@ def process_routes_with_exact_intersections_simple(
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
+        # Case 1: both routes are point-to-point
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        # Case 2: A is a point, B is a route
+        if origin_a == destination_a and origin_b != destination_b:
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": 0.0,
+                "aTime": 0.0,
+                "bDist": b_dist,
+                "bTime": b_time,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        # Case 3: B is a point, A is a route
+        if origin_a != destination_a and origin_b == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": 0.0,
+                "bTime": 0.0,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            })
+            continue
+
+        # Case 4: identical A and B
+        if origin_a == origin_b and destination_a == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            buffer_a = create_buffered_route(coords_a, buffer_distance)
+            coords_b = coords_a
+            buffer_b = buffer_a
+
+            results.append({
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+            })
+            plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+            continue
+
+        # Case 5: both are valid routes
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
@@ -2349,7 +2656,6 @@ def process_routes_with_exact_intersections_simple(
         buffer_b = create_buffered_route(coords_b, buffer_distance)
         intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
 
-        # Plot
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
 
         if not intersection_polygon:
