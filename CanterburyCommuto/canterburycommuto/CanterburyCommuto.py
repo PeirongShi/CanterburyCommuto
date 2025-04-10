@@ -12,7 +12,7 @@ from IPython.display import display, IFrame
 from pyproj import Geod, Transformer
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
-# Global function for generating the URL
+# Global function to generate the URL
 def generate_url(origin: str, destination: str, api_key: str) -> str:
     """
     Generates the Google Maps Directions API URL with the given parameters.
