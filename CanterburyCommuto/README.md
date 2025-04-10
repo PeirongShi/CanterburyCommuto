@@ -104,7 +104,10 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
     `aIntersecRatio = Intersection Area / Area of A`
 
 20. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A.
-
+21. **aoverlapDist**: Distance of the overlapping segment on route A inside the buffer intersection with route B.  
+22. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
+23. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
+24. **boverlapTime**: Time to traverse the overlapping segment on route B.
 
 ## Acknowledgment
 
