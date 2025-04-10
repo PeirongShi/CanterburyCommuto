@@ -2886,7 +2886,6 @@ def write_log(file_path: str, options: dict) -> None:
     Args:
         file_path (str): Path of the main CSV result file.
         options (dict): Dictionary of options and their values.
-
     Returns:
         None
     """
