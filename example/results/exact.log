@@ -1,13 +1,13 @@
 Options:
 csv_file: origin_destination_coordinates.csv
 api_key: ********
-threshold: 60.0
-width: 120.0
-buffer: 150.0
-approximation: yes
-commuting_info: no
+threshold: 50.0
+width: 100.0
+buffer: 100.0
+approximation: exact
+commuting_info: yes
 colorna: home_A
 coldesta: work_A
 colorib: home_B
 colfestb: work_B
-Generated on: 2025-04-10 15:46:55.316516
+Generated on: 2025-04-10 15:48:01.407078
