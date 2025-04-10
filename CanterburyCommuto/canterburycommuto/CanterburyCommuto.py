@@ -2892,8 +2892,7 @@ def write_log(file_path: str, options: dict) -> None:
     """
     # Ensure results folder exists
     os.makedirs("results", exist_ok=True)
-    suffix = options.get("approximation", "log")
-    base_filename = os.path.basename(file_path).replace(".csv", f"_{suffix}.log")
+    base_filename = os.path.basename(file_path).replace(".csv", ".log")
 
     # Force the log file to be saved inside the results folder
     log_file_path = os.path.join("results", base_filename)
