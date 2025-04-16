@@ -433,8 +433,57 @@ def process_routes_with_csv(
     write_csv_file(output_csv, results, fieldnames)
     return results
 
+def process_row_only_overlap(row_and_api_key):
+    row, api_key = row_and_api_key
+    origin_a, destination_a = row["OriginA"], row["DestinationA"]
+    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+    if origin_a == origin_b and destination_a == destination_b:
+        coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        plot_routes(coordinates_a, [], None, None)
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": a_dist, "aTime": a_time,
+            "bDist": a_dist, "bTime": a_time,
+            "overlapDist": a_dist, "overlapTime": a_time,
+        }
+
+    coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+    coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+
+    first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+
+    if not first_common_node or not last_common_node:
+        plot_routes(coordinates_a, coordinates_b, None, None)
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": total_distance_a, "aTime": total_time_a,
+            "bDist": total_distance_b, "bTime": total_time_b,
+            "overlapDist": 0.0, "overlapTime": 0.0,
+        }
+
+    before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
+    before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
+
+    _, overlap_a_distance, overlap_a_time = get_route_data(
+        f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
+
+    overlap_b_distance, overlap_b_time = overlap_a_distance, overlap_a_time
+
+    plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
+
+    return {
+        "OriginA": origin_a, "DestinationA": destination_a,
+        "OriginB": origin_b, "DestinationB": destination_b,
+        "aDist": total_distance_a, "aTime": total_time_a,
+        "bDist": total_distance_b, "bTime": total_time_b,
+        "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
+    }
+
 def process_routes_only_overlap_with_csv(
-    csv_file: str,  # Pass the file path, not the preloaded data
+    csv_file: str,
     api_key: str,
     output_csv: str = "output.csv",
     colorna: str = None,
@@ -442,23 +491,6 @@ def process_routes_only_overlap_with_csv(
     colorib: str = None,
     colfestb: str = None,
 ) -> list:
-    """
-    Processes routes from a CSV file, computes time and distance travelled before, during, and after overlaps,
-    and writes results to a CSV file.
-
-    Parameters:
-    - csv_file (str): The path to the input CSV file.
-    - api_key (str): The API key for accessing the Google Maps Directions API.
-    - output_csv (str): The path to the output CSV file.
-    - colorna (str): Column name for the origin of route A.
-    - coldesta (str): Column name for the destination of route A.
-    - colorib (str): Column name for the origin of route B.
-    - colfestb (str): Column name for the destination of route B.
-
-    Returns:
-    - list: A list of dictionaries containing the computed results.
-    """
-    # Read data from CSV with column mappings
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
@@ -467,126 +499,16 @@ def process_routes_only_overlap_with_csv(
         colfestb=colfestb,
     )
 
-    results = []
+    results = process_rows(data, api_key, process_row_only_overlap)
 
-    for row in data:
-        origin_a, destination_a = row["OriginA"], row["DestinationA"]
-        origin_b, destination_b = row["OriginB"], row["DestinationB"]
-
-        # Check if (origin, destination) for A and B are identical
-        if origin_a == origin_b and destination_a == destination_b:
-            coordinates_a, a_dist, a_time = get_route_data(
-                origin_a, destination_a, api_key
-            )  # Extract total distance, time, and route
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": a_dist,
-                    "aTime": a_time,
-                    "bDist": a_dist,
-                    "bTime": a_time,
-                    "overlapDist": a_dist,
-                    "overlapTime": a_time,
-                }
-            )
-            print(
-                f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}"
-            )
-            plot_routes(coordinates_a, [], None, None)  # Plot Route A
-            continue
-
-        # Get full route details for A and B
-        coordinates_a, total_distance_a, total_time_a = get_route_data(
-            origin_a, destination_a, api_key
-        )
-        coordinates_b, total_distance_b, total_time_b = get_route_data(
-            origin_b, destination_b, api_key
-        )
-
-        # Find common nodes
-        first_common_node, last_common_node = find_common_nodes(
-            coordinates_a, coordinates_b
-        )
-
-        if not first_common_node or not last_common_node:
-            print("No common nodes found for these routes.")
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": total_distance_a,
-                    "aTime": total_time_a,
-                    "bDist": total_distance_b,
-                    "bTime": total_time_b,
-                    "overlapDist": 0.0,
-                    "overlapTime": 0.0,
-                }
-            )
-            plot_routes(
-                coordinates_a, coordinates_b, None, None
-            )  # Plot routes without overlap
-            continue
-
-        # Split segments
-        before_a, overlap_a, after_a = split_segments(
-            coordinates_a, first_common_node, last_common_node
-        )
-        before_b, overlap_b, after_b = split_segments(
-            coordinates_b, first_common_node, last_common_node
-        )
-
-        # Calculate distances and times for segments of A
-        _, overlap_a_distance, overlap_a_time = get_route_data(
-            f"{overlap_a[0][0]},{overlap_a[0][1]}",
-            f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
-            api_key,
-        )
-
-        overlap_b_distance, overlap_b_time = (
-            overlap_a_distance,
-            overlap_a_time,
-        )  # Identical overlaps
-        # Append results, including the input columns
-        results.append(
-            {
-                "OriginA": origin_a,
-                "DestinationA": destination_a,
-                "OriginB": origin_b,
-                "DestinationB": destination_b,
-                "aDist": total_distance_a,
-                "aTime": total_time_a,
-                "bDist": total_distance_b,
-                "bTime": total_time_b,
-                "overlapDist": overlap_a_distance,
-                "overlapTime": overlap_a_time,
-            }
-        )
-
-        # Plot routes with overlap
-        plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
-
-    # Write results to CSV
     fieldnames = [
-        "OriginA",
-        "DestinationA",
-        "OriginB",
-        "DestinationB",
-        "aDist",
-        "aTime",
-        "bDist",
-        "bTime",
-        "overlapDist",
-        "overlapTime",
+        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "aDist", "aTime", "bDist", "bTime",
+        "overlapDist", "overlapTime",
     ]
     write_csv_file(output_csv, results, fieldnames)
 
     return results
-
 
 ##The following functions are used for finding approximations around the first and last common node. The approximation is probably more relevant when two routes crosses each other. The code can still be improved.
 def great_circle_distance(
