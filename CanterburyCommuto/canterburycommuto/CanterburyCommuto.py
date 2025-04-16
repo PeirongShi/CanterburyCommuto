@@ -1167,10 +1167,9 @@ def only_overlap_rec(
         colfestb=colfestb,
     )
 
-    args = [(row, api_key, width, threshold) for row in data]
-
-    with Pool() as pool:
-        results = pool.map(process_row_only_overlap_rec, args)
+    results = process_rows_multiproc(
+        data, api_key, process_row_only_overlap_rec, extra_args=(width, threshold)
+    )
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
