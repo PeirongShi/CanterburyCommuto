@@ -1180,7 +1180,7 @@ def only_overlap_rec(
 
     return results
 
-##The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
+## The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def calculate_geodetic_area(polygon: Polygon) -> float:
     """
     Calculate the geodetic area of a polygon or multipolygon in square meters using the WGS84 ellipsoid.
@@ -1388,9 +1388,84 @@ def calculate_area_ratios(
         "bAreaRatio": ratio_over_b,
     }
 
+def process_row_route_buffers(row_and_args):
+    row, api_key, buffer_distance = row_and_args
+    origin_a, destination_a = row["OriginA"], row["DestinationA"]
+    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+    if origin_a == destination_a and origin_b == destination_b:
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": 0, "aTime": 0, "bDist": 0, "bTime": 0,
+            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+        }
+
+    if origin_a == destination_a and origin_b != destination_b:
+        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": 0, "aTime": 0, "bDist": b_dist, "bTime": b_time,
+            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+        }
+
+    if origin_a != destination_a and origin_b == destination_b:
+        route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": a_dist, "aTime": a_time, "bDist": 0, "bTime": 0,
+            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+        }
+
+    route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+    route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+
+    if origin_a == origin_b and destination_a == destination_b:
+        buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+        buffer_b = buffer_a
+        plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": a_dist, "aTime": a_time,
+            "bDist": a_dist, "bTime": a_time,
+            "aIntersecRatio": 1.0, "bIntersecRatio": 1.0,
+        }
+
+    buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+    buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+    intersection = buffer_a.intersection(buffer_b)
+
+    plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
+
+    if intersection.is_empty:
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": a_dist, "aTime": a_time,
+            "bDist": b_dist, "bTime": b_time,
+            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+        }
+
+    intersection_area = intersection.area
+    a_area = buffer_a.area
+    b_area = buffer_b.area
+    a_intersec_ratio = intersection_area / a_area
+    b_intersec_ratio = intersection_area / b_area
+
+    return {
+        "OriginA": origin_a, "DestinationA": destination_a,
+        "OriginB": origin_b, "DestinationB": destination_b,
+        "aDist": a_dist, "aTime": a_time,
+        "bDist": b_dist, "bTime": b_time,
+        "aIntersecRatio": a_intersec_ratio,
+        "bIntersecRatio": b_intersec_ratio,
+    }
 
 def process_routes_with_buffers(
-    csv_file: str,  # Pass the file path, not the preloaded data
+    csv_file: str,
     output_csv: str,
     api_key: str,
     buffer_distance: float = 100,
@@ -1399,25 +1474,6 @@ def process_routes_with_buffers(
     colorib: str = None,
     colfestb: str = None,
 ) -> None:
-    """
-    Process two routes from a CSV file, create buffers, find their intersection area,
-    calculate buffer areas, and save results to a CSV file.
-
-    Args:
-        csv_file (str): Input CSV file containing routes.
-        output_csv (str): Path to the output CSV file.
-        api_key (str): Google API key for route calculations.
-        buffer_distance (float): Distance for buffer zones in meters.
-        colorna (str): Column name for the origin of route A.
-        coldesta (str): Column name for the destination of route A.
-        colorib (str): Column name for the origin of route B.
-        colfestb (str): Column name for the destination of route B.
-
-    Returns:
-        None
-    """
-    results: List[dict] = []
-    # Read the CSV file with column mappings
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
@@ -1426,192 +1482,16 @@ def process_routes_with_buffers(
         colfestb=colfestb,
     )
 
-    for row in data:
-        # Extract route data
-        origin_a, destination_a = row["OriginA"], row["DestinationA"]
-        origin_b, destination_b = row["OriginB"], row["DestinationB"]
-        # Fetch route coordinates using get_route_data
-        # print(f"Processing OriginA: {origin_a}, DestinationA: {destination_a}")
-        # print(f"Processing OriginB: {origin_b}, DestinationB: {destination_b}")
-        # Case 1: Origin A == Destination A and Origin B == Destination B
-        if origin_a == destination_a and origin_b == destination_b:
-            print(
-                f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})"
-            )
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": 0,
-                    "aTime": 0,
-                    "bDist": 0,
-                    "bTime": 0,
-                    "aIntersecRatio": 0.0,
-                    "bIntersecRatio": 0.0,
-                }
-            )
-            continue
+    results = process_rows_multiproc(
+        data, api_key, process_row_route_buffers, extra_args=(buffer_distance,)
+    )
 
-        # Case 2: Origin A == Destination A but Origin B != Destination B
-        if origin_a == destination_a and origin_b != destination_b:
-            print(
-                f"Processing row: Origin A == Destination A but Origin B != Destination B ({origin_a}, {destination_a})"
-            )
-            route_b_coords, b_dist, b_time = get_route_data(
-                origin_b, destination_b, api_key
-            )
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": 0,
-                    "aTime": 0,
-                    "bDist": b_dist,
-                    "bTime": b_time,
-                    "aIntersecRatio": 0.0,
-                    "bIntersecRatio": 0.0,
-                }
-            )
-            continue
-
-        # Case 3: Origin A != Destination A but Origin B == Destination B
-        if origin_a != destination_a and origin_b == destination_b:
-            print(
-                f"Processing row: Origin A != Destination A but Origin B == Destination B ({origin_b}, {destination_b})"
-            )
-            route_a_coords, a_dist, a_time = get_route_data(
-                origin_a, destination_a, api_key
-            )
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": a_dist,
-                    "aTime": a_time,
-                    "bDist": 0,
-                    "bTime": 0,
-                    "aIntersecRatio": 0.0,
-                    "bIntersecRatio": 0.0,
-                }
-            )
-            continue
-
-        route_a_coords, a_dist, a_time = get_route_data(
-            origin_a, destination_a, api_key
-        )
-        route_b_coords, b_dist, b_time = get_route_data(
-            origin_b, destination_b, api_key
-        )
-
-        # Check if origins and destinations are identical
-        if origin_a == origin_b and destination_a == destination_b:
-            route_a_coords, a_dist, a_time = get_route_data(
-                origin_a, destination_a, api_key
-            )
-            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
-
-            # Create identical buffer and route for B
-            route_b_coords = route_a_coords
-            buffer_b = buffer_a
-
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": a_dist,
-                    "aTime": a_time,
-                    "bDist": a_dist,
-                    "bTime": a_time,
-                    "aIntersecRatio": 1.0,
-                    "bIntersecRatio": 1.0,
-                }
-            )
-            # print(f"Routes A and B have identical origins and destinations: {origin_a} -> {destination_a}. Area calculated from buffer.")
-            plot_routes_and_buffers(
-                route_a_coords, route_b_coords, buffer_a, buffer_b
-            )  # Plot Route A and its buffer
-            continue
-
-        # Fetch route coordinates using get_route_data
-        route_a_coords, a_dist, a_time = get_route_data(
-            origin_a, destination_a, api_key
-        )
-        route_b_coords, b_dist, b_time = get_route_data(
-            origin_b, destination_b, api_key
-        )
-
-        # Create buffers around the routes
-        buffer_a: Polygon = create_buffered_route(route_a_coords, buffer_distance)
-        buffer_b: Polygon = create_buffered_route(route_b_coords, buffer_distance)
-
-        # Calculate intersection of the buffers
-        intersection: Polygon = buffer_a.intersection(buffer_b)
-
-        if intersection.is_empty:
-            # print(f"No intersection found for routes {origin_a} -> {destination_a} and {origin_b} -> {destination_b}.")
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": a_dist,
-                    "aTime": a_time,
-                    "bDist": b_dist,
-                    "bTime": b_time,
-                    "aIntersecRatio": 0.0,
-                    "bIntersecRatio": 0.0,
-                }
-            )
-        else:
-            # Calculate intersection area and include buffer areas
-            intersection_area = intersection.area
-            a_area = buffer_a.area
-            b_area = buffer_b.area
-            a_intersec_ratio = intersection_area / a_area
-            b_intersec_ratio = intersection_area / b_area
-
-            results.append(
-                {
-                    "OriginA": origin_a,
-                    "DestinationA": destination_a,
-                    "OriginB": origin_b,
-                    "DestinationB": destination_b,
-                    "aDist": a_dist,
-                    "aTime": a_time,
-                    "bDist": b_dist,
-                    "bTime": b_time,
-                    "aIntersecRatio": a_intersec_ratio,
-                    "bIntersecRatio": b_intersec_ratio,
-                }
-            )
-
-        # Plot the routes and buffers for visualization
-        plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
-
-    # Define CSV field names
     fieldnames = [
-        "OriginA",
-        "DestinationA",
-        "OriginB",
-        "DestinationB",
-        "aDist",
-        "aTime",
-        "bDist",
-        "bTime",
-        "aIntersecRatio",
-        "bIntersecRatio",
+        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "aDist", "aTime", "bDist", "bTime",
+        "aIntersecRatio", "bIntersecRatio",
     ]
 
-    # Write results to the output CSV
     write_csv_file(output_csv, results, fieldnames)
 
 def calculate_precise_travel_segments(
