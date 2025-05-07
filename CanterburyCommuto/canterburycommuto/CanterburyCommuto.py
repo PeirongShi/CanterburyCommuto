@@ -30,13 +30,51 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
 
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
+# The following functions also help determine if there are errors in the code. 
+# Setup basic logging config
+logging.basicConfig(
+    filename="results/validation_errors.log",
+    filemode="a",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def is_valid_coordinate(coord: str) -> bool:
+    """
+    Checks if the coordinate string is a valid latitude,longitude pair.
+    Validates format, numeric values, and geographic bounds.
+
+    Returns True if valid, False otherwise.
+    """
+    if not isinstance(coord, str):
+        return False
+    parts = coord.strip().split(",")
+    if len(parts) != 2:
+        return False
+
+    try:
+        lat = float(parts[0].strip())
+        lon = float(parts[1].strip())
+        if not (-90 <= lat <= 90):
+            return False
+        if not (-180 <= lon <= 180):
+            return False
+        return True
+    except ValueError:
+        return False
+
 def read_csv_file(
-    csv_file: str, colorna: str, coldesta: str, colorib: str, colfestb: str
+    csv_file: str,
+    colorna: str,
+    coldesta: str,
+    colorib: str,
+    colfestb: str,
+    skip_invalid: bool = True
 ) -> List[Dict[str, str]]:
     """
     Reads a CSV file and maps user-specified column names to standardized names
     (OriginA, DestinationA, OriginB, DestinationB). Returns a list of dictionaries
-    with standardized column names.
+    with standardized column names. Logs any coordinate errors encountered.
 
     Parameters:
     - csv_file (str): Path to the CSV file.
@@ -44,21 +82,20 @@ def read_csv_file(
     - coldesta (str): Column name for the destination of route A.
     - colorib (str): Column name for the origin of route B.
     - colfestb (str): Column name for the destination of route B.
+    - skip_invalid (bool): If True, skip rows with invalid coordinates and log them.
 
     Returns:
     - List[Dict[str, str]]: List of dictionaries with standardized column names.
     """
-    with open(csv_file, mode="r") as file:
+    with open(csv_file, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        csv_columns = reader.fieldnames  # Extract column names from the CSV header
+        csv_columns = reader.fieldnames
 
-        # Validate column names
         required_columns = [colorna, coldesta, colorib, colfestb]
         for column in required_columns:
             if column not in csv_columns:
                 raise ValueError(f"Column '{column}' not found in the CSV file.")
 
-        # Map specified column names to standardized names
         column_mapping = {
             colorna: "OriginA",
             coldesta: "DestinationA",
@@ -66,13 +103,31 @@ def read_csv_file(
             colfestb: "DestinationB",
         }
 
-        # Replace original column names with standardized names in each row
         mapped_data = []
+        row_number = 1
         for row in reader:
             mapped_row = {
                 column_mapping.get(col, col): value for col, value in row.items()
             }
+            coords = [
+                mapped_row["OriginA"],
+                mapped_row["DestinationA"],
+                mapped_row["OriginB"],
+                mapped_row["DestinationB"],
+            ]
+            invalids = [c for c in coords if not is_valid_coordinate(c)]
+
+            if invalids:
+                error_msg = f"Row {row_number} - Invalid coordinates: {invalids}"
+                if skip_invalid:
+                    logging.warning(error_msg)
+                    row_number += 1
+                    continue
+                else:
+                    raise ValueError(error_msg)
+
             mapped_data.append(mapped_row)
+            row_number += 1
 
         return mapped_data
 
@@ -407,18 +462,42 @@ def process_routes_with_csv(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes route pairs from a CSV file using a row-processing function and writes results to a new CSV file.
+
+    This function:
+    - Reads route origin/destination pairs from a CSV file.
+    - Maps the user-provided column names to standard labels.
+    - Optionally skips or halts on invalid coordinate entries.
+    - Uses multiprocessing to process each row in parallel.
+    - Writes the processed route data to an output CSV file.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file containing the route pairs.
+    - api_key (str): Google Maps API key used for fetching travel route data.
+    - output_csv (str): File path for saving the output CSV file (default: "output.csv").
+    - colorna (str): Column name in the CSV for the origin of route A.
+    - coldesta (str): Column name for the destination of route A.
+    - colorib (str): Column name for the origin of route B.
+    - colfestb (str): Column name for the destination of route B.
+    - skip_invalid (bool): If True (default), invalid rows are logged and skipped; if False, processing halts on the first invalid row.
+
+    Returns:
+    - list: A list of dictionaries containing processed route data.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
-    # Use multiprocessing to process rows in parallel
     results = process_rows(data, api_key, process_row_overlap)
-    
+
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
         "aDist", "aTime", "bDist", "bTime",
@@ -2205,7 +2284,34 @@ def Overlap_Function(
     colfestb: str = None,
     output_overlap: str = None,
     output_buffer: str = None,
+    skip_invalid: bool = True
 ) -> None:
+    """
+    Main dispatcher function to handle various route overlap and buffer analysis strategies.
+
+    Based on the 'approximation' and 'commuting_info' flags, it routes the execution to one of
+    several processing functions that compute route overlaps and buffer intersections, and writes
+    results to CSV output files. It also logs options and configurations.
+
+    Parameters:
+    - csv_file (str): Path to input CSV file.
+    - api_key (str): Google Maps API key.
+    - threshold (float): Distance threshold for overlap (if applicable).
+    - width (float): Width used for line buffering (if applicable).
+    - buffer (float): Buffer radius in meters.
+    - approximation (str): Mode of processing (e.g., "no", "yes", "yes with buffer", etc.).
+    - commuting_info (str): Whether commuting detail is needed ("yes" or "no").
+    - colorna (str): Column name for origin A.
+    - coldesta (str): Column name for destination A.
+    - colorib (str): Column name for origin B.
+    - colfestb (str): Column name for destination B.
+    - output_overlap (str): Optional custom filename for overlap results.
+    - output_buffer (str): Optional custom filename for buffer results.
+    - skip_invalid (bool): If True, skips invalid coordinates and logs the error; if False, halts on error.
+
+    Returns:
+    - None
+    """
     os.makedirs("results", exist_ok=True)
 
     options = {
@@ -2240,7 +2346,7 @@ def Overlap_Function(
     elif approximation == "no":
         if commuting_info == "yes":
             output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
-            process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_overlap, options)
         elif commuting_info == "no":
             output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
