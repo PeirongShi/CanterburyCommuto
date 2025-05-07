@@ -566,13 +566,31 @@ def process_routes_only_overlap_with_csv(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes only the overlapping portions of routes from a CSV file.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key for routing.
+    - output_csv (str): Filename for output CSV.
+    - colorna (str): Column name for origin of Route A.
+    - coldesta (str): Column name for destination of Route A.
+    - colorib (str): Column name for origin of Route B.
+    - colfestb (str): Column name for destination of Route B.
+    - skip_invalid (bool): If True, skips rows with invalid coordinates and logs them.
+
+    Returns:
+    - list: Processed route overlap results.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows(data, api_key, process_row_only_overlap)
@@ -1103,13 +1121,30 @@ def overlap_rec(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes routes using the rectangular overlap method with a defined threshold and width.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key for routing.
+    - output_csv (str): Path for the output CSV file.
+    - threshold (int): Overlap threshold distance.
+    - width (int): Buffer width for rectangular overlap.
+    - colorna, coldesta, colorib, colfestb (str): Column names for route endpoints.
+    - skip_invalid (bool): If True, skips invalid rows and logs them.
+
+    Returns:
+    - list: Processed results with travel and overlap metrics.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows_multiproc(
@@ -1237,13 +1272,30 @@ def only_overlap_rec(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes routes to compute only the overlapping rectangular segments based on a threshold and width.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key for route requests.
+    - output_csv (str): Output path for results.
+    - threshold (float): Distance threshold for overlap detection.
+    - width (float): Width of the rectangular overlap zone.
+    - colorna, coldesta, colorib, colfestb (str): Column names for route coordinates.
+    - skip_invalid (bool): If True, skips rows with invalid input and logs them.
+
+    Returns:
+    - list: Processed results with overlap metrics only.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows_multiproc(
@@ -1552,13 +1604,29 @@ def process_routes_with_buffers(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> None:
+    """
+    Processes two routes from a CSV file to compute buffer intersection ratios.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - output_csv (str): Output file for writing the results.
+    - api_key (str): Google API key for route data.
+    - buffer_distance (float): Distance in meters for buffering each route.
+    - colorna, coldesta, colorib, colfestb (str): Column names in the input CSV.
+    - skip_invalid (bool): If True, skips invalid rows and logs them instead of halting.
+
+    Returns:
+    - None
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows_multiproc(
@@ -1784,13 +1852,30 @@ def process_routes_with_closest_nodes(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes two routes using buffered geometries to compute travel overlap details
+    based on closest nodes within the intersection.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key.
+    - buffer_distance (float): Distance for the route buffer in meters.
+    - output_csv (str): Path to save the output results.
+    - colorna, coldesta, colorib, colfestb (str): Column mappings for input.
+    - skip_invalid (bool): If True, skips invalid input rows and logs them.
+
+    Returns:
+    - list: Processed results written to the output CSV.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows_multiproc(
@@ -1902,13 +1987,30 @@ def process_routes_with_closest_nodes_simple(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Computes total and overlapping travel segments for two routes using closest-node
+    intersection logic without splitting before/during/after, and writes results to CSV.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key for route data.
+    - buffer_distance (float): Distance used for the buffer zone.
+    - output_csv (str): Output path for CSV file with results.
+    - colorna, coldesta, colorib, colfestb (str): Column names in the CSV.
+    - skip_invalid (bool): If True, skips rows with invalid coordinate values.
+
+    Returns:
+    - list: Processed result rows.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     results = process_rows_multiproc(
@@ -2053,13 +2155,30 @@ def process_routes_with_exact_intersections(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Calculates travel metrics for two routes using exact geometric intersections within buffer polygons,
+    including overlapping segments for both routes, and writes results to CSV.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - api_key (str): Google API key for route data.
+    - buffer_distance (float): Distance for buffer zone around each route.
+    - output_csv (str): Output CSV file path.
+    - colorna, coldesta, colorib, colfestb (str): Column names in the CSV.
+    - skip_invalid (bool): If True, skip invalid coordinate rows and log them.
+
+    Returns:
+    - list: Processed result rows.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     args_list = [(row, api_key, buffer_distance) for row in data]
@@ -2219,13 +2338,30 @@ def process_routes_with_exact_intersections_simple(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
+    skip_invalid: bool = True
 ) -> list:
+    """
+    Processes routes to compute total and overlapping segments using exact geometric intersections,
+    without splitting into before/during/after segments. Supports optional skipping of invalid rows.
+
+    Parameters:
+    - csv_file (str): Path to input CSV file.
+    - api_key (str): Google API key for routing data.
+    - buffer_distance (float): Distance for buffering each route.
+    - output_csv (str): File path to write the output CSV.
+    - colorna, coldesta, colorib, colfestb (str): Column names for route endpoints.
+    - skip_invalid (bool): If True, skips invalid coordinate rows and logs them.
+
+    Returns:
+    - list: Resulting route overlap metrics.
+    """
     data = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
         coldesta=coldesta,
         colorib=colorib,
         colfestb=colfestb,
+        skip_invalid=skip_invalid
     )
 
     args = [(row, api_key, buffer_distance) for row in data]
@@ -2240,6 +2376,7 @@ def process_routes_with_exact_intersections_simple(
             writer.writerows(results)
 
     return results
+
 
 # Function to write txt file for displaying inputs for the package to run.
 def write_log(file_path: str, options: dict) -> None:
@@ -2327,7 +2464,6 @@ def Overlap_Function(
         "colorib": colorib,
         "colfestb": colfestb,
     }
-
     if output_overlap:
         output_overlap = os.path.join("results", os.path.basename(output_overlap))
     if output_buffer:
@@ -2336,11 +2472,11 @@ def Overlap_Function(
     if approximation == "yes":
         if commuting_info == "yes":
             output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
-            overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_overlap, options)
         elif commuting_info == "no":
             output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
-            only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_overlap, options)
 
     elif approximation == "no":
@@ -2350,30 +2486,30 @@ def Overlap_Function(
             write_log(output_overlap, options)
         elif commuting_info == "no":
             output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
-            process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_overlap, options)
 
     elif approximation == "yes with buffer":
         output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
-        process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+        process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
         write_log(output_buffer, options)
 
     elif approximation == "closer to precision":
         if commuting_info == "yes":
             output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_results", ".csv")
-            process_routes_with_closest_nodes(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_with_closest_nodes(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_buffer, options)
         elif commuting_info == "no":
             output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_only_overlap", ".csv")
-            process_routes_with_closest_nodes_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_with_closest_nodes_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_buffer, options)
 
     elif approximation == "exact":
         if commuting_info == "yes":
             output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_results", ".csv")
-            process_routes_with_exact_intersections(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_with_exact_intersections(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_buffer, options)
         elif commuting_info == "no":
             output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_only_overlap", ".csv")
-            process_routes_with_exact_intersections_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb)
+            process_routes_with_exact_intersections_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             write_log(output_buffer, options)
