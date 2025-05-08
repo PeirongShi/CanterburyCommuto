@@ -2245,7 +2245,7 @@ def process_routes_with_closest_nodes(
 
     return results
 
-def process_row_closest_nodes_simple(row_and_args, skip_invalid=True):
+def process_row_closest_nodes_simple(row_and_args):
     """
     Processes a single row to calculate overlapping travel distances and times between two routes.
 
@@ -2266,7 +2266,7 @@ def process_row_closest_nodes_simple(row_and_args, skip_invalid=True):
         dict or None: Travel and overlap metrics or None if skipped.
     """
     try:
-        row, api_key, buffer_distance = row_and_args
+        row, api_key, buffer_distance, skip_invalid = row_and_args
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
