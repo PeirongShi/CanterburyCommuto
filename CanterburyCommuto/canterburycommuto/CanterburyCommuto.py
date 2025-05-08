@@ -1355,31 +1355,24 @@ def overlap_rec(
 
     return results
 
-def process_row_only_overlap_rec(row_and_args, skip_invalid=True):
+def process_row_only_overlap_rec(row_and_args):
     """
     Processes a single row to compute only the overlapping portion of two routes
     using the rectangular buffer approximation method.
 
-    This function:
-    - Retrieves route coordinates from origin to destination for Route A and Route B.
-    - Calculates rectangular buffers and filters overlapping segments based on threshold.
-    - Identifies boundary nodes and calculates overlap metrics via Google Maps API.
-    - Returns basic route and overlap travel metrics.
-    - Plots the two routes and the overlapping segment (if present).
-
     Args:
         row_and_args (tuple): A tuple containing:
-            - row (dict): Row containing "OriginA", "DestinationA", "OriginB", "DestinationB"
+            - row (dict): Contains "OriginA", "DestinationA", "OriginB", "DestinationB"
             - api_key (str): Google Maps API key
             - width (int): Width of buffer for overlap detection
             - threshold (int): Distance threshold for overlap detection
-        skip_invalid (bool): If True, logs and skips rows on error; if False, raises the error
+            - skip_invalid (bool): Whether to skip errors or halt on first error
 
     Returns:
         dict or None: Dictionary of route and overlap metrics, or None if skipped due to error.
     """
+    row, api_key, width, threshold, skip_invalid = row_and_args
     try:
-        row, api_key, width, threshold = row_and_args
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
