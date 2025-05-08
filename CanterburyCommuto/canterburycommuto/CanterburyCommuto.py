@@ -2047,7 +2047,7 @@ def get_route_polygon_intersections(route_coords: List[Tuple[float, float]], pol
         ]
 
 # The function calculates travel metrics and overlapping segments between two routes based on their closest nodes and shared buffer intersection.
-def process_row_closest_nodes(row_and_args, skip_invalid=True):
+def process_row_closest_nodes(row_and_args):
     """
     Processes a row of route data to compute overlap metrics using buffered intersection and closest nodes.
 
@@ -2068,7 +2068,7 @@ def process_row_closest_nodes(row_and_args, skip_invalid=True):
         dict or None: A dictionary of computed metrics or None if error and skip_invalid is True.
     """
     try:
-        row, api_key, buffer_distance = row_and_args
+        row, api_key, buffer_distance, skip_invalid = row_and_args
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
