@@ -400,7 +400,7 @@ def wrap_row(args):
     """
     row, api_key, row_function, skip_invalid = args
     try:
-        return return row_function((row, api_key), skip_invalid=skip_invalid)
+        return row_function((row, api_key), skip_invalid=skip_invalid)
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
@@ -443,7 +443,7 @@ def process_row_overlap(row_and_api_key, skip_invalid=True):
         dict: Processed route information or None if skipped due to error.
     """
     row, api_key = row_and_api_key
-    
+
     try:
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
