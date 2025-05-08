@@ -497,7 +497,7 @@ def process_row_overlap(row_and_api_key_skip):
         start_time = time.time()
         _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key)
         logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
-        
+
         start_time = time.time()
         _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key)
         logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
