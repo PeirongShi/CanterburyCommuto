@@ -1756,82 +1756,114 @@ def calculate_area_ratios(
     }
 
 def process_row_route_buffers(row_and_args):
-    row, api_key, buffer_distance = row_and_args
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+    """
+    Processes a single row to compute route buffers and their intersection ratios.
 
-    if origin_a == destination_a and origin_b == destination_b:
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": 0, "aTime": 0, "bDist": 0, "bTime": 0,
-            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-        }
+    This function:
+    - Retrieves route data for two routes (A and B).
+    - Creates buffered polygons around each route using a specified buffer distance.
+    - Computes the intersection area between the buffers.
+    - Calculates and returns the intersection ratios for both routes.
+    - Handles trivial routes where origin equals destination.
+    - Plots the routes and their buffers.
+    - Optionally logs and skips invalid rows based on `skip_invalid`.
 
-    if origin_a == destination_a and origin_b != destination_b:
-        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": 0, "aTime": 0, "bDist": b_dist, "bTime": b_time,
-            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-        }
+    Args:
+        row_and_args (tuple): Contains:
+            - row (dict): Dictionary with OriginA, DestinationA, OriginB, DestinationB
+            - api_key (str): Google Maps API key
+            - buffer_distance (float): Distance in meters for route buffering
+            - skip_invalid (bool): Whether to skip and log errors or raise them
 
-    if origin_a != destination_a and origin_b == destination_b:
+    Returns:
+        dict or None: Metrics for the route pair, or None if skipped due to error.
+    """
+    row, api_key, buffer_distance, skip_invalid = row_and_args
+
+    try:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        if origin_a == destination_a and origin_b == destination_b:
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": 0, "aTime": 0, "bDist": 0, "bTime": 0,
+                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+            }
+
+        if origin_a == destination_a and origin_b != destination_b:
+            route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": 0, "aTime": 0, "bDist": b_dist, "bTime": b_time,
+                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+            }
+
+        if origin_a != destination_a and origin_b == destination_b:
+            route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time, "bDist": 0, "bTime": 0,
+                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+            }
+
         route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time, "bDist": 0, "bTime": 0,
-            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-        }
+        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
-    route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-    route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+        if origin_a == origin_b and destination_a == destination_b:
+            buffer_a = create_buffered_route(route_a_coords, buffer_distance)
+            buffer_b = buffer_a
+            plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": a_dist, "bTime": a_time,
+                "aIntersecRatio": 1.0, "bIntersecRatio": 1.0,
+            }
 
-    if origin_a == origin_b and destination_a == destination_b:
         buffer_a = create_buffered_route(route_a_coords, buffer_distance)
-        buffer_b = buffer_a
+        buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+
+        start_time = time.time()
+        intersection = buffer_a.intersection(buffer_b)
+        logging.info(f"Time to compute buffer intersection of A and B: {time.time() - start_time:.6f} seconds")
+
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": a_dist, "bTime": a_time,
-            "aIntersecRatio": 1.0, "bIntersecRatio": 1.0,
-        }
 
-    buffer_a = create_buffered_route(route_a_coords, buffer_distance)
-    buffer_b = create_buffered_route(route_b_coords, buffer_distance)
-    start_time = time.time()
-    intersection = buffer_a.intersection(buffer_b)
-    logging.info(f"Time to compute buffer intersection of A and B: {time.time() - start_time:.6f} seconds")
+        if intersection.is_empty:
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": b_dist, "bTime": b_time,
+                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+            }
 
-    plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
+        intersection_area = intersection.area
+        a_area = buffer_a.area
+        b_area = buffer_b.area
+        a_intersec_ratio = intersection_area / a_area
+        b_intersec_ratio = intersection_area / b_area
 
-    if intersection.is_empty:
         return {
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": a_dist, "aTime": a_time,
             "bDist": b_dist, "bTime": b_time,
-            "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
+            "aIntersecRatio": a_intersec_ratio,
+            "bIntersecRatio": b_intersec_ratio,
         }
 
-    intersection_area = intersection.area
-    a_area = buffer_a.area
-    b_area = buffer_b.area
-    a_intersec_ratio = intersection_area / a_area
-    b_intersec_ratio = intersection_area / b_area
-
-    return {
-        "OriginA": origin_a, "DestinationA": destination_a,
-        "OriginB": origin_b, "DestinationB": destination_b,
-        "aDist": a_dist, "aTime": a_time,
-        "bDist": b_dist, "bTime": b_time,
-        "aIntersecRatio": a_intersec_ratio,
-        "bIntersecRatio": b_intersec_ratio,
-    }
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None
+        else:
+            raise
 
 def process_routes_with_buffers(
     csv_file: str,
@@ -1867,9 +1899,15 @@ def process_routes_with_buffers(
         skip_invalid=skip_invalid
     )
 
-    results = process_rows_multiproc(
-        data, api_key, process_row_route_buffers, extra_args=(buffer_distance,)
-    )
+    # Pass skip_invalid flag to each row's args
+    args = [(row, api_key, buffer_distance, skip_invalid) for row in data]
+
+    with Pool() as pool:
+        results = pool.map(process_row_route_buffers, args)
+
+    # Remove None results if skip_invalid is True
+    if skip_invalid:
+        results = [r for r in results if r is not None]
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
