@@ -380,93 +380,154 @@ def plot_routes(
         print(f"Map saved as '{map_filename}'. Open it in a browser.")
 
 def wrap_row(args):
-    row, api_key, row_function = args
-    return row_function((row, api_key))
+    """
+    Wraps a single row-processing task for multithreading.
 
-def process_rows(data, api_key, row_function, processes=None):
-    args = [(row, api_key, row_function) for row in data]
+    This function is used inside a thread pool (via multiprocessing.dummy)
+    to process each row of the dataset with the provided row_function.
+    If an exception occurs, it logs the error and either skips the row
+    (if skip_invalid is True) or re-raises the exception to halt execution.
+
+    Args:
+        args (tuple): A tuple containing:
+            - row (dict): The data row to process.
+            - api_key (str): API key for route data fetching.
+            - row_function (callable): Function to apply to the row.
+            - skip_invalid (bool): Whether to skip errors or halt on first error.
+
+    Returns:
+        dict or None: Result of processing the row, or None if skipped.
+    """
+    row, api_key, row_function, skip_invalid = args
+    try:
+        return row_function((row, api_key))
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None  # Will be filtered out later
+        else:
+            raise
+
+def process_rows(data, api_key, row_function, processes=None, skip_invalid=True):
+    """
+    Processes rows using multithreading by applying a row_function to each row.
+
+    This function prepares arguments for each row, including the API key, 
+    the processing function, and the skip_invalid flag. It then uses a 
+    thread pool (via multiprocessing.dummy.Pool) to apply the function in parallel.
+
+    Args:
+        data (list): List of row dictionaries.
+        api_key (str): API key for route data fetching.
+        row_function (callable): Function to apply to each row.
+        processes (int, optional): Number of threads to use (defaults to all available).
+        skip_invalid (bool, optional): If True, logs and skips rows with errors;
+                                       if False, stops on first error.
+
+    Returns:
+        list: Processed results, with None values removed if skip_invalid is True.
+    """
+    args = [(row, api_key, row_function, skip_invalid) for row in data]
     with Pool(processes=processes) as pool:
         results = pool.map(wrap_row, args)
-    return results
+    return [r for r in results if r is not None]
 
-def process_row_overlap(row_and_api_key):
-    row, api_key = row_and_api_key
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+def process_row_overlap(row_and_api_key_skip):
+    """
+    Processes one pair of routes, finds overlap, segments travel, and handles errors based on skip_invalid.
 
-    if origin_a == origin_b and destination_a == destination_b:
-        coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        plot_routes(coordinates_a, [], None, None)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": a_dist, "bTime": a_time,
-            "overlapDist": a_dist, "overlapTime": a_time,
-            "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-            "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-            "aAfterDist": 0.0, "aAfterTime": 0.0,
-            "bAfterDist": 0.0, "bAfterTime": 0.0,
-        }
+    Args:
+        row_and_api_key_skip (tuple): (row, api_key, skip_invalid)
 
-    coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
-    coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+    Returns:
+        dict: Processed route information or None if skipped due to error.
+    """
+    row, api_key, skip_invalid = row_and_api_key_skip
 
-    first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+    try:
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
-    if not first_common_node or not last_common_node:
-        plot_routes(coordinates_a, coordinates_b, None, None)
+        if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            plot_routes(coordinates_a, [], None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": a_dist, "bTime": a_time,
+                "overlapDist": a_dist, "overlapTime": a_time,
+                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
+                "aAfterDist": 0.0, "aAfterTime": 0.0,
+                "bAfterDist": 0.0, "bAfterTime": 0.0,
+            }
+
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+
+        first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+
+        if not first_common_node or not last_common_node:
+            plot_routes(coordinates_a, coordinates_b, None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": total_distance_a, "aTime": total_time_a,
+                "bDist": total_distance_b, "bTime": total_time_b,
+                "overlapDist": 0.0, "overlapTime": 0.0,
+                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
+                "aAfterDist": 0.0, "aAfterTime": 0.0,
+                "bAfterDist": 0.0, "bAfterTime": 0.0,
+            }
+
+        before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
+        before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
+
+        start_time = time.time()
+        _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", api_key)
+        logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, overlap_a_distance, overlap_a_time = get_route_data(
+            f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
+        logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key)
+        logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
+        
+        start_time = time.time()
+        _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key)
+        logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key)
+        logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
+
+        plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
+
         return {
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": total_distance_a, "aTime": total_time_a,
             "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": 0.0, "overlapTime": 0.0,
-            "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-            "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-            "aAfterDist": 0.0, "aAfterTime": 0.0,
-            "bAfterDist": 0.0, "bAfterTime": 0.0,
+            "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
+            "aBeforeDist": before_a_distance, "aBeforeTime": before_a_time,
+            "bBeforeDist": before_b_distance, "bBeforeTime": before_b_time,
+            "aAfterDist": after_a_distance if after_a else 0.0,
+            "aAfterTime": after_a_time if after_a else 0.0,
+            "bAfterDist": after_b_distance if after_b else 0.0,
+            "bAfterTime": after_b_time if after_b else 0.0,
         }
 
-    before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
-    before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
-
-    start_time = time.time()
-    _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", api_key)
-    logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, overlap_a_distance, overlap_a_time = get_route_data(
-        f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
-    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key)
-    logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
-    
-    start_time = time.time()
-    _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key)
-    logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key)
-    logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
-    plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
-
-
-    return {
-        "OriginA": origin_a, "DestinationA": destination_a,
-        "OriginB": origin_b, "DestinationB": destination_b,
-        "aDist": total_distance_a, "aTime": total_time_a,
-        "bDist": total_distance_b, "bTime": total_time_b,
-        "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
-        "aBeforeDist": before_a_distance, "aBeforeTime": before_a_time,
-        "bBeforeDist": before_b_distance, "bBeforeTime": before_b_time,
-        "aAfterDist": after_a_distance if after_a else 0.0,
-        "aAfterTime": after_a_time if after_a else 0.0,
-        "bAfterDist": after_b_distance if after_b else 0.0,
-        "bAfterTime": after_b_time if after_b else 0.0,
-    }
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error in process_row_overlap for row {row}: {str(e)}")
+            return None
+        else:
+            raise
 
 def process_routes_with_csv(
     csv_file: str,
@@ -510,7 +571,7 @@ def process_routes_with_csv(
         skip_invalid=skip_invalid
     )
 
-    results = process_rows(data, api_key, process_row_overlap)
+    results = process_rows(data, api_key, process_row_overlap, skip_invalid=skip_invalid)
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
@@ -523,57 +584,86 @@ def process_routes_with_csv(
     write_csv_file(output_csv, results, fieldnames)
     return results
 
-def process_row_only_overlap(row_and_api_key):
-    row, api_key = row_and_api_key
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+def process_row_only_overlap(row_and_api_key, skip_invalid=True):
+    """
+    Processes a single row to compute overlapping segments between two routes.
 
-    if origin_a == origin_b and destination_a == destination_b:
-        coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        plot_routes(coordinates_a, [], None, None)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": a_dist, "bTime": a_time,
-            "overlapDist": a_dist, "overlapTime": a_time,
-        }
+    This function:
+    - Retrieves the routes for OriginA→DestinationA and OriginB→DestinationB.
+    - Detects whether the routes overlap by comparing their node sequences.
+    - If overlapping, calculates the travel distance/time of the shared segment.
+    - If no overlap, returns the total route info with 0 overlap.
 
-    coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
-    coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+    Parameters:
+    - row_and_api_key (tuple): A tuple containing:
+        - row (dict): Dictionary with keys "OriginA", "DestinationA", "OriginB", "DestinationB".
+        - api_key (str): Google Maps API key.
+    - skip_invalid (bool): If True, catches and logs errors instead of raising them.
 
-    first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+    Returns:
+    - dict: Processed travel metrics for the pair of routes, or None if skipped due to error.
+    """
+    try:
+        row, api_key = row_and_api_key
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
-    if not first_common_node or not last_common_node:
-        plot_routes(coordinates_a, coordinates_b, None, None)
+        if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            plot_routes(coordinates_a, [], None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": a_dist, "bTime": a_time,
+                "overlapDist": a_dist, "overlapTime": a_time,
+            }
+
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+
+        first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+
+        if not first_common_node or not last_common_node:
+            plot_routes(coordinates_a, coordinates_b, None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": total_distance_a, "aTime": total_time_a,
+                "bDist": total_distance_b, "bTime": total_time_b,
+                "overlapDist": 0.0, "overlapTime": 0.0,
+            }
+
+        before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
+        before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
+
+        start_time = time.time()
+        _, overlap_a_distance, overlap_a_time = get_route_data(
+            f"{overlap_a[0][0]},{overlap_a[0][1]}",
+            f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
+            api_key
+        )
+        duration = time.time() - start_time
+        logging.info(f"API call for overlap_a took {duration:.2f} seconds")
+
+        overlap_b_distance, overlap_b_time = overlap_a_distance, overlap_a_time
+
+        plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
+
         return {
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": total_distance_a, "aTime": total_time_a,
             "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": 0.0, "overlapTime": 0.0,
+            "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
         }
 
-    before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
-    before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
-
-    start_time = time.time()
-    _, overlap_a_distance, overlap_a_time = get_route_data(
-        f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
-    duration = time.time() - start_time
-    logging.info(f"API call for overlap_a took {duration:.2f} seconds")
-
-    overlap_b_distance, overlap_b_time = overlap_a_distance, overlap_a_time
-
-    plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
-
-    return {
-        "OriginA": origin_a, "DestinationA": destination_a,
-        "OriginB": origin_b, "DestinationB": destination_b,
-        "aDist": total_distance_a, "aTime": total_time_a,
-        "bDist": total_distance_b, "bTime": total_time_b,
-        "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
-    }
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None
+        else:
+            raise
 
 def process_routes_only_overlap_with_csv(
     csv_file: str,
@@ -610,7 +700,7 @@ def process_routes_only_overlap_with_csv(
         skip_invalid=skip_invalid
     )
 
-    results = process_rows(data, api_key, process_row_only_overlap)
+    results = process_rows(data, api_key, process_row_only_overlap, skip_invalid=skip_invalid)
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
