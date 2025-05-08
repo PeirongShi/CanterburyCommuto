@@ -2619,9 +2619,15 @@ def process_routes_with_exact_intersections(
         skip_invalid=skip_invalid
     )
 
-    args_list = [(row, api_key, buffer_distance) for row in data]
+    # Include skip_invalid in the argument tuple
+    args_list = [(row, api_key, buffer_distance, skip_invalid) for row in data]
+
     with Pool() as pool:
         results = pool.map(wrap_row_multiproc_exact, args_list)
+
+    # Filter out failed rows if skipping invalid
+    if skip_invalid:
+        results = [r for r in results if r is not None]
 
     if results:
         fieldnames = list(results[0].keys())
