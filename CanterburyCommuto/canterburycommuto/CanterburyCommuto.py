@@ -400,7 +400,7 @@ def wrap_row(args):
     """
     row, api_key, row_function, skip_invalid = args
     try:
-        return row_function((row, api_key))
+        return return row_function((row, api_key), skip_invalid=skip_invalid)
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
@@ -432,7 +432,7 @@ def process_rows(data, api_key, row_function, processes=None, skip_invalid=True)
         results = pool.map(wrap_row, args)
     return [r for r in results if r is not None]
 
-def process_row_overlap(row_and_api_key_skip):
+def process_row_overlap(row_and_api_key, skip_invalid=True):
     """
     Processes one pair of routes, finds overlap, segments travel, and handles errors based on skip_invalid.
 
@@ -442,8 +442,8 @@ def process_row_overlap(row_and_api_key_skip):
     Returns:
         dict: Processed route information or None if skipped due to error.
     """
-    row, api_key, skip_invalid = row_and_api_key_skip
-
+    row, api_key = row_and_api_key
+    
     try:
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
