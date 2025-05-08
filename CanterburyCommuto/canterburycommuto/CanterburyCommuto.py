@@ -2639,112 +2639,124 @@ def process_routes_with_exact_intersections(
     return results
 
 def wrap_row_multiproc_simple(args):
-    row, api_key, buffer_distance = args
-    return process_row_exact_intersections_simple((row, api_key, buffer_distance))
+    """
+    Wraps a single row-processing function for multiprocessing with error handling.
 
-def process_row_exact_intersections_simple(row_and_args):
-    row, api_key, buffer_distance = row_and_args
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+    This wrapper is designed to work with process pools (e.g., multiprocessing.Pool)
+    and supports optional error skipping for robust batch processing.
 
-    if origin_a == destination_a and origin_b == destination_b:
-        print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
-        return {
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": 0.0,
-            "aTime": 0.0,
-            "bDist": 0.0,
-            "bTime": 0.0,
-            "aoverlapDist": 0.0,
-            "aoverlapTime": 0.0,
-            "boverlapDist": 0.0,
-            "boverlapTime": 0.0,
-        }
+    Args:
+        args (tuple): A tuple containing:
+            - row (dict): The input row with origin/destination fields.
+            - api_key (str): API key for Google Maps routing.
+            - buffer_distance (float): Distance for creating buffer polygons around the route.
+            - skip_invalid (bool): If True, log and skip rows that raise exceptions; else re-raise.
 
-    if origin_a == destination_a and origin_b != destination_b:
-        start_time_b = time.time()
+    Returns:
+        dict or None: The result of processing the row, or None if an error occurred and skip_invalid is True.
+    """
+    row, api_key, buffer_distance, skip_invalid = args
+    try:
+        return process_row_exact_intersections_simple((row, api_key, buffer_distance))
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None
+        else:
+            raise
+
+def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
+    """
+    Processes a single row to compute total and overlapping travel metrics between two routes
+    using exact geometric intersections of buffered route polygons.
+
+    This simplified version:
+    - Uses the Google Maps API to fetch coordinates, distance, and time for both routes.
+    - Creates buffers around each route and computes the exact polygon intersection.
+    - Finds entry/exit points from each route within the intersection polygon.
+    - Calculates travel metrics for overlapping segments using those entry/exit points.
+    - Handles degenerate and edge cases (identical routes or points).
+
+    Args:
+        row_and_args (tuple): Tuple containing:
+            - row (dict): Input with "OriginA", "DestinationA", "OriginB", "DestinationB"
+            - api_key (str): Google Maps API key
+            - buffer_distance (float): Buffer distance in meters
+        skip_invalid (bool): If True, logs and skips errors; if False, raises them.
+
+    Returns:
+        dict or None: Dictionary with route and overlap metrics, or None if error and skip_invalid is True.
+    """
+    try:
+        row, api_key, buffer_distance = row_and_args
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        if origin_a == destination_a and origin_b == destination_b:
+            print(f"Skipping row: Origin A == Destination A and Origin B == Destination B ({origin_a}, {destination_a})")
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
+                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
+                "boverlapDist": 0.0, "boverlapTime": 0.0,
+            }
+
+        if origin_a == destination_a:
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+            logging.info(f"Fetched route B only (A is a point)")
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
+                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
+                "boverlapDist": 0.0, "boverlapTime": 0.0,
+            }
+
+        if origin_b == destination_b:
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            logging.info(f"Fetched route A only (B is a point)")
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
+                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
+                "boverlapDist": 0.0, "boverlapTime": 0.0,
+            }
+
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-        logging.info(f"Time to fetch route B from API when route A is a point: {time.time() - start_time_b:.6f} seconds")
-        return {
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": 0.0,
-            "aTime": 0.0,
-            "bDist": b_dist,
-            "bTime": b_time,
-            "aoverlapDist": 0.0,
-            "aoverlapTime": 0.0,
-            "boverlapDist": 0.0,
-            "boverlapTime": 0.0,
-        }
 
-    if origin_a != destination_a and origin_b == destination_b:
-        start_time_a = time.time()
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        logging.info(f"Time to fetch route A from API when route B is a point: {time.time() - start_time_a:.6f} seconds")
-        return {
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": a_dist,
-            "aTime": a_time,
-            "bDist": 0.0,
-            "bTime": 0.0,
-            "aoverlapDist": 0.0,
-            "aoverlapTime": 0.0,
-            "boverlapDist": 0.0,
-            "boverlapTime": 0.0,
-        }
+        if origin_a == origin_b and destination_a == destination_b:
+            buffer_a = create_buffered_route(coords_a, buffer_distance)
+            buffer_b = buffer_a
+            plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": a_dist, "bTime": a_time,
+                "aoverlapDist": a_dist, "aoverlapTime": a_time,
+                "boverlapDist": a_dist, "boverlapTime": a_time,
+            }
 
-    if origin_a == origin_b and destination_a == destination_b:
-        start_time_a = time.time()
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        logging.info(f"Time to fetch route A from API when the two routes are the same: {time.time() - start_time_a:.6f} seconds")
         buffer_a = create_buffered_route(coords_a, buffer_distance)
-        coords_b = coords_a
-        buffer_b = buffer_a
+        buffer_b = create_buffered_route(coords_b, buffer_distance)
+        intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
+
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-        return {
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": a_dist,
-            "aTime": a_time,
-            "bDist": a_dist,
-            "bTime": a_time,
-            "aoverlapDist": a_dist,
-            "aoverlapTime": a_time,
-            "boverlapDist": a_dist,
-            "boverlapTime": a_time,
-        }
 
-    start_time_a = time.time()
-    coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-    logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
-    start_time_b = time.time()
-    coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-    logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
+        if not intersection_polygon:
+            print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": b_dist, "bTime": b_time,
+                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
+                "boverlapDist": 0.0, "boverlapTime": 0.0,
+            }
 
-    buffer_a = create_buffered_route(coords_a, buffer_distance)
-    buffer_b = create_buffered_route(coords_b, buffer_distance)
-    intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
-
-    plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-
-    if not intersection_polygon:
-        print(f"No intersection for {origin_a} → {destination_a} and {origin_b} → {destination_b}")
-        overlap_a_dist = 0.0
-        overlap_a_time = 0.0
-        overlap_b_dist = 0.0
-        overlap_b_time = 0.0
-    else:
         points_a = get_route_polygon_intersections(coords_a, intersection_polygon)
         points_b = get_route_polygon_intersections(coords_b, intersection_polygon)
 
@@ -2755,8 +2767,7 @@ def process_row_exact_intersections_simple(row_and_args):
             overlap_a_time = segments_a.get("during_time", 0.0)
         else:
             print("Not enough route A intersections.")
-            overlap_a_dist = 0.0
-            overlap_a_time = 0.0
+            overlap_a_dist = overlap_a_time = 0.0
 
         if len(points_b) >= 2:
             entry_b, exit_b = points_b[0], points_b[-1]
@@ -2765,23 +2776,23 @@ def process_row_exact_intersections_simple(row_and_args):
             overlap_b_time = segments_b.get("during_time", 0.0)
         else:
             print("Not enough route B intersections.")
-            overlap_b_dist = 0.0
-            overlap_b_time = 0.0
+            overlap_b_dist = overlap_b_time = 0.0
 
-    return {
-        "OriginA": origin_a,
-        "DestinationA": destination_a,
-        "OriginB": origin_b,
-        "DestinationB": destination_b,
-        "aDist": a_dist,
-        "aTime": a_time,
-        "bDist": b_dist,
-        "bTime": b_time,
-        "aoverlapDist": overlap_a_dist,
-        "aoverlapTime": overlap_a_time,
-        "boverlapDist": overlap_b_dist,
-        "boverlapTime": overlap_b_time,
-    }
+        return {
+            "OriginA": origin_a, "DestinationA": destination_a,
+            "OriginB": origin_b, "DestinationB": destination_b,
+            "aDist": a_dist, "aTime": a_time,
+            "bDist": b_dist, "bTime": b_time,
+            "aoverlapDist": overlap_a_dist, "aoverlapTime": overlap_a_time,
+            "boverlapDist": overlap_b_dist, "boverlapTime": overlap_b_time,
+        }
+
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
+            return None
+        else:
+            raise
 
 def process_routes_with_exact_intersections_simple(
     csv_file: str,
@@ -2818,9 +2829,15 @@ def process_routes_with_exact_intersections_simple(
         skip_invalid=skip_invalid
     )
 
-    args = [(row, api_key, buffer_distance) for row in data]
+    # Include skip_invalid in the args tuple
+    args = [(row, api_key, buffer_distance, skip_invalid) for row in data]
+
     with Pool() as pool:
         results = pool.map(wrap_row_multiproc_simple, args)
+
+    # Filter out None results if skip_invalid is enabled
+    if skip_invalid:
+        results = [r for r in results if r is not None]
 
     if results:
         fieldnames = list(results[0].keys())
@@ -2830,7 +2847,6 @@ def process_routes_with_exact_intersections_simple(
             writer.writerows(results)
 
     return results
-
 
 # Function to write txt file for displaying inputs for the package to run.
 def write_log(file_path: str, options: dict) -> None:
