@@ -1,4 +1,5 @@
 import csv
+import time
 import datetime
 import logging
 import math
@@ -34,7 +35,7 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
 # The following functions also help determine if there are errors in the code. 
 # Setup basic logging config
 logging.basicConfig(
-    filename="results/validation_errors.log",
+    filename="results/validation_errors_timing.log",
     filemode="a",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -430,14 +431,26 @@ def process_row_overlap(row_and_api_key):
     before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
     before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
+    start_time = time.time()
     _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", api_key)
+    logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
+
+    start_time = time.time()
     _, overlap_a_distance, overlap_a_time = get_route_data(
         f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
+    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
+
+    start_time = time.time()
     _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key)
-
+    logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
+    
+    start_time = time.time()
     _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key)
-    _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key)
+    logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
+    _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key)
+    logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
     plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
 
@@ -544,8 +557,11 @@ def process_row_only_overlap(row_and_api_key):
     before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
     before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
 
+    start_time = time.time()
     _, overlap_a_distance, overlap_a_time = get_route_data(
         f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key)
+    duration = time.time() - start_time
+    logging.info(f"API call for overlap_a took {duration:.2f} seconds")
 
     overlap_b_distance, overlap_b_time = overlap_a_distance, overlap_a_time
 
@@ -1062,41 +1078,53 @@ def process_row_overlap_rec_multiproc(row_and_args):
             },
         }
 
+    start_time = time.time()
     _, before_a_dist, before_a_time = get_route_data(
         origin_a,
         f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
         api_key,
     )
+    logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, overlap_a_dist, overlap_a_time = get_route_data(
         f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
         f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
         api_key,
     )
+    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, after_a_dist, after_a_time = get_route_data(
         f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
         destination_a,
         api_key,
     )
+    logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, before_b_dist, before_b_time = get_route_data(
         origin_b,
         f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
         api_key,
     )
+    logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, overlap_b_dist, overlap_b_time = get_route_data(
         f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
         f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
         api_key,
     )
+    logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, after_b_dist, after_b_time = get_route_data(
         f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
         destination_b,
         api_key,
     )
+    logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
 
     plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
@@ -1236,17 +1264,21 @@ def process_row_only_overlap_rec(row_and_args):
             },
         }
 
+    start_time = time.time()
     _, overlap_a_dist, overlap_a_time = get_route_data(
         f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
         f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
         api_key,
     )
+    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
 
+    start_time = time.time()
     _, overlap_b_dist, overlap_b_time = get_route_data(
         f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
         f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
         api_key,
     )
+    logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
 
     plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
@@ -1325,9 +1357,11 @@ def calculate_geodetic_area(polygon: Polygon) -> float:
     """
     geod = Geod(ellps="WGS84")
 
+    start_time = time.time()
     if polygon.geom_type == "Polygon":
         lon, lat = zip(*polygon.exterior.coords)
         area, _ = geod.polygon_area_perimeter(lon, lat)
+        logging.info(f"Time to compute geodesic area: {time.time() - start_time:.6f} seconds")
         return abs(area)
 
     elif polygon.geom_type == "MultiPolygon":
@@ -1336,6 +1370,7 @@ def calculate_geodetic_area(polygon: Polygon) -> float:
             lon, lat = zip(*single_polygon.exterior.coords)
             area, _ = geod.polygon_area_perimeter(lon, lat)
             total_area += abs(area)
+        logging.info(f"Time to compute geodesic area: {time.time() - start_time:.6f} seconds")
         return total_area
 
     else:
@@ -1370,7 +1405,10 @@ def create_buffered_route(
         print("Error: Not enough points after projection to create LineString.")
         return None
 
+    start_time = time.time()
     projected_line = LineString(projected_coords)
+    logging.info(f"Time to create LineString: {time.time() - start_time:.6f} seconds")
+
     buffered_polygon = projected_line.buffer(buffer_distance_meters)
 
     return Polygon([
@@ -1419,7 +1457,9 @@ def plot_routes_and_buffers(
     ).add_to(map_osm)
 
     # Add Buffer A to the map
+    start_time = time.time()
     buffer_a_geojson = mapping(buffer_a)
+    logging.info(f"Time to convert buffer A to GeoJSON: {time.time() - start_time:.6f} seconds")
     folium.GeoJson(
         buffer_a_geojson,
         style_function=lambda x: {
@@ -1432,7 +1472,9 @@ def plot_routes_and_buffers(
     ).add_to(map_osm)
 
     # Add Buffer B to the map
+    start_time = time.time()
     buffer_b_geojson = mapping(buffer_b)
+    logging.info(f"Time to convert buffer B to GeoJSON: {time.time() - start_time:.6f} seconds")
     folium.GeoJson(
         buffer_b_geojson,
         style_function=lambda x: {
@@ -1568,7 +1610,9 @@ def process_row_route_buffers(row_and_args):
 
     buffer_a = create_buffered_route(route_a_coords, buffer_distance)
     buffer_b = create_buffered_route(route_b_coords, buffer_distance)
+    start_time = time.time()
     intersection = buffer_a.intersection(buffer_b)
+    logging.info(f"Time to compute buffer intersection of A and B: {time.time() - start_time:.6f} seconds")
 
     plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
 
@@ -1733,7 +1777,9 @@ def get_buffer_intersection(buffer1: Polygon, buffer2: Polygon) -> Polygon:
         print("Warning: One or both buffer polygons are None. Cannot compute intersection.")
         return None
 
+    start_time = time.time()
     intersection = buffer1.intersection(buffer2)
+    logging.info(f"Time to compute buffer intersection: {time.time() - start_time:.6f} seconds")
     return intersection if not intersection.is_empty else None
 
 def get_route_polygon_intersections(route_coords: List[Tuple[float, float]], polygon: Polygon) -> List[Tuple[float, float]]:
@@ -1747,7 +1793,9 @@ def get_route_polygon_intersections(route_coords: List[Tuple[float, float]], pol
     Returns:
         List[Tuple[float, float]]: List of intersection points in (lat, lon).
     """
+    start_time = time.time()
     route_line = LineString([(lon, lat) for lat, lon in route_coords])  # shapely uses (x, y) = (lon, lat)
+    logging.info(f"Time to create LineString: {time.time() - start_time:.6f} seconds") 
     intersection = route_line.intersection(polygon)
 
     if intersection.is_empty:
@@ -1804,8 +1852,12 @@ def process_row_closest_nodes(row_and_args):
                 "aBeforeTime": 0.0, "aAfterDist": 0.0, "aAfterTime": 0.0, "bBeforeDist": 0.0, "bBeforeTime": 0.0,
                 "bAfterDist": 0.0, "bAfterTime": 0.0}
 
+    start_time_a = time.time()
     coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+    logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
+    start_time_b = time.time()
     coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+    logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
     buffer_a = create_buffered_route(coords_a, buffer_distance)
     buffer_b = create_buffered_route(coords_b, buffer_distance)
     intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
@@ -1815,8 +1867,12 @@ def process_row_closest_nodes(row_and_args):
         overlap_a = overlap_b = {"during_distance": 0.0, "during_time": 0.0, "before_distance": 0.0, "before_time": 0.0,
                                   "after_distance": 0.0, "after_time": 0.0}
     else:
+        start_time = time.time()
         nodes_inside_a = [pt for pt in coords_a if Point(pt[1], pt[0]).within(intersection_polygon)]
+        logging.info(f"Time to check which route A points are within intersection polygon: {time.time() - start_time:.6f} seconds")
+        start_time = time.time()
         nodes_inside_b = [pt for pt in coords_b if Point(pt[1], pt[0]).within(intersection_polygon)]
+        logging.info(f"Time to check which route B points are within intersection polygon: {time.time() - start_time:.6f} seconds")
 
         if len(nodes_inside_a) >= 2:
             entry_a, exit_a = nodes_inside_a[0], nodes_inside_a[-1]
@@ -1926,8 +1982,12 @@ def process_row_closest_nodes_simple(row_and_args):
             "boverlapDist": 0.0, "boverlapTime": 0.0,
         }
 
+    start_time_a = time.time()
     coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+    logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
+    start_time_b = time.time()
     coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+    logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
 
     if origin_a == origin_b and destination_a == destination_b:
         buffer_a = create_buffered_route(coords_a, buffer_distance)
@@ -2077,8 +2137,13 @@ def process_row_exact_intersections(row, api_key, buffer_distance):
             "bAfterDist": 0.0, "bAfterTime": 0.0,
         }
 
+    start_time_a = time.time()
     coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+    logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
+
+    start_time_b = time.time()
     coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+    logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
 
     buffer_a = create_buffered_route(coords_a, buffer_distance)
     buffer_b = create_buffered_route(coords_b, buffer_distance)
@@ -2222,7 +2287,9 @@ def process_row_exact_intersections_simple(row_and_args):
         }
 
     if origin_a == destination_a and origin_b != destination_b:
+        start_time_b = time.time()
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+        logging.info(f"Time to fetch route B from API when route A is a point: {time.time() - start_time_b:.6f} seconds")
         return {
             "OriginA": origin_a,
             "DestinationA": destination_a,
@@ -2239,7 +2306,9 @@ def process_row_exact_intersections_simple(row_and_args):
         }
 
     if origin_a != destination_a and origin_b == destination_b:
+        start_time_a = time.time()
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        logging.info(f"Time to fetch route A from API when route B is a point: {time.time() - start_time_a:.6f} seconds")
         return {
             "OriginA": origin_a,
             "DestinationA": destination_a,
@@ -2256,7 +2325,9 @@ def process_row_exact_intersections_simple(row_and_args):
         }
 
     if origin_a == origin_b and destination_a == destination_b:
+        start_time_a = time.time()
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+        logging.info(f"Time to fetch route A from API when the two routes are the same: {time.time() - start_time_a:.6f} seconds")
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         coords_b = coords_a
         buffer_b = buffer_a
@@ -2276,8 +2347,12 @@ def process_row_exact_intersections_simple(row_and_args):
             "boverlapTime": a_time,
         }
 
+    start_time_a = time.time()
     coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+    logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
+    start_time_b = time.time()
     coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
+    logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
 
     buffer_a = create_buffered_route(coords_a, buffer_distance)
     buffer_b = create_buffered_route(coords_b, buffer_distance)
