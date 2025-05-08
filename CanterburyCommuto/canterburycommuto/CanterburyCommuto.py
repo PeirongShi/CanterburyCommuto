@@ -1088,147 +1088,223 @@ def find_overlap_boundary_nodes(
     }
 
 def wrap_row_multiproc(args):
-    row, api_key, row_function, *extra_args = args
-    return row_function((row, api_key, *extra_args))
+    """
+    Wraps a single row-processing task for use with multiprocessing.
 
-def process_rows_multiproc(data, api_key, row_function, processes=None, extra_args=()):
-    args = [(row, api_key, row_function, *extra_args) for row in data]
+    This function is intended for use with a multiprocessing pool. It handles:
+    - Passing the required arguments to the row-processing function.
+    - Capturing and logging any errors during execution.
+    - Respecting the `skip_invalid` flag: either skipping or halting on error.
+
+    Args:
+        args (tuple): A tuple containing:
+            - row (dict): A dictionary representing one row of the dataset.
+            - api_key (str): API key for route data fetching.
+            - row_function (callable): The function to process the row.
+            - skip_invalid (bool): Whether to skip or raise on error.
+            - *extra_args: Additional arguments required by the row function.
+
+    Returns:
+        dict or None: Processed row result, or None if skipped due to an error.
+    """
+    row, api_key, row_function, skip_invalid, *extra_args = args
+    try:
+        return row_function((row, api_key, *extra_args))
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None
+        else:
+            raise
+
+def process_rows_multiproc(data, api_key, row_function, processes=None, extra_args=(), skip_invalid=True):
+    """
+    Processes rows in parallel using multiprocessing.
+
+    This function prepares argument tuples for each row including:
+    - the row data,
+    - API key,
+    - the row processing function,
+    - the skip_invalid flag, and
+    - any additional arguments.
+
+    Each row is then processed in parallel using a multiprocessing Pool.
+
+    Args:
+        data (list): List of dictionaries representing rows of input data.
+        api_key (str): API key used for route fetching.
+        row_function (callable): Function to apply to each row.
+        processes (int, optional): Number of processes to use (default: all available).
+        extra_args (tuple, optional): Additional arguments passed to the row function.
+        skip_invalid (bool): If True (default), errors are logged and rows skipped. If False, processing stops on error.
+
+    Returns:
+        list: Processed results with None values filtered out if skip_invalid is True.
+    """
+    args = [(row, api_key, row_function, skip_invalid, *extra_args) for row in data]
     with Pool(processes=processes) as pool:
         results = pool.map(wrap_row_multiproc, args)
-    return results
+    return [r for r in results if r is not None] if skip_invalid else results
 
 def process_row_overlap_rec_multiproc(row_and_args):
-    row, api_key, width, threshold = row_and_args
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+    """
+    Processes a single row using the rectangular overlap method.
 
-    if origin_a == origin_b and destination_a == destination_b:
-        coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        plot_routes(coordinates_a, [], None, None)
-        return {
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": a_dist, "bTime": a_time,
-            "overlapDist": a_dist, "overlapTime": a_time,
-            "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-            "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-            "aAfterDist": 0.0, "aAfterTime": 0.0,
-            "bAfterDist": 0.0, "bAfterTime": 0.0,
-        }
+    This version includes error handling via the skip_invalid flag:
+    - If skip_invalid is True, errors are logged and the row is skipped.
+    - If False, exceptions are raised to halt processing.
 
-    coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
-    coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+    Args:
+        row_and_args (tuple): A tuple containing:
+            - row (dict)
+            - api_key (str)
+            - width (int)
+            - threshold (int)
+            - skip_invalid (bool)
 
-    first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+    Returns:
+        dict or None: Processed route metrics or None if skipped due to error.
+    """
+    try:
+        row, api_key, width, threshold, skip_invalid = row_and_args
 
-    if not first_common_node or not last_common_node:
-        plot_routes(coordinates_a, coordinates_b, None, None)
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            plot_routes(coordinates_a, [], None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": a_dist, "aTime": a_time,
+                "bDist": a_dist, "bTime": a_time,
+                "overlapDist": a_dist, "overlapTime": a_time,
+                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
+                "aAfterDist": 0.0, "aAfterTime": 0.0,
+                "bAfterDist": 0.0, "bAfterTime": 0.0,
+            }
+
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+
+        first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+
+        if not first_common_node or not last_common_node:
+            plot_routes(coordinates_a, coordinates_b, None, None)
+            return {
+                "OriginA": origin_a, "DestinationA": destination_a,
+                "OriginB": origin_b, "DestinationB": destination_b,
+                "aDist": total_distance_a, "aTime": total_time_a,
+                "bDist": total_distance_b, "bTime": total_time_b,
+                "overlapDist": 0.0, "overlapTime": 0.0,
+                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
+                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
+                "aAfterDist": 0.0, "aAfterTime": 0.0,
+                "bAfterDist": 0.0, "bAfterTime": 0.0,
+            }
+
+        before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
+        before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
+
+        a_segment_distances = calculate_segment_distances(before_a, after_a)
+        b_segment_distances = calculate_segment_distances(before_b, after_b)
+
+        rectangles_a = create_segment_rectangles(
+            a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width)
+        rectangles_b = create_segment_rectangles(
+            b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width)
+
+        filtered_combinations = filter_combinations_by_overlap(
+            rectangles_a, rectangles_b, threshold=threshold)
+
+        boundary_nodes = find_overlap_boundary_nodes(
+            filtered_combinations, rectangles_a, rectangles_b)
+
+        if (
+            not boundary_nodes["first_node_before_overlap"]
+            or not boundary_nodes["last_node_after_overlap"]
+        ):
+            boundary_nodes = {
+                "first_node_before_overlap": {
+                    "node_a": first_common_node,
+                    "node_b": first_common_node,
+                },
+                "last_node_after_overlap": {
+                    "node_a": last_common_node,
+                    "node_b": last_common_node,
+                },
+            }
+
+        start_time = time.time()
+        _, before_a_dist, before_a_time = get_route_data(
+            origin_a,
+            f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, overlap_a_dist, overlap_a_time = get_route_data(
+            f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
+            f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, after_a_dist, after_a_time = get_route_data(
+            f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
+            destination_a,
+            api_key,
+        )
+        logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, before_b_dist, before_b_time = get_route_data(
+            origin_b,
+            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, overlap_b_dist, overlap_b_time = get_route_data(
+            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
+            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, after_b_dist, after_b_time = get_route_data(
+            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
+            destination_b,
+            api_key,
+        )
+        logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
+
+        plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
+
         return {
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": total_distance_a, "aTime": total_time_a,
             "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": 0.0, "overlapTime": 0.0,
-            "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-            "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-            "aAfterDist": 0.0, "aAfterTime": 0.0,
-            "bAfterDist": 0.0, "bAfterTime": 0.0,
+            "overlapDist": overlap_a_dist, "overlapTime": overlap_a_time,
+            "aBeforeDist": before_a_dist, "aBeforeTime": before_a_time,
+            "bBeforeDist": before_b_dist, "bBeforeTime": before_b_time,
+            "aAfterDist": after_a_dist, "aAfterTime": after_a_time,
+            "bAfterDist": after_b_dist, "bAfterTime": after_b_time,
         }
 
-    before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
-    before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
-
-    a_segment_distances = calculate_segment_distances(before_a, after_a)
-    b_segment_distances = calculate_segment_distances(before_b, after_b)
-
-    rectangles_a = create_segment_rectangles(
-        a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width)
-    rectangles_b = create_segment_rectangles(
-        b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width)
-
-    filtered_combinations = filter_combinations_by_overlap(
-        rectangles_a, rectangles_b, threshold=threshold)
-
-    boundary_nodes = find_overlap_boundary_nodes(
-        filtered_combinations, rectangles_a, rectangles_b)
-
-    if (
-        not boundary_nodes["first_node_before_overlap"]
-        or not boundary_nodes["last_node_after_overlap"]
-    ):
-        boundary_nodes = {
-            "first_node_before_overlap": {
-                "node_a": first_common_node,
-                "node_b": first_common_node,
-            },
-            "last_node_after_overlap": {
-                "node_a": last_common_node,
-                "node_b": last_common_node,
-            },
-        }
-
-    start_time = time.time()
-    _, before_a_dist, before_a_time = get_route_data(
-        origin_a,
-        f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, overlap_a_dist, overlap_a_time = get_route_data(
-        f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
-        f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, after_a_dist, after_a_time = get_route_data(
-        f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
-        destination_a,
-        api_key,
-    )
-    logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, before_b_dist, before_b_time = get_route_data(
-        origin_b,
-        f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, overlap_b_dist, overlap_b_time = get_route_data(
-        f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-        f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, after_b_dist, after_b_time = get_route_data(
-        f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-        destination_b,
-        api_key,
-    )
-    logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
-
-    plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
-
-    return {
-        "OriginA": origin_a, "DestinationA": destination_a,
-        "OriginB": origin_b, "DestinationB": destination_b,
-        "aDist": total_distance_a, "aTime": total_time_a,
-        "bDist": total_distance_b, "bTime": total_time_b,
-        "overlapDist": overlap_a_dist, "overlapTime": overlap_a_time,
-        "aBeforeDist": before_a_dist, "aBeforeTime": before_a_time,
-        "bBeforeDist": before_b_dist, "bBeforeTime": before_b_time,
-        "aAfterDist": after_a_dist, "aAfterTime": after_a_time,
-        "bAfterDist": after_b_dist, "bAfterTime": after_b_time,
-    }
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error in process_row_overlap_rec_multiproc for row {row}: {str(e)}")
+            return None
+        else:
+            raise
 
 def overlap_rec(
     csv_file: str,
@@ -1266,9 +1342,7 @@ def overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    results = process_rows_multiproc(
-        data, api_key, process_row_overlap_rec_multiproc, extra_args=(width, threshold)
-    )
+    results = process_rows_multiproc(data, api_key, process_row_overlap_rec_multiproc, extra_args=(width, threshold, skip_invalid))
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
@@ -1281,34 +1355,120 @@ def overlap_rec(
 
     return results
 
-def process_row_only_overlap_rec(row_and_args):
-    row, api_key, width, threshold = row_and_args
-    origin_a, destination_a = row["OriginA"], row["DestinationA"]
-    origin_b, destination_b = row["OriginB"], row["DestinationB"]
+def process_row_only_overlap_rec(row_and_args, skip_invalid=True):
+    """
+    Processes a single row to compute only the overlapping portion of two routes
+    using the rectangular buffer approximation method.
 
-    if origin_a == origin_b and destination_a == destination_b:
-        coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-        plot_routes(coordinates_a, [], None, None)
-        return {
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": a_dist,
-            "aTime": a_time,
-            "bDist": a_dist,
-            "bTime": a_time,
-            "overlapDist": a_dist,
-            "overlapTime": a_time,
-        }
+    This function:
+    - Retrieves route coordinates from origin to destination for Route A and Route B.
+    - Calculates rectangular buffers and filters overlapping segments based on threshold.
+    - Identifies boundary nodes and calculates overlap metrics via Google Maps API.
+    - Returns basic route and overlap travel metrics.
+    - Plots the two routes and the overlapping segment (if present).
 
-    coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
-    coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+    Args:
+        row_and_args (tuple): A tuple containing:
+            - row (dict): Row containing "OriginA", "DestinationA", "OriginB", "DestinationB"
+            - api_key (str): Google Maps API key
+            - width (int): Width of buffer for overlap detection
+            - threshold (int): Distance threshold for overlap detection
+        skip_invalid (bool): If True, logs and skips rows on error; if False, raises the error
 
-    first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+    Returns:
+        dict or None: Dictionary of route and overlap metrics, or None if skipped due to error.
+    """
+    try:
+        row, api_key, width, threshold = row_and_args
+        origin_a, destination_a = row["OriginA"], row["DestinationA"]
+        origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
-    if not first_common_node or not last_common_node:
-        plot_routes(coordinates_a, coordinates_b, None, None)
+        if origin_a == origin_b and destination_a == destination_b:
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            plot_routes(coordinates_a, [], None, None)
+            return {
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": a_dist,
+                "aTime": a_time,
+                "bDist": a_dist,
+                "bTime": a_time,
+                "overlapDist": a_dist,
+                "overlapTime": a_time,
+            }
+
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+
+        first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
+
+        if not first_common_node or not last_common_node:
+            plot_routes(coordinates_a, coordinates_b, None, None)
+            return {
+                "OriginA": origin_a,
+                "DestinationA": destination_a,
+                "OriginB": origin_b,
+                "DestinationB": destination_b,
+                "aDist": total_distance_a,
+                "aTime": total_time_a,
+                "bDist": total_distance_b,
+                "bTime": total_time_b,
+                "overlapDist": 0.0,
+                "overlapTime": 0.0,
+            }
+
+        before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
+        before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
+
+        a_segment_distances = calculate_segment_distances(before_a, after_a)
+        b_segment_distances = calculate_segment_distances(before_b, after_b)
+
+        rectangles_a = create_segment_rectangles(
+            a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width)
+        rectangles_b = create_segment_rectangles(
+            b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width)
+
+        filtered_combinations = filter_combinations_by_overlap(
+            rectangles_a, rectangles_b, threshold=threshold)
+
+        boundary_nodes = find_overlap_boundary_nodes(
+            filtered_combinations, rectangles_a, rectangles_b)
+
+        if (
+            not boundary_nodes["first_node_before_overlap"]
+            or not boundary_nodes["last_node_after_overlap"]
+        ):
+            boundary_nodes = {
+                "first_node_before_overlap": {
+                    "node_a": first_common_node,
+                    "node_b": first_common_node,
+                },
+                "last_node_after_overlap": {
+                    "node_a": last_common_node,
+                    "node_b": last_common_node,
+                },
+            }
+
+        start_time = time.time()
+        _, overlap_a_dist, overlap_a_time = get_route_data(
+            f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
+            f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+        _, overlap_b_dist, overlap_b_time = get_route_data(
+            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
+            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
+            api_key,
+        )
+        logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
+
+        plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
+
         return {
             "OriginA": origin_a,
             "DestinationA": destination_a,
@@ -1318,72 +1478,16 @@ def process_row_only_overlap_rec(row_and_args):
             "aTime": total_time_a,
             "bDist": total_distance_b,
             "bTime": total_time_b,
-            "overlapDist": 0.0,
-            "overlapTime": 0.0,
+            "overlapDist": overlap_a_dist,
+            "overlapTime": overlap_a_time,
         }
 
-    before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
-    before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
-
-    a_segment_distances = calculate_segment_distances(before_a, after_a)
-    b_segment_distances = calculate_segment_distances(before_b, after_b)
-
-    rectangles_a = create_segment_rectangles(
-        a_segment_distances["before_segments"] + a_segment_distances["after_segments"], width=width)
-    rectangles_b = create_segment_rectangles(
-        b_segment_distances["before_segments"] + b_segment_distances["after_segments"], width=width)
-
-    filtered_combinations = filter_combinations_by_overlap(
-        rectangles_a, rectangles_b, threshold=threshold)
-
-    boundary_nodes = find_overlap_boundary_nodes(
-        filtered_combinations, rectangles_a, rectangles_b)
-
-    if (
-        not boundary_nodes["first_node_before_overlap"]
-        or not boundary_nodes["last_node_after_overlap"]
-    ):
-        boundary_nodes = {
-            "first_node_before_overlap": {
-                "node_a": first_common_node,
-                "node_b": first_common_node,
-            },
-            "last_node_after_overlap": {
-                "node_a": last_common_node,
-                "node_b": last_common_node,
-            },
-        }
-
-    start_time = time.time()
-    _, overlap_a_dist, overlap_a_time = get_route_data(
-        f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
-        f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
-
-    start_time = time.time()
-    _, overlap_b_dist, overlap_b_time = get_route_data(
-        f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-        f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-        api_key,
-    )
-    logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
-
-    plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
-
-    return {
-        "OriginA": origin_a,
-        "DestinationA": destination_a,
-        "OriginB": origin_b,
-        "DestinationB": destination_b,
-        "aDist": total_distance_a,
-        "aTime": total_time_a,
-        "bDist": total_distance_b,
-        "bTime": total_time_b,
-        "overlapDist": overlap_a_dist,
-        "overlapTime": overlap_a_time,
-    }
+    except Exception as e:
+        if skip_invalid:
+            logging.error(f"Error processing row {row}: {str(e)}")
+            return None
+        else:
+            raise
 
 def only_overlap_rec(
     csv_file: str,
@@ -1421,9 +1525,15 @@ def only_overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    results = process_rows_multiproc(
-        data, api_key, process_row_only_overlap_rec, extra_args=(width, threshold)
-    )
+    # Add skip_invalid to each row for compatibility with updated row-processing logic
+    args_with_flags = [(row, api_key, width, threshold, skip_invalid) for row in data]
+
+    with Pool() as pool:
+        results = pool.map(process_row_only_overlap_rec, args_with_flags)
+
+    # Filter None results if skipping invalid
+    if skip_invalid:
+        results = [r for r in results if r is not None]
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
