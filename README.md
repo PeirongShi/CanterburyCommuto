@@ -113,7 +113,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 
 This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description.
 
-| Option Name                 | Commuting Info Available? | Results' Closeness to Reality (0–10) | Description |
+| Option Name                 | Commuting Info (before & after the overlap) Available? | Results' Closeness to Reality (0–10) | Description |
 |----------------------------|---------------------------|--------------------------------------|-------------|
 | Common Node                | Yes                       | 6                                    | This option finds the first and last common nodes along the two routes' polylines given by Google Maps. The overlapping information is obtained via these nodes. |
 | Rectangle Approximation    | Yes                       | 5 to 7                                | As a modified variant of the Common Node Method, this option draws rectangles along the route segments before and after the first and last common nodes of the two routes. It may extend the overlapping range of the route pair if the overlapping area ratio of these rectangles exceeds certain thresholds, which is set to 50% by default, but adjustable by the users. |
