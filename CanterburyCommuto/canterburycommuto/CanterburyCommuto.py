@@ -546,7 +546,7 @@ def process_routes_with_csv(
     - Reads route origin/destination pairs from a CSV file.
     - Maps the user-provided column names to standard labels.
     - Optionally skips or halts on invalid coordinate entries.
-    - Uses multiprocessing to process each row in parallel.
+    - Uses multithreading.
     - Writes the processed route data to an output CSV file.
 
     Parameters:
@@ -1089,9 +1089,9 @@ def find_overlap_boundary_nodes(
 
 def wrap_row_multiproc(args):
     """
-    Wraps a single row-processing task for use with multiprocessing.
+    Wraps a single row-processing task for use with multithreading.
 
-    This function is intended for use with a multiprocessing pool. It handles:
+    This function is intended for use with a multithreading pool. It handles:
     - Passing the required arguments to the row-processing function.
     - Capturing and logging any errors during execution.
     - Respecting the `skip_invalid` flag: either skipping or halting on error.
@@ -1119,7 +1119,7 @@ def wrap_row_multiproc(args):
 
 def process_rows_multiproc(data, api_key, row_function, processes=None, extra_args=(), skip_invalid=True):
     """
-    Processes rows in parallel using multiprocessing.
+    Processes rows using multithreading.
 
     This function prepares argument tuples for each row including:
     - the row data,
@@ -1128,7 +1128,7 @@ def process_rows_multiproc(data, api_key, row_function, processes=None, extra_ar
     - the skip_invalid flag, and
     - any additional arguments.
 
-    Each row is then processed in parallel using a multiprocessing Pool.
+    Each row is then processed using a multithreading Pool.
 
     Args:
         data (list): List of dictionaries representing rows of input data.
@@ -2415,7 +2415,7 @@ def wrap_row_multiproc_exact(args):
     """
     Wraps a row-processing call for exact intersection calculations using buffered routes.
 
-    This function is intended for use in multiprocessing. It calls the
+    This function is intended for use in multithreading. It calls the
     `process_row_exact_intersections` function with the provided row data, API key,
     and buffer distance. If an error occurs and `skip_invalid` is True, the error
     is logged and the row is skipped by returning None.
@@ -2640,7 +2640,7 @@ def process_routes_with_exact_intersections(
 
 def wrap_row_multiproc_simple(args):
     """
-    Wraps a single row-processing function for multiprocessing with error handling.
+    Wraps a single row-processing function for multithreading with error handling.
 
     This wrapper is designed to work with process pools (e.g., multiprocessing.Pool)
     and supports optional error skipping for robust batch processing.
