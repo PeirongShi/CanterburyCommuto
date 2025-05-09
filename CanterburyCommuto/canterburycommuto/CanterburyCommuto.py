@@ -33,9 +33,16 @@ def generate_url(origin: str, destination: str, api_key: str) -> str:
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 # The following functions also help determine if there are errors in the code. 
-# Setup basic logging config
+# Absolute path to the project-level 'results' directory
+project_root = os.path.abspath(os.path.dirname(__file__))
+log_path = os.path.join(project_root, "results", "validation_errors_timing.log")
+
+# Ensure the directory exists
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+# Set up logging
 logging.basicConfig(
-    filename="results/validation_errors_timing.log",
+    filename=log_path,
     filemode="a",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
