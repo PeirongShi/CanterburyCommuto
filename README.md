@@ -66,7 +66,9 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --colorib "home_B" \
     --colfestb "work_B" \
     --output_overlap "overlap_output.csv" \
-    --output_buffer "buffer_output.csv"
+    --output_buffer "buffer_output.csv" \
+    --skip_invalid True
+
 ```
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.

@@ -9,23 +9,7 @@ Usage:
         [--buffer VALUE] [--approximation VALUE] [--commuting_info VALUE]
         [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME] [--colorib COLUMN_NAME]
         [--colfestb COLUMN_NAME] [--output_overlap FILENAME] [--output_buffer FILENAME]
-
-Arguments:
-    csv_file: Path to the input CSV file containing route data.
-    api_key: Google API key for route calculations.
-
-Optional Arguments:
-    --threshold: Overlap threshold percentage for node overlap calculations (default: 50).
-    --width: Width for node overlap calculations in meters (default: 100).
-    --buffer: Buffer distance for route buffer intersection analysis in meters (default: 100).
-    --approximation: Overlap processing method ("yes", "no", or "yes with buffer").
-    --commuting_info: Include commuting information ("yes" or "no").
-    --colorna: Column name for the origin of route A.
-    --coldesta: Column name for the destination of route A.
-    --colorib: Column name for the origin of route B.
-    --colfestb: Column name for the destination of route B.
-    --output_overlap: Path to save the overlap results (optional).
-    --output_buffer: Path to save the buffer intersection results (optional).
+        [--skip_invalid True|False]
 """
 
 import argparse
@@ -112,6 +96,13 @@ def main():
         type=str,
         help="Path to save the buffer intersection results (optional)."
     )
+    parser.add_argument(
+        "--skip_invalid",
+        type=lambda x: x == "True",
+        choices=[True, False],
+        default=True,
+        help="Whether to skip invalid coordinate rows (True or False). Default is True."
+    )
 
     args = parser.parse_args()
 
@@ -130,7 +121,8 @@ def main():
             colorib=args.colorib,
             colfestb=args.colfestb,
             output_overlap=args.output_overlap,
-            output_buffer=args.output_buffer
+            output_buffer=args.output_buffer,
+            skip_invalid=args.skip_invalid
         )
     except ValueError as ve:
         print(f"Input Validation Error: {ve}")
