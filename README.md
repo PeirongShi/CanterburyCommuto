@@ -75,7 +75,7 @@ See example.ipynb for how to run all options of the package's major function.
 
 ### Results
 
-The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the **OpenStreetMap** background. By placing the mouse onto the markers, one is able to see the origins and destinations of route A and B marked as O1, D1, O2, and D2. O stands for origin and D represents destination. Distances are measured in kilometers and the time unit is minute. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the output variables:
+The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the **OpenStreetMap** background. By placing the mouse onto the markers, one is able to see the origins and destinations of route A and B marked as Origin A and Destination A in red and Origin B and Destination B in green. Distances are measured in kilometers and the time unit is minute. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the possible output variables:
 
 1. **OriginA**: The starting location of route A.
 2. **DestinationA**: The ending location of route A.
@@ -109,6 +109,17 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 23. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
 24. **boverlapTime**: Time to traverse the overlapping segment on route B.
 
+### Overlap Function Options
+
+This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description.
+
+| Option Name                 | Commuting Info Available? | Results' Closeness to Reality (0–10) | Description |
+|----------------------------|---------------------------|--------------------------------------|-------------|
+| Common Node                | Yes                       | 6                                    | This option finds the first and last common nodes along the two routes' polylines given by Google Maps. The overlapping information is obtained via these nodes. |
+| Rectangle Approximation    | Yes                       | 5 to 7                                | As a modified variant of the Common Node Method, this option draws rectangles along the route segments before and after the first and last common nodes of the two routes. It may extend the overlapping range of the route pair if the overlapping area ratio of these rectangles exceeds certain thresholds, which is set to 50% by default, but adjustable by the users. |
+| Buffer Area Ratio          | No                        | 8                                    | This option creates 100m buffers along the two routes to find the ratios of the buffers' intersection area for each route separately. The buffer width is 100 meters by default, but it may be adjusted upon the users' wishes. |
+| Buffer Route Node          | Yes                       | 6 to 8                                | This option considers the routes and buffers as lines and geometric shapes. It finds the closest nodes to the points of intersections among the buffer polygons and route lines. The overlapping information is determined based on these closest nodes. |
+| Buffer Route Intersection  | Yes                       | 9                                    | As an improved version of the Buffer Route Node method, this option directly records the GPS coordinates corresponding to the points of intersections among the buffer polygons and the route lines and then proceeds to compute the overlapping distance and time information based on these GPS coordinates. |
 
 ## Acknowledgment
 
