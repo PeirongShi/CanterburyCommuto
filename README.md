@@ -52,6 +52,12 @@ Otherwise, you need to create a csv file with the following columns:
 3. **OriginB**: The starting location of route B.
 4. **DestinationB**: The ending location of route B.
 
+Next, import the main function.
+
+```bash
+from canterburycommuto.CanterburyCommuto import Overlap_Function
+```
+
 Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". 
 
 ```bash
