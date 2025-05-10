@@ -42,7 +42,7 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 You can generate a test dataset with the script
   
 ```bash
-python CanterburyCommuto/canterburycommuto/Sample.py
+python canterburycommuto/Sample.py
 ```
 
 Otherwise, you need to create a csv file with the following columns:
@@ -51,6 +51,12 @@ Otherwise, you need to create a csv file with the following columns:
 2. **DestinationA**: The GPS coordiantes of the ending location of route A in every route pair.
 3. **OriginB**: The starting location of route B.
 4. **DestinationB**: The ending location of route B.
+
+Next, import the main function.
+
+```bash
+from canterburycommuto.CanterburyCommuto import Overlap_Function
+```
 
 Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". 
 
