@@ -66,7 +66,8 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --colorib "home_B" \
     --colfestb "work_B" \
     --output_overlap "overlap_output.csv" \
-    --output_buffer "buffer_output.csv"
+    --output_buffer "buffer_output.csv" \
+    --skip_invalid True
 ```
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
@@ -108,6 +109,18 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 22. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
 23. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
 24. **boverlapTime**: Time to traverse the overlapping segment on route B.
+
+### Overlap Function Options
+
+This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description.
+
+| Option Name                 | Commuting Information (Pre/Post Overlap) Available? | Closeness to Reality (0 = Not Close, 10 = Very Close) | Description |
+|----------------------------|---------------------------|--------------------------------------|-------------|
+| Common Node                | Yes                       | 6                                    | This option finds the first and last common nodes along the two routes' polylines given by Google Maps. The overlapping information is obtained via these nodes. |
+| Rectangle Approximation    | Yes                       | 5 to 7                                | As a modified variant of the Common Node Method, this option draws rectangles along the route segments before and after the first and last common nodes of the two routes. It may extend the overlapping range of the route pair if the overlapping area ratio of these rectangles exceeds certain thresholds, which is set to 50% by default, but adjustable by the users. |
+| Buffer Area Ratio          | No                        | 8                                    | This option creates 100-meter (m) buffers along the two routes to find the ratios of the buffers' intersection area for each route separately. The buffer width is 100m by default, but it may be adjusted upon the users' wishes. |
+| Buffer Route Node          | Yes                       | 6 to 8                                | This option considers the routes and buffers as lines and geometric shapes. It finds the closest nodes to the points of intersections among the buffer polygons and route lines. The overlapping information is determined based on these closest nodes. |
+| Buffer Route Intersection  | Yes                       | 9                                    | As an improved version of the Buffer Route Node method, this option directly records the GPS coordinates corresponding to the points of intersections among the buffer polygons and the route lines and then proceeds to compute the overlapping distance and time information based on these GPS coordinates. |
 
 ## Acknowledgment
 
