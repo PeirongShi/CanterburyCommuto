@@ -1129,14 +1129,7 @@ def wrap_row_multiproc(args):
         dict or None: Processed row result, or None if skipped due to an error.
     """
     row, api_key, row_function, skip_invalid, *extra_args = args
-    try:
-        return row_function((row, api_key, *extra_args))
-    except Exception as e:
-        if skip_invalid:
-            logging.error(f"Error processing row {row}: {str(e)}")
-            return None
-        else:
-            raise
+    return row_function((row, api_key, *extra_args))
 
 def process_rows_multiproc(data, api_key, row_function, processes=None, extra_args=(), skip_invalid=True):
     """
@@ -1323,7 +1316,19 @@ def process_row_overlap_rec_multiproc(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap_rec_multiproc for row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None, "aTime": None,
+                "bDist": None, "bTime": None,
+                "overlapDist": None, "overlapTime": None,
+                "aBeforeDist": None, "aBeforeTime": None,
+                "bBeforeDist": None, "bBeforeTime": None,
+                "aAfterDist": None, "aAfterTime": None,
+                "bAfterDist": None, "bAfterTime": None,
+            }
         else:
             raise
 
@@ -1499,7 +1504,18 @@ def process_row_only_overlap_rec(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "overlapDist": None,
+                "overlapTime": None,
+            }
         else:
             raise
 
@@ -1882,7 +1898,18 @@ def process_row_route_buffers(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "aIntersecRatio": None,
+                "bIntersecRatio": None,
+            }
         else:
             raise
 
@@ -2210,7 +2237,28 @@ def process_row_closest_nodes(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "aoverlapDist": None,
+                "aoverlapTime": None,
+                "boverlapDist": None,
+                "boverlapTime": None,
+                "aBeforeDist": None,
+                "aBeforeTime": None,
+                "aAfterDist": None,
+                "aAfterTime": None,
+                "bBeforeDist": None,
+                "bBeforeTime": None,
+                "bAfterDist": None,
+                "bAfterTime": None,
+            }
         else:
             raise
 
@@ -2376,7 +2424,20 @@ def process_row_closest_nodes_simple(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "aoverlapDist": None,
+                "aoverlapTime": None,
+                "boverlapDist": None,
+                "boverlapTime": None,
+            }
         else:
             raise
 
@@ -2452,14 +2513,7 @@ def wrap_row_multiproc_exact(args):
         dict or None: Processed result or None if skipped due to error.
     """
     row, api_key, buffer_distance, skip_invalid = args
-    try:
-        return process_row_exact_intersections(row, api_key, buffer_distance)
-    except Exception as e:
-        if skip_invalid:
-            logging.error(f"Error processing row {row}: {str(e)}")
-            return None
-        else:
-            raise
+    return process_row_exact_intersections(row, api_key, buffer_distance)
 
 def process_row_exact_intersections(row, api_key, buffer_distance, skip_invalid=True):
     """
@@ -2601,7 +2655,28 @@ def process_row_exact_intersections(row, api_key, buffer_distance, skip_invalid=
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "aoverlapDist": None,
+                "aoverlapTime": None,
+                "boverlapDist": None,
+                "boverlapTime": None,
+                "aBeforeDist": None,
+                "aBeforeTime": None,
+                "aAfterDist": None,
+                "aAfterTime": None,
+                "bBeforeDist": None,
+                "bBeforeTime": None,
+                "bAfterDist": None,
+                "bAfterTime": None,
+            }
         else:
             raise
 
@@ -2646,10 +2721,6 @@ def process_routes_with_exact_intersections(
     with Pool() as pool:
         results = pool.map(wrap_row_multiproc_exact, args_list)
 
-    # Filter out failed rows if skipping invalid
-    if skip_invalid:
-        results = [r for r in results if r is not None]
-
     if results:
         fieldnames = list(results[0].keys())
         with open(output_csv, "w", newline="") as file:
@@ -2677,14 +2748,7 @@ def wrap_row_multiproc_simple(args):
         dict or None: The result of processing the row, or None if an error occurred and skip_invalid is True.
     """
     row, api_key, buffer_distance, skip_invalid = args
-    try:
-        return process_row_exact_intersections_simple((row, api_key, buffer_distance))
-    except Exception as e:
-        if skip_invalid:
-            logging.error(f"Error processing row {row}: {str(e)}")
-            return None
-        else:
-            raise
+    return process_row_exact_intersections_simple((row, api_key, buffer_distance))
 
 def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
     """
@@ -2811,7 +2875,20 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "aoverlapDist": None,
+                "aoverlapTime": None,
+                "boverlapDist": None,
+                "boverlapTime": None,
+            }
         else:
             raise
 
@@ -2855,10 +2932,6 @@ def process_routes_with_exact_intersections_simple(
 
     with Pool() as pool:
         results = pool.map(wrap_row_multiproc_simple, args)
-
-    # Filter out None results if skip_invalid is enabled
-    if skip_invalid:
-        results = [r for r in results if r is not None]
 
     if results:
         fieldnames = list(results[0].keys())
