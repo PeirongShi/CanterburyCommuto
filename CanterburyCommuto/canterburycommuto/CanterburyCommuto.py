@@ -128,11 +128,8 @@ def read_csv_file(
 
             if invalids:
                 error_msg = f"Row {row_number} - Invalid coordinates: {invalids}"
-                if skip_invalid:
-                    logging.warning(error_msg)
-                    row_number += 1
-                    continue
-                else:
+                logging.warning(error_msg)
+                if not skip_invalid:
                     raise ValueError(error_msg)
 
             mapped_data.append(mapped_row)
@@ -406,14 +403,7 @@ def wrap_row(args):
         dict or None: Result of processing the row, or None if skipped.
     """
     row, api_key, row_function, skip_invalid = args
-    try:
-        return row_function((row, api_key), skip_invalid=skip_invalid)
-    except Exception as e:
-        if skip_invalid:
-            logging.error(f"Error processing row {row}: {str(e)}")
-            return None  # Will be filtered out later
-        else:
-            raise
+    return row_function((row, api_key), skip_invalid=skip_invalid)
 
 def process_rows(data, api_key, row_function, processes=None, skip_invalid=True):
     """
@@ -532,7 +522,20 @@ def process_row_overlap(row_and_api_key, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap for row {row}: {str(e)}")
-            return None
+            # Return original coordinates plus empty/default values for all other fields
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None, "aTime": None,
+                "bDist": None, "bTime": None,
+                "overlapDist": None, "overlapTime": None,
+                "aBeforeDist": None, "aBeforeTime": None,
+                "bBeforeDist": None, "bBeforeTime": None,
+                "aAfterDist": None, "aAfterTime": None,
+                "bAfterDist": None, "bAfterTime": None,
+            }
         else:
             raise
 
@@ -668,7 +671,18 @@ def process_row_only_overlap(row_and_api_key, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return None
+            return {
+                "OriginA": row.get("OriginA", ""),
+                "DestinationA": row.get("DestinationA", ""),
+                "OriginB": row.get("OriginB", ""),
+                "DestinationB": row.get("DestinationB", ""),
+                "aDist": None,
+                "aTime": None,
+                "bDist": None,
+                "bTime": None,
+                "overlapDist": None,
+                "overlapTime": None,
+            }
         else:
             raise
 
