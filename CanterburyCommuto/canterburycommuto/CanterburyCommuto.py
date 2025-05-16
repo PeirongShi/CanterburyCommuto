@@ -3054,7 +3054,8 @@ def Overlap_Function(
     colfestb: str = None,
     output_overlap: str = None,
     output_buffer: str = None,
-    skip_invalid: bool = True
+    skip_invalid: bool = True,
+    auto_confirm: bool = False
 ) -> None:
     """
     Main dispatcher function to handle various route overlap and buffer analysis strategies.
@@ -3102,7 +3103,7 @@ def Overlap_Function(
     if output_buffer:
         output_buffer = os.path.join("results", os.path.basename(output_buffer))
 
-     # Estimate request count and cost
+    # Estimate request count and cost 
     try:
         num_requests, estimated_cost = request_cost_estimation(
             csv_file=csv_file,
@@ -3125,14 +3126,17 @@ def Overlap_Function(
     print(f"[INFO] Estimated cost: ${estimated_cost:.2f}")
     print("[NOTICE] Actual cost may be higher or lower depending on Google’s pricing tiers and route pair complexity.\n")
 
-    # Ask for user confirmation
-    user_input = input("Do you want to proceed with this operation? (yes/no): ").strip().lower()
-    if user_input != "yes":
-        print("[CANCELLED] Operation aborted by the user.")
-        return
+    # Ask for user confirmation unless auto_confirm is True
+    if not auto_confirm:
+        user_input = input("Do you want to proceed with this operation? (yes/no): ").strip().lower()
+        if user_input != "yes":
+            print("[CANCELLED] Operation aborted by the user.")
+            return
+    else:
+        print("[AUTO-CONFIRM] Skipping user prompt and proceeding...\n")
 
-    # If confirmed, proceed with the rest of your processing logic
-    print("[PROCESSING] Proceeding with route analysis...\n")   
+    # Proceed with processing
+    print("[PROCESSING] Proceeding with route analysis...\n")
 
     if approximation == "yes":
         if commuting_info == "yes":
