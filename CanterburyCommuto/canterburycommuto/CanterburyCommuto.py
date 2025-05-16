@@ -3079,6 +3079,7 @@ def Overlap_Function(
     - output_overlap (str): Optional custom filename for overlap results.
     - output_buffer (str): Optional custom filename for buffer results.
     - skip_invalid (bool): If True, skips invalid coordinates and logs the error; if False, halts on error.
+    - auto_confirm: bool = False： If True, skips the user confirmation prompt and proceeds automatically.
 
     Returns:
     - None
