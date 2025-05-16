@@ -39,7 +39,7 @@ def main():
     parser.add_argument("--output_buffer", type=str, help="Path to save the buffer intersection results (optional).")
     parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True, help="Whether to skip invalid coordinate rows (True or False). Default is True.")
 
-    # ✅ NEW: Add --yes flag to skip confirmation prompt
+    # NEW: Add --yes flag to skip confirmation prompt
     parser.add_argument("--yes", action="store_true", help="Automatically confirm the cost prompt and proceed without asking.")
 
     args = parser.parse_args()
@@ -61,7 +61,7 @@ def main():
             output_overlap=args.output_overlap,
             output_buffer=args.output_buffer,
             skip_invalid=args.skip_invalid,
-            auto_confirm=args.yes  # ✅ NEW: pass the flag to control prompt
+            auto_confirm=args.yes  # NEW: pass the flag to control prompt
         )
     except ValueError as ve:
         print(f"Input Validation Error: {ve}")
