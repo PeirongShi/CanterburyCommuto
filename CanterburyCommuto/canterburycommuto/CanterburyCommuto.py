@@ -270,6 +270,7 @@ def save_map(map_object, base_name: str) -> str:
     print(f"Map saved to: {os.path.abspath(filename)}")
     return filename
 
+
 # Function to plot routes to display on maps
 def plot_routes(
     coordinates_a: list, coordinates_b: list, first_common: tuple, last_common: tuple
@@ -428,6 +429,7 @@ def process_rows(data, api_key, row_function, processes=None, skip_invalid=True)
     with Pool(processes=processes) as pool:
         results = pool.map(wrap_row, args)
     return [r for r in results if r is not None]
+
 
 def process_row_overlap(row_and_api_key, skip_invalid=True):
     """
