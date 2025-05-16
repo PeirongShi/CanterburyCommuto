@@ -37,8 +37,6 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 
 *Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high costs will be incurred.*
 
-Certainly. Here's a concise, professional summary:
-
 For Google Maps Routes APIs, the **essential services**—**Directions** and **Distance Matrix APIs**—each include a **free monthly usage cap of 10,000 requests**. Beyond that, usage from **10,001 to 100,000 requests** is billed at **\$5 per 1,000 requests**, and any usage **exceeding 100,000 requests** is billed at a reduced rate of **\$4 per 1,000 requests**. The **advanced versions**—**Directions Advanced** and **Distance Matrix Advanced**—offer enhanced features such as traffic-aware routing and waypoint optimization. These have a **lower free monthly cap of 5,000 requests**, with usage from **5,001 to 100,000 requests** charged at **\$10 per 1,000 requests**, and any requests **above 100,000** billed at **\$8 per 1,000 requests**.
 
 ### Launch the computation
