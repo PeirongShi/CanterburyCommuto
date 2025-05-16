@@ -5,7 +5,7 @@ import logging
 import math
 import os
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from multiprocessing.dummy import Pool
 
 import folium
@@ -156,6 +156,73 @@ def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
         writer.writeheader()
         writer.writerows(results)
 
+def request_cost_estimation(
+    csv_file: str,
+    approximation: str = "no",
+    commuting_info: str = "no",
+    colorna: Optional[str] = None,
+    coldesta: Optional[str] = None,
+    colorib: Optional[str] = None,
+    colfestb: Optional[str] = None,
+    output_overlap: Optional[str] = None,
+    output_buffer: Optional[str] = None,
+    skip_invalid: bool = True
+) -> Tuple[int, float]:
+    """
+    Estimates the number of Google API requests needed based on route pair data
+    and approximates the cost.
+
+    Parameters:
+    - csv_file (str): Path to the input CSV file.
+    - approximation (str): Approximation strategy to apply.
+    - commuting_info (str): Whether commuting info is to be considered.
+    - colorna, coldesta, colorib, colfestb (str): Column names for routes.
+    - skip_invalid (bool): Whether to skip invalid rows.
+
+    Returns:
+    - Tuple[int, float]: Estimated number of API requests and corresponding cost in USD.
+    """
+    data_set = read_csv_file(csv_file, colorna, coldesta, colorib, colfestb, skip_invalid=skip_invalid)
+    n = 0
+
+    for row in data_set:
+        origin_a = row["OriginA"]
+        destination_a = row["DestinationA"]
+        origin_b = row["OriginB"]
+        destination_b = row["DestinationB"]
+
+        same_a = origin_a == origin_b
+        same_b = destination_a == destination_b
+        same_a_dest = origin_a == destination_a
+        same_b_dest = origin_b == destination_b
+
+        if approximation == "no":
+            n += 1 if same_a and same_b else (7 if commuting_info == "yes" else 3)
+
+        elif approximation == "yes":
+            n += 1 if same_a and same_b else (8 if commuting_info == "yes" else 4)
+
+        elif approximation == "yes with buffer":
+            if same_a_dest and same_b_dest:
+                n += 0
+            elif same_a_dest or same_b_dest or (same_a and same_b):
+                n += 1
+            else:
+                n += 2
+
+        elif approximation == "closer to precision" or approximation == "exact":
+            if same_a_dest and same_b_dest:
+                n += 0
+            elif same_a_dest or same_b_dest or (same_a and same_b):
+                n += 1
+            else:
+                n += 8 if commuting_info == "yes" else 4
+
+        else:
+            raise ValueError(f"Invalid approximation option: '{approximation}'")
+
+    cost = (n / 1000) * 5  # USD estimate
+    return n, cost
 
 def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
     """
@@ -3034,6 +3101,38 @@ def Overlap_Function(
         output_overlap = os.path.join("results", os.path.basename(output_overlap))
     if output_buffer:
         output_buffer = os.path.join("results", os.path.basename(output_buffer))
+
+     # Estimate request count and cost
+    try:
+        num_requests, estimated_cost = request_cost_estimation(
+            csv_file=csv_file,
+            approximation=approximation,
+            commuting_info=commuting_info,
+            colorna=colorna,
+            coldesta=coldesta,
+            colorib=colorib,
+            colfestb=colfestb,
+            output_overlap=output_overlap,
+            output_buffer=output_buffer,
+            skip_invalid=skip_invalid
+        )
+    except Exception as e:
+        print(f"[ERROR] Unable to estimate cost: {e}")
+        return
+
+    # Display estimation to user
+    print(f"\n[INFO] Estimated number of API requests: {num_requests}")
+    print(f"[INFO] Estimated cost: ${estimated_cost:.2f}")
+    print("[NOTICE] Actual cost may be higher or lower depending on Google’s pricing tiers and route pair complexity.\n")
+
+    # Ask for user confirmation
+    user_input = input("Do you want to proceed with this operation? (yes/no): ").strip().lower()
+    if user_input != "yes":
+        print("[CANCELLED] Operation aborted by the user.")
+        return
+
+    # If confirmed, proceed with the rest of your processing logic
+    print("[PROCESSING] Proceeding with route analysis...\n")   
 
     if approximation == "yes":
         if commuting_info == "yes":
