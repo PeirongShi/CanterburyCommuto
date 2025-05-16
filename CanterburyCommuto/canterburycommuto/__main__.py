@@ -13,7 +13,7 @@ Usage:
 """
 
 import argparse
-from .CanterburyCommuto import Overlap_Function
+from canterburycommuto.CanterburyCommuto import Overlap_Function
 
 def main():
     # Set up the argument parser
