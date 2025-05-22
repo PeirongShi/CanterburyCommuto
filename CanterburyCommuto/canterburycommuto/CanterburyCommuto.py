@@ -3182,51 +3182,41 @@ def Overlap_Function(
         if commuting_info == "yes":
             output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_overlap, options)
 
         elif commuting_info == "no":
             output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_overlap, options)
 
     elif approximation == "no":
         if commuting_info == "yes":
             output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
-            results, pre_api_errors, api_calls, api_calls, post_api_errors = process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_overlap, options)
 
         elif commuting_info == "no":
             output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_overlap, options)
 
     elif approximation == "yes with buffer":
         output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
         results, pre_api_errors, api_calls, post_api_errors = process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-        total_errors = pre_api_errors + post_api_errors
         options["Pre-API Error Count"] = pre_api_errors
         options["Post-API Error Count"] = post_api_errors
-        options["Total Error Count"] = total_errors
         options["Total API Calls"] = api_calls    
         write_log(output_buffer, options)
 
@@ -3234,20 +3224,16 @@ def Overlap_Function(
         if commuting_info == "yes":
             output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_results", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_buffer, options)
 
         elif commuting_info == "no":
             output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_buffer, options)
 
@@ -3255,19 +3241,15 @@ def Overlap_Function(
         if commuting_info == "yes":
             output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_results", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_buffer, options)
 
         elif commuting_info == "no":
             output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid)
-            total_errors = pre_api_errors + post_api_errors
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
-            options["Total Error Count"] = total_errors
             options["Total API Calls"] = api_calls
             write_log(output_buffer, options)
