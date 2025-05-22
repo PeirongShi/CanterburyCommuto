@@ -1,51 +1,35 @@
 """
-CanterburyCommuto CLI: Command-Line Interface for Route Overlap Analysis and Buffer Intersection.
+CanterburyCommuto CLI: Command-Line Interface for Route Overlap Analysis and Cost Estimation.
 
-This script provides a command-line interface to process routes, analyze overlaps,
-and compare outputs.
+This script provides a command-line interface to:
+- Analyze route overlaps and buffer intersections
+- Estimate the number of Google API requests and the corresponding cost
 
 Usage:
-    python -m your_project.main <csv_file> <api_key> [--threshold VALUE] [--width VALUE]
-        [--buffer VALUE] [--approximation VALUE] [--commuting_info VALUE]
-        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME] [--colorib COLUMN_NAME]
-        [--colfestb COLUMN_NAME] [--output_overlap FILENAME] [--output_buffer FILENAME]
+
+    # Run overlap and buffer analysis:
+    python -m your_project.main overlap <csv_file> <api_key>
+        [--threshold VALUE] [--width VALUE] [--buffer VALUE]
+        [--approximation VALUE] [--commuting_info VALUE]
+        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME]
+        [--colorib COLUMN_NAME] [--colfestb COLUMN_NAME]
+        [--output_overlap FILENAME] [--output_buffer FILENAME]
         [--skip_invalid True|False] [--yes]
+
+    # Estimate number of API requests and cost (no actual API calls):
+    python -m your_project.main estimate <csv_file>
+        [--approximation VALUE] [--commuting_info VALUE]
+        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME]
+        [--colorib COLUMN_NAME] [--colfestb COLUMN_NAME]
+        [--output_overlap FILENAME] [--output_buffer FILENAME]
+        [--skip_invalid True|False]
 """
 
 import argparse
-from canterburycommuto.CanterburyCommuto import Overlap_Function
+from canterburycommuto.CanterburyCommuto import Overlap_Function, request_cost_estimation
 
-def main():
-    # Set up the argument parser
-    parser = argparse.ArgumentParser(
-        description="CLI for analyzing route overlaps and buffer intersections."
-    )
-
-    # Required arguments
-    parser.add_argument("csv_file", type=str, help="Path to the input CSV file containing route data.")
-    parser.add_argument("api_key", type=str, help="Google API key for route calculations.")
-
-    # Optional arguments
-    parser.add_argument("--threshold", type=float, default=50.0, help="Overlap threshold percentage for node overlap calculations (default: 50).")
-    parser.add_argument("--width", type=float, default=100.0, help="Width for node overlap calculations in meters (default: 100).")
-    parser.add_argument("--buffer", type=float, default=100.0, help="Buffer distance for route buffer intersection analysis in meters (default: 100).")
-    parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no", help="Overlap processing method: 'yes', 'no', 'yes with buffer', 'closer to precision', or 'exact'. (default: no).")
-    parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no", help="Include commuting information: 'yes' or 'no' (default: no).")
-    parser.add_argument("--colorna", type=str, help="Column name for the origin of route A.")
-    parser.add_argument("--coldesta", type=str, help="Column name for the destination of route A.")
-    parser.add_argument("--colorib", type=str, help="Column name for the origin of route B.")
-    parser.add_argument("--colfestb", type=str, help="Column name for the destination of route B.")
-    parser.add_argument("--output_overlap", type=str, help="Path to save the overlap results (optional).")
-    parser.add_argument("--output_buffer", type=str, help="Path to save the buffer intersection results (optional).")
-    parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True, help="Whether to skip invalid coordinate rows (True or False). Default is True.")
-
-    # NEW: Add --yes flag to skip confirmation prompt
-    parser.add_argument("--yes", action="store_true", help="Automatically confirm the cost prompt and proceed without asking.")
-
-    args = parser.parse_args()
-
+def run_overlap(args):
     try:
-        # Call the Overlap_Function with parsed arguments
         Overlap_Function(
             csv_file=args.csv_file,
             api_key=args.api_key,
@@ -61,12 +45,71 @@ def main():
             output_overlap=args.output_overlap,
             output_buffer=args.output_buffer,
             skip_invalid=args.skip_invalid,
-            auto_confirm=args.yes  # NEW: pass the flag to control prompt
+            auto_confirm=args.yes
         )
     except ValueError as ve:
         print(f"Input Validation Error: {ve}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
+def run_estimation(args):
+    try:
+        n_requests, cost = request_cost_estimation(
+            csv_file=args.csv_file,
+            approximation=args.approximation,
+            commuting_info=args.commuting_info,
+            colorna=args.colorna,
+            coldesta=args.coldesta,
+            colorib=args.colorib,
+            colfestb=args.colfestb,
+            output_overlap=args.output_overlap,
+            output_buffer=args.output_buffer,
+            skip_invalid=args.skip_invalid
+        )
+        print(f"Estimated API requests: {n_requests}")
+        print(f"Estimated cost (USD): ${cost:.2f}")
+    except Exception as e:
+        print(f"Error during estimation: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(description="CanterburyCommuto CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Subparser for "overlap"
+    overlap_parser = subparsers.add_parser("overlap", help="Analyze route overlaps and buffers.")
+    overlap_parser.add_argument("csv_file", type=str)
+    overlap_parser.add_argument("api_key", type=str)
+    overlap_parser.add_argument("--threshold", type=float, default=50.0)
+    overlap_parser.add_argument("--width", type=float, default=100.0)
+    overlap_parser.add_argument("--buffer", type=float, default=100.0)
+    overlap_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
+    overlap_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
+    overlap_parser.add_argument("--colorna", type=str)
+    overlap_parser.add_argument("--coldesta", type=str)
+    overlap_parser.add_argument("--colorib", type=str)
+    overlap_parser.add_argument("--colfestb", type=str)
+    overlap_parser.add_argument("--output_overlap", type=str)
+    overlap_parser.add_argument("--output_buffer", type=str)
+    overlap_parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True)
+    overlap_parser.add_argument("--yes", action="store_true")
+    overlap_parser.set_defaults(func=run_overlap)
+
+    # Subparser for "estimate"
+    estimate_parser = subparsers.add_parser("estimate", help="Estimate number of API requests and cost.")
+    estimate_parser.add_argument("csv_file", type=str)
+    estimate_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
+    estimate_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
+    estimate_parser.add_argument("--colorna", type=str)
+    estimate_parser.add_argument("--coldesta", type=str)
+    estimate_parser.add_argument("--colorib", type=str)
+    estimate_parser.add_argument("--colfestb", type=str)
+    estimate_parser.add_argument("--output_overlap", type=str)
+    estimate_parser.add_argument("--output_buffer", type=str)
+    estimate_parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True)
+    estimate_parser.set_defaults(func=run_estimation)
+
+    args = parser.parse_args()
+    args.func(args)
 
 if __name__ == "__main__":
     main()
