@@ -1521,17 +1521,25 @@ def process_row_only_overlap_rec(row_and_args):
             - skip_invalid (bool): Whether to skip errors or halt on first error
 
     Returns:
-        dict or None: Dictionary of route and overlap metrics, or None if skipped due to error.
+        tuple:
+            - dict: Dictionary of route and overlap metrics (or None values if error)
+            - int: Number of API calls made
+            - int: Number of errors encountered (0 or 1)
     """
     row, api_key, width, threshold, skip_invalid = row_and_args
+    api_calls = 0
+
     try:
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == origin_b and destination_a == destination_b:
+            api_calls += 1
+            start_time = time.time()
             coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+            logging.info(f"Time for same-route API call: {time.time() - start_time:.2f} seconds")
             plot_routes(coordinates_a, [], None, None)
-            return {
+            return ({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
@@ -1542,16 +1550,23 @@ def process_row_only_overlap_rec(row_and_args):
                 "bTime": a_time,
                 "overlapDist": a_dist,
                 "overlapTime": a_time,
-            }
+            }, api_calls, 0)
 
+        api_calls += 1
+        start_time = time.time()
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key)
+        logging.info(f"Time for coordinates_a API call: {time.time() - start_time:.2f} seconds")
+
+        api_calls += 1
+        start_time = time.time()
         coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key)
+        logging.info(f"Time for coordinates_b API call: {time.time() - start_time:.2f} seconds")
 
         first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
 
         if not first_common_node or not last_common_node:
             plot_routes(coordinates_a, coordinates_b, None, None)
-            return {
+            return ({
                 "OriginA": origin_a,
                 "DestinationA": destination_a,
                 "OriginB": origin_b,
@@ -1562,7 +1577,7 @@ def process_row_only_overlap_rec(row_and_args):
                 "bTime": total_time_b,
                 "overlapDist": 0.0,
                 "overlapTime": 0.0,
-            }
+            }, api_calls, 0)
 
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
@@ -1596,6 +1611,7 @@ def process_row_only_overlap_rec(row_and_args):
                 },
             }
 
+        api_calls += 1
         start_time = time.time()
         _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
@@ -1604,6 +1620,7 @@ def process_row_only_overlap_rec(row_and_args):
         )
         logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
 
+        api_calls += 1
         start_time = time.time()
         _, overlap_b_dist, overlap_b_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
@@ -1614,7 +1631,7 @@ def process_row_only_overlap_rec(row_and_args):
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
-        return {
+        return ({
             "OriginA": origin_a,
             "DestinationA": destination_a,
             "OriginB": origin_b,
@@ -1625,12 +1642,12 @@ def process_row_only_overlap_rec(row_and_args):
             "bTime": total_time_b,
             "overlapDist": overlap_a_dist,
             "overlapTime": overlap_a_time,
-        }
+        }, api_calls, 0)
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return {
+            return ({
                 "OriginA": row.get("OriginA", ""),
                 "DestinationA": row.get("DestinationA", ""),
                 "OriginB": row.get("OriginB", ""),
@@ -1641,7 +1658,7 @@ def process_row_only_overlap_rec(row_and_args):
                 "bTime": None,
                 "overlapDist": None,
                 "overlapTime": None,
-            }
+            }, api_calls, 1)
         else:
             raise
 
@@ -1656,7 +1673,7 @@ def only_overlap_rec(
     colorib: str = None,
     colfestb: str = None,
     skip_invalid: bool = True
-) -> list:
+) -> tuple:
     """
     Processes routes to compute only the overlapping rectangular segments based on a threshold and width.
 
@@ -1670,7 +1687,12 @@ def only_overlap_rec(
     - skip_invalid (bool): If True, skips rows with invalid input and logs them.
 
     Returns:
-    - list: Processed results with overlap metrics only.
+    - tuple: (
+        results (list): Processed results with overlap metrics only,
+        pre_api_error_count (int),
+        api_call_count (int),
+        post_api_error_count (int)
+      )
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
@@ -1681,15 +1703,22 @@ def only_overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    # Add skip_invalid to each row for compatibility with updated row-processing logic
     args_with_flags = [(row, api_key, width, threshold, skip_invalid) for row in data]
 
-    with Pool() as pool:
-        results = pool.map(process_row_only_overlap_rec, args_with_flags)
+    api_call_count = 0
+    post_api_error_count = 0
+    results = []
 
-    # Filter None results if skipping invalid
-    if skip_invalid:
-        results = [r for r in results if r is not None]
+    with Pool() as pool:
+        raw_results = pool.map(process_row_only_overlap_rec, args_with_flags)
+
+    for res in raw_results:
+        if res is None:
+            continue
+        row_data, row_api_calls, row_errors = res
+        api_call_count += row_api_calls
+        post_api_error_count += row_errors
+        results.append(row_data)
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
@@ -1698,7 +1727,7 @@ def only_overlap_rec(
     ]
     write_csv_file(output_csv, results, fieldnames)
 
-    return results
+    return results, pre_api_error_count, api_call_count, post_api_error_count
 
 ## The following functions create buffers along the commuting routes to find the ratios of buffers' intersection area over the two routes' total buffer areas.
 def calculate_geodetic_area(polygon: Polygon) -> float:
