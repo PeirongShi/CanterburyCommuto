@@ -1968,54 +1968,63 @@ def process_row_route_buffers(row_and_args):
             - skip_invalid (bool): Whether to skip and log errors or raise them
 
     Returns:
-        dict or None: Metrics for the route pair, or None if skipped due to error.
+        tuple:
+            - dict: Metrics for the route pair
+            - int: Number of API calls made
+            - int: 1 if skipped due to error, else 0
     """
     row, api_key, buffer_distance, skip_invalid = row_and_args
+    api_calls = 0
 
     try:
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0, "aTime": 0, "bDist": 0, "bTime": 0,
                 "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a == destination_a and origin_b != destination_b:
+            api_calls += 1
             route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0, "aTime": 0, "bDist": b_dist, "bTime": b_time,
                 "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a != destination_a and origin_b == destination_b:
+            api_calls += 1
             route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time, "bDist": 0, "bTime": 0,
                 "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }
+            }, api_calls, 0)
 
+        api_calls += 1
         route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+
+        api_calls += 1
         route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
         if origin_a == origin_b and destination_a == destination_b:
             buffer_a = create_buffered_route(route_a_coords, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time,
                 "bDist": a_dist, "bTime": a_time,
                 "aIntersecRatio": 1.0, "bIntersecRatio": 1.0,
-            }
+            }, api_calls, 0)
 
         buffer_a = create_buffered_route(route_a_coords, buffer_distance)
         buffer_b = create_buffered_route(route_b_coords, buffer_distance)
@@ -2027,13 +2036,13 @@ def process_row_route_buffers(row_and_args):
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
 
         if intersection.is_empty:
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time,
                 "bDist": b_dist, "bTime": b_time,
                 "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }
+            }, api_calls, 0)
 
         intersection_area = intersection.area
         a_area = buffer_a.area
@@ -2041,19 +2050,19 @@ def process_row_route_buffers(row_and_args):
         a_intersec_ratio = intersection_area / a_area
         b_intersec_ratio = intersection_area / b_area
 
-        return {
+        return ({
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": a_dist, "aTime": a_time,
             "bDist": b_dist, "bTime": b_time,
             "aIntersecRatio": a_intersec_ratio,
             "bIntersecRatio": b_intersec_ratio,
-        }
+        }, api_calls, 0)
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return {
+            return ({
                 "OriginA": row.get("OriginA", ""),
                 "DestinationA": row.get("DestinationA", ""),
                 "OriginB": row.get("OriginB", ""),
@@ -2064,7 +2073,7 @@ def process_row_route_buffers(row_and_args):
                 "bTime": None,
                 "aIntersecRatio": None,
                 "bIntersecRatio": None,
-            }
+            }, api_calls, 1)
         else:
             raise
 
@@ -2078,7 +2087,7 @@ def process_routes_with_buffers(
     colorib: str = None,
     colfestb: str = None,
     skip_invalid: bool = True
-) -> None:
+) -> tuple:
     """
     Processes two routes from a CSV file to compute buffer intersection ratios.
 
@@ -2091,7 +2100,12 @@ def process_routes_with_buffers(
     - skip_invalid (bool): If True, skips invalid rows and logs them instead of halting.
 
     Returns:
-    - None
+    - tuple: (
+        results (list of dicts),
+        pre_api_error_count (int),
+        total_api_calls (int),
+        post_api_error_count (int)
+    )
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
@@ -2102,15 +2116,22 @@ def process_routes_with_buffers(
         skip_invalid=skip_invalid
     )
 
-    # Pass skip_invalid flag to each row's args
     args = [(row, api_key, buffer_distance, skip_invalid) for row in data]
 
     with Pool() as pool:
-        results = pool.map(process_row_route_buffers, args)
+        raw_results = pool.map(process_row_route_buffers, args)
 
-    # Remove None results if skip_invalid is True
-    if skip_invalid:
-        results = [r for r in results if r is not None]
+    results = []
+    total_api_calls = 0
+    post_api_error_count = 0
+
+    for r in raw_results:
+        if r is None:
+            continue
+        result_dict, api_calls, api_errors = r
+        results.append(result_dict)
+        total_api_calls += api_calls
+        post_api_error_count += api_errors
 
     fieldnames = [
         "OriginA", "DestinationA", "OriginB", "DestinationB",
@@ -2119,6 +2140,8 @@ def process_routes_with_buffers(
     ]
 
     write_csv_file(output_csv, results, fieldnames)
+
+    return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 def calculate_precise_travel_segments(
     route_coords: List[List[float]],
@@ -2268,15 +2291,16 @@ def process_row_closest_nodes(row_and_args):
         skip_invalid (bool): Whether to skip rows with errors (default: True).
 
     Returns:
-        dict or None: A dictionary of computed metrics or None if error and skip_invalid is True.
+        tuple: (result_dict, api_calls, api_errors)
     """
+    api_calls = 0
     try:
         row, api_key, buffer_distance, skip_invalid = row_and_args
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
@@ -2286,11 +2310,12 @@ def process_row_closest_nodes(row_and_args):
                 "aAfterDist": 0.0, "aAfterTime": 0.0,
                 "bBeforeDist": 0.0, "bBeforeTime": 0.0,
                 "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a == destination_a and origin_b != destination_b:
+            api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
@@ -2300,11 +2325,12 @@ def process_row_closest_nodes(row_and_args):
                 "aAfterDist": 0.0, "aAfterTime": 0.0,
                 "bBeforeDist": 0.0, "bBeforeTime": 0.0,
                 "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a != destination_a and origin_b == destination_b:
+            api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
@@ -2314,15 +2340,16 @@ def process_row_closest_nodes(row_and_args):
                 "aAfterDist": 0.0, "aAfterTime": 0.0,
                 "bBeforeDist": 0.0, "bBeforeTime": 0.0,
                 "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a == origin_b and destination_a == destination_b:
+            api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             coords_b = coords_a
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time, "bDist": a_dist, "bTime": a_time,
@@ -2332,8 +2359,9 @@ def process_row_closest_nodes(row_and_args):
                 "aAfterDist": 0.0, "aAfterTime": 0.0,
                 "bBeforeDist": 0.0, "bBeforeTime": 0.0,
                 "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }
+            }, api_calls, 0)
 
+        api_calls += 2
         start_time_a = time.time()
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
         logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
@@ -2363,6 +2391,7 @@ def process_row_closest_nodes(row_and_args):
 
             if len(nodes_inside_a) >= 2:
                 entry_a, exit_a = nodes_inside_a[0], nodes_inside_a[-1]
+                api_calls += 1
                 overlap_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key)
             else:
                 overlap_a = {"during_distance": 0.0, "during_time": 0.0,
@@ -2371,13 +2400,14 @@ def process_row_closest_nodes(row_and_args):
 
             if len(nodes_inside_b) >= 2:
                 entry_b, exit_b = nodes_inside_b[0], nodes_inside_b[-1]
+                api_calls += 1
                 overlap_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key)
             else:
                 overlap_b = {"during_distance": 0.0, "during_time": 0.0,
                              "before_distance": 0.0, "before_time": 0.0,
                              "after_distance": 0.0, "after_time": 0.0}
 
-        return {
+        return ({
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": a_dist, "aTime": a_time, "bDist": b_dist, "bTime": b_time,
@@ -2387,12 +2417,12 @@ def process_row_closest_nodes(row_and_args):
             "aAfterDist": overlap_a["after_distance"], "aAfterTime": overlap_a["after_time"],
             "bBeforeDist": overlap_b["before_distance"], "bBeforeTime": overlap_b["before_time"],
             "bAfterDist": overlap_b["after_distance"], "bAfterTime": overlap_b["after_time"]
-        }
+        }, api_calls, 0)
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
-            return {
+            return ({
                 "OriginA": row.get("OriginA", ""),
                 "DestinationA": row.get("DestinationA", ""),
                 "OriginB": row.get("OriginB", ""),
@@ -2413,7 +2443,7 @@ def process_row_closest_nodes(row_and_args):
                 "bBeforeTime": None,
                 "bAfterDist": None,
                 "bAfterTime": None,
-            }
+            }, api_calls, 1)
         else:
             raise
 
@@ -2427,7 +2457,7 @@ def process_routes_with_closest_nodes(
     colorib: str = None,
     colfestb: str = None,
     skip_invalid: bool = True
-) -> list:
+) -> tuple:
     """
     Processes two routes using buffered geometries to compute travel overlap details
     based on closest nodes within the intersection.
@@ -2441,7 +2471,12 @@ def process_routes_with_closest_nodes(
     - skip_invalid (bool): If True, skips invalid input rows and logs them.
 
     Returns:
-    - list: Processed results written to the output CSV.
+    - tuple: (
+        results (list): Processed route rows,
+        pre_api_error_count (int): Invalid before routing,
+        total_api_calls (int): Number of API calls made,
+        post_api_error_count (int): Failures during processing
+      )
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
@@ -2455,10 +2490,19 @@ def process_routes_with_closest_nodes(
     args_with_flags = [(row, api_key, buffer_distance, skip_invalid) for row in data]
 
     with Pool() as pool:
-        results = pool.map(process_row_closest_nodes, args_with_flags)
+        raw_results = pool.map(process_row_closest_nodes, args_with_flags)
 
-    if skip_invalid:
-        results = [r for r in results if r is not None]
+    results = []
+    total_api_calls = 0
+    post_api_error_count = 0
+
+    for res in raw_results:
+        if res is None:
+            continue
+        row_result, api_calls, api_errors = res
+        results.append(row_result)
+        total_api_calls += api_calls
+        post_api_error_count += api_errors
 
     if results:
         fieldnames = list(results[0].keys())
@@ -2467,7 +2511,7 @@ def process_routes_with_closest_nodes(
             writer.writeheader()
             writer.writerows(results)
 
-    return results
+    return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 def process_row_closest_nodes_simple(row_and_args):
     """
@@ -2487,56 +2531,62 @@ def process_row_closest_nodes_simple(row_and_args):
         skip_invalid (bool): If True, logs and skips invalid rows on error; otherwise raises the error.
 
     Returns:
-        dict or None: Travel and overlap metrics or None if skipped.
+        tuple: (result_dict, api_calls, api_errors)
     """
+    api_calls = 0
     try:
         row, api_key, buffer_distance, skip_invalid = row_and_args
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
                 "aoverlapDist": 0.0, "aoverlapTime": 0.0,
                 "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_a == destination_a:
+            api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
                 "aoverlapDist": 0.0, "aoverlapTime": 0.0,
                 "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }
+            }, api_calls, 0)
 
         if origin_b == destination_b:
+            api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
                 "aoverlapDist": 0.0, "aoverlapTime": 0.0,
                 "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }
+            }, api_calls, 0)
 
+        api_calls += 1
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key)
+
+        api_calls += 1
         coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key)
 
         if origin_a == origin_b and destination_a == destination_b:
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-            return {
+            return ({
                 "OriginA": origin_a, "DestinationA": destination_a,
                 "OriginB": origin_b, "DestinationB": destination_b,
                 "aDist": a_dist, "aTime": a_time, "bDist": a_dist, "bTime": a_time,
                 "aoverlapDist": a_dist, "aoverlapTime": a_time,
                 "boverlapDist": a_dist, "boverlapTime": a_time,
-            }
+            }, api_calls, 0)
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         buffer_b = create_buffered_route(coords_b, buffer_distance)
@@ -2552,6 +2602,7 @@ def process_row_closest_nodes_simple(row_and_args):
             nodes_inside_b = [pt for pt in coords_b if Point(pt[1], pt[0]).within(intersection_polygon)]
 
             if len(nodes_inside_a) >= 2:
+                api_calls += 1
                 entry_a, exit_a = nodes_inside_a[0], nodes_inside_a[-1]
                 segments_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key)
                 overlap_a_dist = segments_a.get("during_distance", 0.0)
@@ -2560,6 +2611,7 @@ def process_row_closest_nodes_simple(row_and_args):
                 overlap_a_dist = overlap_a_time = 0.0
 
             if len(nodes_inside_b) >= 2:
+                api_calls += 1
                 entry_b, exit_b = nodes_inside_b[0], nodes_inside_b[-1]
                 segments_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key)
                 overlap_b_dist = segments_b.get("during_distance", 0.0)
@@ -2567,19 +2619,19 @@ def process_row_closest_nodes_simple(row_and_args):
             else:
                 overlap_b_dist = overlap_b_time = 0.0
 
-        return {
+        return ({
             "OriginA": origin_a, "DestinationA": destination_a,
             "OriginB": origin_b, "DestinationB": destination_b,
             "aDist": a_dist, "aTime": a_time,
             "bDist": b_dist, "bTime": b_time,
             "aoverlapDist": overlap_a_dist, "aoverlapTime": overlap_a_time,
             "boverlapDist": overlap_b_dist, "boverlapTime": overlap_b_time,
-        }
+        }, api_calls, 0)
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return {
+            return ({
                 "OriginA": row.get("OriginA", ""),
                 "DestinationA": row.get("DestinationA", ""),
                 "OriginB": row.get("OriginB", ""),
@@ -2592,7 +2644,7 @@ def process_row_closest_nodes_simple(row_and_args):
                 "aoverlapTime": None,
                 "boverlapDist": None,
                 "boverlapTime": None,
-            }
+            }, api_calls, 1)
         else:
             raise
 
@@ -2606,7 +2658,7 @@ def process_routes_with_closest_nodes_simple(
     colorib: str = None,
     colfestb: str = None,
     skip_invalid: bool = True
-) -> list:
+) -> tuple:
     """
     Computes total and overlapping travel segments for two routes using closest-node
     intersection logic without splitting before/during/after, and writes results to CSV.
@@ -2620,7 +2672,12 @@ def process_routes_with_closest_nodes_simple(
     - skip_invalid (bool): If True, skips rows with invalid coordinate values.
 
     Returns:
-    - list: Processed result rows.
+    - tuple: (
+        results (list): Processed result rows,
+        pre_api_error_count (int): Number of errors before API calls,
+        total_api_calls (int): Total number of API calls made,
+        post_api_error_count (int): Number of errors during/after API calls
+      )
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
@@ -2634,10 +2691,19 @@ def process_routes_with_closest_nodes_simple(
     args_with_flags = [(row, api_key, buffer_distance, skip_invalid) for row in data]
 
     with Pool() as pool:
-        results = pool.map(process_row_closest_nodes_simple, args_with_flags)
+        results_raw = pool.map(process_row_closest_nodes_simple, args_with_flags)
 
-    if skip_invalid:
-        results = [r for r in results if r is not None]
+    results = []
+    total_api_calls = 0
+    post_api_error_count = 0
+
+    for r in results_raw:
+        if r is None:
+            continue
+        row_result, api_calls, api_errors = r
+        results.append(row_result)
+        total_api_calls += api_calls
+        post_api_error_count += api_errors
 
     if results:
         fieldnames = list(results[0].keys())
@@ -2646,7 +2712,7 @@ def process_routes_with_closest_nodes_simple(
             writer.writeheader()
             writer.writerows(results)
 
-    return results
+    return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 def wrap_row_multiproc_exact(args):
     """
