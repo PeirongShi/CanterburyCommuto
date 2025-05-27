@@ -138,7 +138,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 
 ### Overlap Function Options
 
-This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description.
+This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description. "Commuting Information (Pre/Post Overlap) Available?" refers to whether the system can provide separate commuting data for the parts of the route before and after the overlapping segment of a shared commute.
 
 | Option Name                 | Commuting Information (Pre/Post Overlap) Available? | Closeness to Reality (0 = Not Close, 10 = Very Close) | Description |
 |----------------------------|---------------------------|--------------------------------------|-------------|
