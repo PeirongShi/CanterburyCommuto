@@ -46,7 +46,7 @@ This Python package uses the essential tier of the Google Maps Directions API, r
 You can generate a test dataset with the script
   
 ```bash
-python canterburycommuto/Sample.py
+python CanterburyCommuto/canterburycommuto/Sample.py
 ```
 
 Otherwise, you need to create a csv file with the following columns:
@@ -61,11 +61,25 @@ Next, import the main function.
 ```bash
 from canterburycommuto.CanterburyCommuto import Overlap_Function
 ```
+Before running the main function to retrieve commuting data, it's recommended to first run the estimation command. This provides an estimate of the number of Google API requests and the potential cost, assuming the free tier is exceeded. This helps users make informed decisions, as extensive API use can become costly depending on route complexity and Google's pricing.
+
+```bash
+python -m canterburycommuto estimate origin_destination_coordinates.csv \
+    --approximation "exact" \
+    --commuting_info "no" \
+    --colorna "home_A" \
+    --coldesta "work_A" \
+    --colorib "home_B" \
+    --colfestb "work_B" \
+    --output_overlap "exact_only_output.csv" \
+    --output_buffer "exact_only.csv" \
+    --skip_invalid True
+```
 
 Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". 
 
 ```bash
-python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_KEY \
+python -m canterburycommuto overlap origin_destination_coordinates.csv "API_KEY" \
     --threshold 60 \
     --width 120 \
     --buffer 150 \
@@ -75,10 +89,10 @@ python -m canterburycommuto origin_destination_coordinates.csv YOUR_GOOGLE_API_K
     --coldesta "work_A" \
     --colorib "home_B" \
     --colfestb "work_B" \
-    --output_overlap "overlap_output.csv" \
+    --output_overlap "buffer_percentage_output.csv" \
     --output_buffer "buffer_output.csv" \
-    --skip_invalid True
-
+    --skip_invalid True \
+    --yes
 ```
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
@@ -123,7 +137,7 @@ The output will be a csv file including the GPS coordinates of the route pairs' 
 
 ### Overlap Function Options
 
-This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description.
+This table summarizes the available options for the package's main function, including whether commuting information before and after the overlap can be considered, how realistic the results are, and a brief description. "Commuting Information (Pre/Post Overlap) Available?" refers to whether the system can provide separate commuting data for the parts of the route before and after the overlapping segment of a shared commute.
 
 | Option Name                 | Commuting Information (Pre/Post Overlap) Available? | Closeness to Reality (0 = Not Close, 10 = Very Close) | Description |
 |----------------------------|---------------------------|--------------------------------------|-------------|
