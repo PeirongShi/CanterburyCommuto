@@ -78,7 +78,7 @@ def main():
     # Subparser for "overlap"
     overlap_parser = subparsers.add_parser("overlap", help="Analyze route overlaps and buffers.")
     overlap_parser.add_argument("csv_file", type=str)
-    overlap_parser.add_argument("api_key", type=str)
+    overlap_parser.add_argument("--api_key", type=str, required=False, default=None, help="Google API key. If not provided, the tool will try to read from config.yaml.")
     overlap_parser.add_argument("--threshold", type=float, default=50.0)
     overlap_parser.add_argument("--width", type=float, default=100.0)
     overlap_parser.add_argument("--buffer", type=float, default=100.0)

@@ -3238,17 +3238,30 @@ def Overlap_Function(
 
     if not api_key:
         try:
-            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
-            with open("config.yaml", "r") as f:
+            # Try using __file__ if defined (script context)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        except NameError:
+            # If __file__ is undefined (e.g., Jupyter), fallback to working directory
+            base_dir = os.getcwd()
+
+        # Look for the config.yaml by walking up until found (max 3 levels)
+        for _ in range(3):
+            config_path = os.path.join(base_dir, "config.yaml")
+            if os.path.exists(config_path):
+                break
+            base_dir = os.path.dirname(base_dir)
+        else:
+            raise FileNotFoundError("config.yaml not found in parent directories and no API key provided.")
+
+        try:
+            with open(config_path, "r") as f:
                 config = yaml.safe_load(f)
                 api_key = config.get("api_key")
                 if not api_key:
                     raise ValueError("API key not found in config.yaml.")
-        except FileNotFoundError:
-            raise FileNotFoundError("config.yaml not found and no API key provided.")
         except Exception as e:
             raise RuntimeError(f"Failed to read API key from config.yaml: {e}")
-
+    
     options = {
         "csv_file": csv_file,
         "api_key": "********",
