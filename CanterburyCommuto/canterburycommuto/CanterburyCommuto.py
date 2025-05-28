@@ -3238,6 +3238,7 @@ def Overlap_Function(
 
     if not api_key:
         try:
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.yaml")
             with open("config.yaml", "r") as f:
                 config = yaml.safe_load(f)
                 api_key = config.get("api_key")
