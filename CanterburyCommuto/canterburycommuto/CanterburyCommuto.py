@@ -11,6 +11,7 @@ from multiprocessing.dummy import Pool
 import folium
 import polyline
 import requests
+import yaml
 from IPython.display import display, IFrame
 from pyproj import Geod, Transformer
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
@@ -3234,6 +3235,18 @@ def Overlap_Function(
     - None
     """
     os.makedirs("results", exist_ok=True)
+
+    if not api_key:
+        try:
+            with open("config.yaml", "r") as f:
+                config = yaml.safe_load(f)
+                api_key = config.get("api_key")
+                if not api_key:
+                    raise ValueError("API key not found in config.yaml.")
+        except FileNotFoundError:
+            raise FileNotFoundError("config.yaml not found and no API key provided.")
+        except Exception as e:
+            raise RuntimeError(f"Failed to read API key from config.yaml: {e}")
 
     options = {
         "csv_file": csv_file,
