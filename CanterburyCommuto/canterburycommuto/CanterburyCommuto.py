@@ -19,6 +19,66 @@ from pydantic import BaseModel
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
 
+class RouteBase(BaseModel):
+    """Base model for route endpoints and basic metrics."""
+    OriginA: str
+    DestinationA: str
+    OriginB: str
+    DestinationB: str
+    aDist: Optional[float] = None
+    aTime: Optional[float] = None
+    bDist: Optional[float] = None
+    bTime: Optional[float] = None
+
+
+class FullOverlapResult(RouteBase):
+    """Detailed result with full segment and overlap analysis."""
+    overlapDist: Optional[float] = None
+    overlapTime: Optional[float] = None
+    aBeforeDist: Optional[float] = None
+    aBeforeTime: Optional[float] = None
+    bBeforeDist: Optional[float] = None
+    bBeforeTime: Optional[float] = None
+    aAfterDist: Optional[float] = None
+    aAfterTime: Optional[float] = None
+    bAfterDist: Optional[float] = None
+    bAfterTime: Optional[float] = None
+
+
+class SimpleOverlapResult(RouteBase):
+    """Simplified result with only overlap distance and time."""
+    overlapDist: Optional[float] = None
+    overlapTime: Optional[float] = None
+
+
+class IntersectionRatioResult(RouteBase):
+    """Result showing ratio of route overlap for A and B."""
+    aIntersecRatio: Optional[float] = None
+    bIntersecRatio: Optional[float] = None
+
+class DetailedDualOverlapResult(RouteBase):
+    """Detailed result with A/B overlaps and pre/post overlap segments."""
+    aoverlapDist: Optional[float] = None
+    aoverlapTime: Optional[float] = None
+    boverlapDist: Optional[float] = None
+    boverlapTime: Optional[float] = None
+
+    aBeforeDist: Optional[float] = None
+    aBeforeTime: Optional[float] = None
+    aAfterDist: Optional[float] = None
+    aAfterTime: Optional[float] = None
+
+    bBeforeDist: Optional[float] = None
+    bBeforeTime: Optional[float] = None
+    bAfterDist: Optional[float] = None
+    bAfterTime: Optional[float] = None
+
+class SimpleDualOverlapResult(RouteBase):
+    """Simplified result with only A/B overlap distances and times."""
+    aoverlapDist: Optional[float] = None
+    aoverlapTime: Optional[float] = None
+    boverlapDist: Optional[float] = None
+    boverlapTime: Optional[float] = None
 
 # Global cache for Google API responses
 api_response_cache = {}
@@ -211,7 +271,7 @@ def request_cost_estimation(
             n += 1 if same_a and same_b else (7 if commuting_info == "yes" else 3)
 
         elif approximation == "yes":
-            n += 1 if same_a and same_b else (8 if commuting_info == "yes" else 4)
+            n += 1 if same_a and same_b else (7 if commuting_info == "yes" else 4)
 
         elif approximation == "yes with buffer":
             if same_a_dest and same_b_dest:
@@ -555,18 +615,32 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
             api_calls += 1
             coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
             plot_routes(coordinates_a, [], None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": a_dist, "bTime": a_time,
-                "overlapDist": a_dist, "overlapTime": a_time,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
-
+            # Return structured full overlap result as a dictionary, along with API stats
+            return (
+                FullOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,           
+                    bTime=a_time,
+                    overlapDist=a_dist,
+                    overlapTime=a_time,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0  # no error flag
+            )
+        
         api_calls += 1
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info)
         api_calls += 1
@@ -576,17 +650,30 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
 
         if not first_common_node or not last_common_node:
             plot_routes(coordinates_a, coordinates_b, None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": total_distance_a, "aTime": total_time_a,
-                "bDist": total_distance_b, "bTime": total_time_b,
-                "overlapDist": 0.0, "overlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                FullOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=total_distance_a,
+                    aTime=total_time_a,
+                    bDist=total_distance_b,
+                    bTime=total_time_b,
+                    overlapDist=0.0,
+                    overlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
@@ -619,36 +706,60 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": total_distance_a, "aTime": total_time_a,
-            "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
-            "aBeforeDist": before_a_distance, "aBeforeTime": before_a_time,
-            "bBeforeDist": before_b_distance, "bBeforeTime": before_b_time,
-            "aAfterDist": after_a_distance if after_a else 0.0,
-            "aAfterTime": after_a_time if after_a else 0.0,
-            "bAfterDist": after_b_distance if after_b else 0.0,
-            "bAfterTime": after_b_time if after_b else 0.0,
-        }, api_calls, 0)
+        return (
+            FullOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=total_distance_a,
+                aTime=total_time_a,
+                bDist=total_distance_b,
+                bTime=total_time_b,
+                overlapDist=overlap_a_distance,
+                overlapTime=overlap_a_time,
+                aBeforeDist=before_a_distance,
+                aBeforeTime=before_a_time,
+                bBeforeDist=before_b_distance,
+                bBeforeTime=before_b_time,
+                aAfterDist=after_a_distance if after_a else 0.0,
+                aAfterTime=after_a_time if after_a else 0.0,
+                bAfterDist=after_b_distance if after_b else 0.0,
+                bAfterTime=after_b_time if after_b else 0.0,
+            ).model_dump(),
+            api_calls,
+            0
+        )
+
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap for row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None, "aTime": None,
-                "bDist": None, "bTime": None,
-                "overlapDist": None, "overlapTime": None,
-                "aBeforeDist": None, "aBeforeTime": None,
-                "bBeforeDist": None, "bBeforeTime": None,
-                "aAfterDist": None, "aAfterTime": None,
-                "bAfterDist": None, "bAfterTime": None,
-            }, api_calls, 1)
+            return (
+                FullOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    overlapDist=None,
+                    overlapTime=None,
+                    aBeforeDist=None,
+                    aBeforeTime=None,
+                    bBeforeDist=None,
+                    bBeforeTime=None,
+                    aAfterDist=None,
+                    aAfterTime=None,
+                    bAfterDist=None,
+                    bAfterTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
+
         else:
             raise
 
@@ -739,13 +850,22 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
             api_calls += 1
             coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
             plot_routes(coordinates_a, [], None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": a_dist, "bTime": a_time,
-                "overlapDist": a_dist, "overlapTime": a_time,
-            }, api_calls, 0)
+            return (
+                SimpleOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    overlapDist=a_dist,
+                    overlapTime=a_time,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info)
@@ -756,13 +876,22 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
 
         if not first_common_node or not last_common_node:
             plot_routes(coordinates_a, coordinates_b, None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": total_distance_a, "aTime": total_time_a,
-                "bDist": total_distance_b, "bTime": total_time_b,
-                "overlapDist": 0.0, "overlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=total_distance_a,
+                    aTime=total_time_a,
+                    bDist=total_distance_b,
+                    bTime=total_time_b,
+                    overlapDist=0.0,
+                    overlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
@@ -781,26 +910,42 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": total_distance_a, "aTime": total_time_a,
-            "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": overlap_a_distance, "overlapTime": overlap_a_time,
-        }, api_calls, 0)
+        return (
+            SimpleOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=total_distance_a,
+                aTime=total_time_a,
+                bDist=total_distance_b,
+                bTime=total_time_b,
+                overlapDist=overlap_a_distance,
+                overlapTime=overlap_a_time,
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None, "aTime": None,
-                "bDist": None, "bTime": None,
-                "overlapDist": None, "overlapTime": None,
-            }, api_calls, 1)
+            return (
+                SimpleOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    overlapDist=None,
+                    overlapTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
         else:
             raise
 
@@ -1311,17 +1456,30 @@ def process_row_overlap_rec_multiproc(row_and_args):
             coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
             logging.info(f"Time for same-route API call: {time.time() - start_time:.2f} seconds")
             plot_routes(coordinates_a, [], None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": a_dist, "bTime": a_time,
-                "overlapDist": a_dist, "overlapTime": a_time,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                FullOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    overlapDist=a_dist,
+                    overlapTime=a_time,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         start_time = time.time()
@@ -1337,17 +1495,31 @@ def process_row_overlap_rec_multiproc(row_and_args):
 
         if not first_common_node or not last_common_node:
             plot_routes(coordinates_a, coordinates_b, None, None)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": total_distance_a, "aTime": total_time_a,
-                "bDist": total_distance_b, "bTime": total_time_b,
-                "overlapDist": 0.0, "overlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                FullOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=total_distance_a,
+                    aTime=total_time_a,
+                    bDist=total_distance_b,
+                    bTime=total_time_b,
+                    overlapDist=0.0,
+                    overlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
+
 
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
@@ -1423,16 +1595,6 @@ def process_row_overlap_rec_multiproc(row_and_args):
 
         api_calls += 1
         start_time = time.time()
-        _, overlap_b_dist, overlap_b_time = get_route_data(
-            f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
-            f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
-            api_key,
-            save_api_info
-        )
-        logging.info(f"Time for overlap_b API call: {time.time() - start_time:.2f} seconds")
-
-        api_calls += 1
-        start_time = time.time()
         _, after_b_dist, after_b_time = get_route_data(
             f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
             destination_b,
@@ -1443,34 +1605,59 @@ def process_row_overlap_rec_multiproc(row_and_args):
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": total_distance_a, "aTime": total_time_a,
-            "bDist": total_distance_b, "bTime": total_time_b,
-            "overlapDist": overlap_a_dist, "overlapTime": overlap_a_time,
-            "aBeforeDist": before_a_dist, "aBeforeTime": before_a_time,
-            "bBeforeDist": before_b_dist, "bBeforeTime": before_b_time,
-            "aAfterDist": after_a_dist, "aAfterTime": after_a_time,
-            "bAfterDist": after_b_dist, "bAfterTime": after_b_time,
-        }, api_calls, 0)
+        return (
+            FullOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=total_distance_a,
+                aTime=total_time_a,
+                bDist=total_distance_b,
+                bTime=total_time_b,
+                overlapDist=overlap_a_dist,
+                overlapTime=overlap_a_time,
+                aBeforeDist=before_a_dist,
+                aBeforeTime=before_a_time,
+                bBeforeDist=before_b_dist,
+                bBeforeTime=before_b_time,
+                aAfterDist=after_a_dist,
+                aAfterTime=after_a_time,
+                bAfterDist=after_b_dist,
+                bAfterTime=after_b_time,
+            ).model_dump(),
+        api_calls,
+        0
+    )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap_rec_multiproc for row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None, "aTime": None,
-                "bDist": None, "bTime": None,
-                "overlapDist": None, "overlapTime": None,
-                "aBeforeDist": None, "aBeforeTime": None,
-                "bBeforeDist": None, "bBeforeTime": None,
-                "aAfterDist": None, "aAfterTime": None,
-                "bAfterDist": None, "bAfterTime": None,
-            }, api_calls, 1)
+            return (
+                FullOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    overlapDist=None,
+                    overlapTime=None,
+                    aBeforeDist=None,
+                    aBeforeTime=None,
+                    bBeforeDist=None,
+                    bBeforeTime=None,
+                    aAfterDist=None,
+                    aAfterTime=None,
+                    bAfterDist=None,
+                    bAfterTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
+
         else:
             raise
 
@@ -1577,18 +1764,22 @@ def process_row_only_overlap_rec(row_and_args):
             coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             logging.info(f"Time for same-route API call: {time.time() - start_time:.2f} seconds")
             plot_routes(coordinates_a, [], None, None)
-            return ({
-                "OriginA": origin_a,
-                "DestinationA": destination_a,
-                "OriginB": origin_b,
-                "DestinationB": destination_b,
-                "aDist": a_dist,
-                "aTime": a_time,
-                "bDist": a_dist,
-                "bTime": a_time,
-                "overlapDist": a_dist,
-                "overlapTime": a_time,
-            }, api_calls, 0)
+            return (
+                SimpleOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    overlapDist=a_dist,
+                    overlapTime=a_time,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         start_time = time.time()
@@ -1604,18 +1795,22 @@ def process_row_only_overlap_rec(row_and_args):
 
         if not first_common_node or not last_common_node:
             plot_routes(coordinates_a, coordinates_b, None, None)
-            return ({
-                "OriginA": origin_a,
-                "DestinationA": destination_a,
-                "OriginB": origin_b,
-                "DestinationB": destination_b,
-                "aDist": total_distance_a,
-                "aTime": total_time_a,
-                "bDist": total_distance_b,
-                "bTime": total_time_b,
-                "overlapDist": 0.0,
-                "overlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=total_distance_a,
+                    aTime=total_time_a,
+                    bDist=total_distance_b,
+                    bTime=total_time_b,
+                    overlapDist=0.0,
+                    overlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         before_a, overlap_a, after_a = split_segments(coordinates_a, first_common_node, last_common_node)
         before_b, overlap_b, after_b = split_segments(coordinates_b, first_common_node, last_common_node)
@@ -1671,34 +1866,43 @@ def process_row_only_overlap_rec(row_and_args):
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node)
 
-        return ({
-            "OriginA": origin_a,
-            "DestinationA": destination_a,
-            "OriginB": origin_b,
-            "DestinationB": destination_b,
-            "aDist": total_distance_a,
-            "aTime": total_time_a,
-            "bDist": total_distance_b,
-            "bTime": total_time_b,
-            "overlapDist": overlap_a_dist,
-            "overlapTime": overlap_a_time,
-        }, api_calls, 0)
+        return (
+            SimpleOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=total_distance_a,
+                aTime=total_time_a,
+                bDist=total_distance_b,
+                bTime=total_time_b,
+                overlapDist=overlap_a_dist,
+                overlapTime=overlap_a_time,
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None,
-                "aTime": None,
-                "bDist": None,
-                "bTime": None,
-                "overlapDist": None,
-                "overlapTime": None,
-            }, api_calls, 1)
+            return (
+                SimpleOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    overlapDist=None,
+                    overlapTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
+
         else:
             raise
 
@@ -2023,32 +2227,62 @@ def process_row_route_buffers(row_and_args):
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0, "aTime": 0, "bDist": 0, "bTime": 0,
-                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }, api_calls, 0)
+            return (
+                IntersectionRatioResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0,
+                    aTime=0,
+                    bDist=0,
+                    bTime=0,
+                    aIntersecRatio=0.0,
+                    bIntersecRatio=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
             route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0, "aTime": 0, "bDist": b_dist, "bTime": b_time,
-                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }, api_calls, 0)
+            return (
+                IntersectionRatioResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0,
+                    aTime=0,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aIntersecRatio=0.0,
+                    bIntersecRatio=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
             route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": 0, "bTime": 0,
-                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }, api_calls, 0)
+            return (
+                IntersectionRatioResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=0,
+                    bTime=0,
+                    aIntersecRatio=0.0,
+                    bIntersecRatio=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
@@ -2060,13 +2294,22 @@ def process_row_route_buffers(row_and_args):
             buffer_a = create_buffered_route(route_a_coords, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": a_dist, "bTime": a_time,
-                "aIntersecRatio": 1.0, "bIntersecRatio": 1.0,
-            }, api_calls, 0)
+            return (
+                IntersectionRatioResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    aIntersecRatio=1.0,
+                    bIntersecRatio=1.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         buffer_a = create_buffered_route(route_a_coords, buffer_distance)
         buffer_b = create_buffered_route(route_b_coords, buffer_distance)
@@ -2078,13 +2321,22 @@ def process_row_route_buffers(row_and_args):
         plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
 
         if intersection.is_empty:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": b_dist, "bTime": b_time,
-                "aIntersecRatio": 0.0, "bIntersecRatio": 0.0,
-            }, api_calls, 0)
+            return (
+                IntersectionRatioResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aIntersecRatio=0.0,
+                    bIntersecRatio=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         intersection_area = intersection.area
         a_area = buffer_a.area
@@ -2092,30 +2344,43 @@ def process_row_route_buffers(row_and_args):
         a_intersec_ratio = intersection_area / a_area
         b_intersec_ratio = intersection_area / b_area
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": b_dist, "bTime": b_time,
-            "aIntersecRatio": a_intersec_ratio,
-            "bIntersecRatio": b_intersec_ratio,
-        }, api_calls, 0)
+        return (
+            IntersectionRatioResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=a_dist,
+                aTime=a_time,
+                bDist=b_dist,
+                bTime=b_time,
+                aIntersecRatio=a_intersec_ratio,
+                bIntersecRatio=b_intersec_ratio,
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None,
-                "aTime": None,
-                "bDist": None,
-                "bTime": None,
-                "aIntersecRatio": None,
-                "bIntersecRatio": None,
-            }, api_calls, 1)
+            return (
+                IntersectionRatioResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    aIntersecRatio=None,
+                    bIntersecRatio=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
+
         else:
             raise
 
@@ -2350,47 +2615,92 @@ def process_row_closest_nodes(row_and_args):
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
@@ -2399,17 +2709,32 @@ def process_row_closest_nodes(row_and_args):
             coords_b = coords_a
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": a_dist, "bTime": a_time,
-                "aoverlapDist": a_dist, "aoverlapTime": a_time,
-                "boverlapDist": a_dist, "boverlapTime": a_time,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    aoverlapDist=a_dist,
+                    aoverlapTime=a_time,
+                    boverlapDist=a_dist,
+                    boverlapTime=a_time,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 2
         start_time_a = time.time()
@@ -2457,43 +2782,62 @@ def process_row_closest_nodes(row_and_args):
                              "before_distance": 0.0, "before_time": 0.0,
                              "after_distance": 0.0, "after_time": 0.0}
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time, "bDist": b_dist, "bTime": b_time,
-            "aoverlapDist": overlap_a["during_distance"], "aoverlapTime": overlap_a["during_time"],
-            "boverlapDist": overlap_b["during_distance"], "boverlapTime": overlap_b["during_time"],
-            "aBeforeDist": overlap_a["before_distance"], "aBeforeTime": overlap_a["before_time"],
-            "aAfterDist": overlap_a["after_distance"], "aAfterTime": overlap_a["after_time"],
-            "bBeforeDist": overlap_b["before_distance"], "bBeforeTime": overlap_b["before_time"],
-            "bAfterDist": overlap_b["after_distance"], "bAfterTime": overlap_b["after_time"]
-        }, api_calls, 0)
+        return (
+            DetailedDualOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=a_dist,
+                aTime=a_time,
+                bDist=b_dist,
+                bTime=b_time,
+                aoverlapDist=overlap_a["during_distance"],
+                aoverlapTime=overlap_a["during_time"],
+                boverlapDist=overlap_b["during_distance"],
+                boverlapTime=overlap_b["during_time"],
+                aBeforeDist=overlap_a["before_distance"],
+                aBeforeTime=overlap_a["before_time"],
+                aAfterDist=overlap_a["after_distance"],
+                aAfterTime=overlap_a["after_time"],
+                bBeforeDist=overlap_b["before_distance"],
+                bBeforeTime=overlap_b["before_time"],
+                bAfterDist=overlap_b["after_distance"],
+                bAfterTime=overlap_b["after_time"]
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None,
-                "aTime": None,
-                "bDist": None,
-                "bTime": None,
-                "aoverlapDist": None,
-                "aoverlapTime": None,
-                "boverlapDist": None,
-                "boverlapTime": None,
-                "aBeforeDist": None,
-                "aBeforeTime": None,
-                "aAfterDist": None,
-                "aAfterTime": None,
-                "bBeforeDist": None,
-                "bBeforeTime": None,
-                "bAfterDist": None,
-                "bAfterTime": None,
-            }, api_calls, 1)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    aoverlapDist=None,
+                    aoverlapTime=None,
+                    boverlapDist=None,
+                    boverlapTime=None,
+                    aBeforeDist=None,
+                    aBeforeTime=None,
+                    aAfterDist=None,
+                    aAfterTime=None,
+                    bBeforeDist=None,
+                    bBeforeTime=None,
+                    bAfterDist=None,
+                    bAfterTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
         else:
             raise
 
@@ -2592,35 +2936,68 @@ def process_row_closest_nodes_simple(row_and_args):
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == destination_a:
             api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_b == destination_b:
             api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
@@ -2632,13 +3009,24 @@ def process_row_closest_nodes_simple(row_and_args):
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": a_dist, "bTime": a_time,
-                "aoverlapDist": a_dist, "aoverlapTime": a_time,
-                "boverlapDist": a_dist, "boverlapTime": a_time,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    aoverlapDist=a_dist,
+                    aoverlapTime=a_time,
+                    boverlapDist=a_dist,
+                    boverlapTime=a_time,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         buffer_b = create_buffered_route(coords_b, buffer_distance)
@@ -2671,32 +3059,46 @@ def process_row_closest_nodes_simple(row_and_args):
             else:
                 overlap_b_dist = overlap_b_time = 0.0
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": b_dist, "bTime": b_time,
-            "aoverlapDist": overlap_a_dist, "aoverlapTime": overlap_a_time,
-            "boverlapDist": overlap_b_dist, "boverlapTime": overlap_b_time,
-        }, api_calls, 0)
-
+        return (
+            SimpleDualOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=a_dist,
+                aTime=a_time,
+                bDist=b_dist,
+                bTime=b_time,
+                aoverlapDist=overlap_a_dist,
+                aoverlapTime=overlap_a_time,
+                boverlapDist=overlap_b_dist,
+                boverlapTime=overlap_b_time,
+            ).model_dump(),
+            api_calls,
+            0
+        )
+    
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None,
-                "aTime": None,
-                "bDist": None,
-                "bTime": None,
-                "aoverlapDist": None,
-                "aoverlapTime": None,
-                "boverlapDist": None,
-                "boverlapTime": None,
-            }, api_calls, 1)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    aoverlapDist=None,
+                    aoverlapTime=None,
+                    boverlapDist=None,
+                    boverlapTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
         else:
             raise
 
@@ -2830,47 +3232,92 @@ def process_row_exact_intersections(
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-                "aBeforeDist": 0.0, "aBeforeTime": 0.0,
-                "aAfterDist": 0.0, "aAfterTime": 0.0,
-                "bBeforeDist": 0.0, "bBeforeTime": 0.0,
-                "bAfterDist": 0.0, "bAfterTime": 0.0,
-            }, api_calls, 0)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         start_time_a = time.time()
@@ -2908,32 +3355,62 @@ def process_row_exact_intersections(
             else:
                 overlap_b = {"during_distance": 0.0, "during_time": 0.0, "before_distance": 0.0, "before_time": 0.0, "after_distance": 0.0, "after_time": 0.0}
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time, "bDist": b_dist, "bTime": b_time,
-            "aoverlapDist": overlap_a["during_distance"], "aoverlapTime": overlap_a["during_time"],
-            "boverlapDist": overlap_b["during_distance"], "boverlapTime": overlap_b["during_time"],
-            "aBeforeDist": overlap_a["before_distance"], "aBeforeTime": overlap_a["before_time"],
-            "aAfterDist": overlap_a["after_distance"], "aAfterTime": overlap_a["after_time"],
-            "bBeforeDist": overlap_b["before_distance"], "bBeforeTime": overlap_b["before_time"],
-            "bAfterDist": overlap_b["after_distance"], "bAfterTime": overlap_b["after_time"],
-        }, api_calls, 0)
+        return (
+            DetailedDualOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=a_dist,
+                aTime=a_time,
+                bDist=b_dist,
+                bTime=b_time,
+                aoverlapDist=overlap_a["during_distance"],
+                aoverlapTime=overlap_a["during_time"],
+                boverlapDist=overlap_b["during_distance"],
+                boverlapTime=overlap_b["during_time"],
+                aBeforeDist=overlap_a["before_distance"],
+                aBeforeTime=overlap_a["before_time"],
+                aAfterDist=overlap_a["after_distance"],
+                aAfterTime=overlap_a["after_time"],
+                bBeforeDist=overlap_b["before_distance"],
+                bBeforeTime=overlap_b["before_time"],
+                bAfterDist=overlap_b["after_distance"],
+                bAfterTime=overlap_b["after_time"],
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""), "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""), "DestinationB": row.get("DestinationB", ""),
-                "aDist": None, "aTime": None, "bDist": None, "bTime": None,
-                "aoverlapDist": None, "aoverlapTime": None,
-                "boverlapDist": None, "boverlapTime": None,
-                "aBeforeDist": None, "aBeforeTime": None,
-                "aAfterDist": None, "aAfterTime": None,
-                "bBeforeDist": None, "bBeforeTime": None,
-                "bAfterDist": None, "bAfterTime": None,
-            }, api_calls, 1)
+            return (
+                DetailedDualOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    aoverlapDist=None,
+                    aoverlapTime=None,
+                    boverlapDist=None,
+                    boverlapTime=None,
+                    aBeforeDist=None,
+                    aBeforeTime=None,
+                    aAfterDist=None,
+                    aAfterTime=None,
+                    bBeforeDist=None,
+                    bBeforeTime=None,
+                    bAfterDist=None,
+                    bAfterTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
         else:
             raise
 
@@ -3058,35 +3535,68 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
 
         if origin_a == destination_a and origin_b == destination_b:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_a == destination_a:
             api_calls += 1
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": 0.0, "aTime": 0.0, "bDist": b_dist, "bTime": b_time,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=0.0,
+                    aTime=0.0,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         if origin_b == destination_b:
             api_calls += 1
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time, "bDist": 0.0, "bTime": 0.0,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=0.0,
+                    bTime=0.0,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 2
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
@@ -3096,14 +3606,24 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": a_dist, "bTime": a_time,
-                "aoverlapDist": a_dist, "aoverlapTime": a_time,
-                "boverlapDist": a_dist, "boverlapTime": a_time,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=a_dist,
+                    bTime=a_time,
+                    aoverlapDist=a_dist,
+                    aoverlapTime=a_time,
+                    boverlapDist=a_dist,
+                    boverlapTime=a_time,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         buffer_b = create_buffered_route(coords_b, buffer_distance)
@@ -3112,14 +3632,24 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
         plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
 
         if not intersection_polygon:
-            return ({
-                "OriginA": origin_a, "DestinationA": destination_a,
-                "OriginB": origin_b, "DestinationB": destination_b,
-                "aDist": a_dist, "aTime": a_time,
-                "bDist": b_dist, "bTime": b_time,
-                "aoverlapDist": 0.0, "aoverlapTime": 0.0,
-                "boverlapDist": 0.0, "boverlapTime": 0.0,
-            }, api_calls, 0)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=origin_a,
+                    DestinationA=destination_a,
+                    OriginB=origin_b,
+                    DestinationB=destination_b,
+                    aDist=a_dist,
+                    aTime=a_time,
+                    bDist=b_dist,
+                    bTime=b_time,
+                    aoverlapDist=0.0,
+                    aoverlapTime=0.0,
+                    boverlapDist=0.0,
+                    boverlapTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         points_a = get_route_polygon_intersections(coords_a, intersection_polygon)
         points_b = get_route_polygon_intersections(coords_b, intersection_polygon)
@@ -3142,28 +3672,46 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
         else:
             overlap_b_dist = overlap_b_time = 0.0
 
-        return ({
-            "OriginA": origin_a, "DestinationA": destination_a,
-            "OriginB": origin_b, "DestinationB": destination_b,
-            "aDist": a_dist, "aTime": a_time,
-            "bDist": b_dist, "bTime": b_time,
-            "aoverlapDist": overlap_a_dist, "aoverlapTime": overlap_a_time,
-            "boverlapDist": overlap_b_dist, "boverlapTime": overlap_b_time,
-        }, api_calls, 0)
+        return (
+            SimpleDualOverlapResult(
+                OriginA=origin_a,
+                DestinationA=destination_a,
+                OriginB=origin_b,
+                DestinationB=destination_b,
+                aDist=a_dist,
+                aTime=a_time,
+                bDist=b_dist,
+                bTime=b_time,
+                aoverlapDist=overlap_a_dist,
+                aoverlapTime=overlap_a_time,
+                boverlapDist=overlap_b_dist,
+                boverlapTime=overlap_b_time,
+            ).model_dump(),
+            api_calls,
+            0
+        )
 
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
-            return ({
-                "OriginA": row.get("OriginA", ""),
-                "DestinationA": row.get("DestinationA", ""),
-                "OriginB": row.get("OriginB", ""),
-                "DestinationB": row.get("DestinationB", ""),
-                "aDist": None, "aTime": None,
-                "bDist": None, "bTime": None,
-                "aoverlapDist": None, "aoverlapTime": None,
-                "boverlapDist": None, "boverlapTime": None,
-            }, api_calls, 1)
+            return (
+                SimpleDualOverlapResult(
+                    OriginA=row.get("OriginA", ""),
+                    DestinationA=row.get("DestinationA", ""),
+                    OriginB=row.get("OriginB", ""),
+                    DestinationB=row.get("DestinationB", ""),
+                    aDist=None,
+                    aTime=None,
+                    bDist=None,
+                    bTime=None,
+                    aoverlapDist=None,
+                    aoverlapTime=None,
+                    boverlapDist=None,
+                    boverlapTime=None,
+                ).model_dump(),
+                api_calls,
+                1
+            )
         else:
             raise
 
