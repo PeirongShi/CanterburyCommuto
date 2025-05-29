@@ -3453,6 +3453,7 @@ def Overlap_Function(
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
             write_log(output_buffer, options)
-
-    with open("api_response_cache.pkl", "wb") as f:
-    pickle.dump(api_response_cache, f)
+    
+    if save_api_info is True:
+        with open("api_response_cache.pkl", "wb") as f:
+            pickle.dump(api_response_cache, f)
