@@ -14,7 +14,7 @@ Usage:
         [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME]
         [--colorib COLUMN_NAME] [--colfestb COLUMN_NAME]
         [--output_overlap FILENAME] [--output_buffer FILENAME]
-        [--skip_invalid True|False] [--yes]
+        [--skip_invalid True|False] [--save_api_info] [--yes]
 
     # Estimate number of API requests and cost (no actual API calls):
     python -m your_project.main estimate <csv_file>
@@ -45,6 +45,7 @@ def run_overlap(args):
             output_overlap=args.output_overlap,
             output_buffer=args.output_buffer,
             skip_invalid=args.skip_invalid,
+            save_api_info=args.save_api_info,
             auto_confirm=args.yes
         )
     except ValueError as ve:
@@ -91,6 +92,7 @@ def main():
     overlap_parser.add_argument("--output_overlap", type=str)
     overlap_parser.add_argument("--output_buffer", type=str)
     overlap_parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True)
+    overlap_parser.add_argument("--save_api_info", action="store_true", help="If set, saves API responses to a pickle file (api_response_cache.pkl)")
     overlap_parser.add_argument("--yes", action="store_true")
     overlap_parser.set_defaults(func=run_overlap)
 
