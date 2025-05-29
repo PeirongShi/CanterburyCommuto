@@ -1239,8 +1239,8 @@ def wrap_row_multiproc(args):
     Returns:
         dict or None: Processed row result, or None if skipped due to an error.
     """
-    row, api_key, row_function, skip_invalid, *extra_args = args
-    return row_function((row, api_key, *extra_args))
+    row, api_key, row_function, skip_invalid, save_api_info, *extra_args = args
+    return row_function((row, api_key, *extra_args, skip_invalid, save_api_info))
 
 def process_rows_multiproc(data, api_key, row_function, processes=None, extra_args=(), skip_invalid=True, save_api_info=False):
     """
@@ -1251,7 +1251,7 @@ def process_rows_multiproc(data, api_key, row_function, processes=None, extra_ar
     - api_call_count (int): Total number of API calls across all rows
     - api_error_count (int): Total number of API errors across all rows
     """
-    args = [(row, api_key, row_function, skip_invalid, *extra_args, save_api_info) for row in data]
+    args = [(row, api_key, *extra_args, skip_invalid, save_api_info) for row in data]
     with Pool(processes=processes) as pool:
         results = pool.map(wrap_row_multiproc, args)
 
