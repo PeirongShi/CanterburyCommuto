@@ -1505,6 +1505,7 @@ def overlap_rec(
         post_api_error_count (int)
       )
     """
+    # 1. Read input CSV
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
         colorna=colorna,
@@ -1514,26 +1515,32 @@ def overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    extra_args = (width, threshold, skip_invalid, save_api_info)
+    # 2. Prepare arguments for parallel processing
+    args = [(row, api_key, width, threshold, skip_invalid, save_api_info) for row in data]
 
-    results, api_call_count, post_api_error_count = process_rows_multiproc(
-        data,
-        api_key,
-        process_row_overlap_rec_multiproc,
-        extra_args=extra_args,
-        skip_invalid=skip_invalid  # still needed by process_rows_multiproc itself
-    )
+    # 3. Run in parallel
+    with Pool() as pool:
+        results = pool.map(process_row_overlap_rec_multiproc, args)
 
-    fieldnames = [
-        "OriginA", "DestinationA", "OriginB", "DestinationB",
-        "aDist", "aTime", "bDist", "bTime",
-        "overlapDist", "overlapTime",
-        "aBeforeDist", "aBeforeTime", "bBeforeDist", "bBeforeTime",
-        "aAfterDist", "aAfterTime", "bAfterDist", "bAfterTime",
-    ]
-    write_csv_file(output_csv, results, fieldnames)
+    # 4. Post-process results
+    processed_rows = []
+    api_call_count = 0
+    post_api_error_count = 0
 
-    return results, pre_api_error_count, api_call_count, post_api_error_count
+    for result in results:
+        if result is None:
+            continue
+        row_result, calls, errors = result
+        processed_rows.append(row_result)
+        api_call_count += calls
+        post_api_error_count += errors
+
+    # 5. Write results to CSV
+    if processed_rows:
+        fieldnames = list(processed_rows[0].keys())
+        write_csv_file(output_csv, processed_rows, fieldnames)
+
+    return processed_rows, pre_api_error_count, api_call_count, post_api_error_count
 
 def process_row_only_overlap_rec(row_and_args):
     """
