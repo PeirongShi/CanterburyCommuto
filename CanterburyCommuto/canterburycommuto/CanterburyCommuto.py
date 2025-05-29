@@ -17,6 +17,120 @@ from IPython.display import display, IFrame
 from pyproj import Geod, Transformer
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
+class RouteBase:
+    """
+    Base class for storing route information between two pairs of origins and destinations.
+
+    Attributes:
+        OriginA (str): Starting point of Route A.
+        DestinationA (str): Endpoint of Route A.
+        OriginB (str): Starting point of Route B.
+        DestinationB (str): Endpoint of Route B.
+        aDist (float, optional): Distance of Route A.
+        aTime (float, optional): Duration of Route A.
+        bDist (float, optional): Distance of Route B.
+        bTime (float, optional): Duration of Route B.
+    """
+    def __init__(
+        self,
+        OriginA: str,
+        DestinationA: str,
+        OriginB: str,
+        DestinationB: str,
+        aDist: Optional[float] = None,
+        aTime: Optional[float] = None,
+        bDist: Optional[float] = None,
+        bTime: Optional[float] = None,
+    ):
+        self.OriginA = OriginA
+        self.DestinationA = DestinationA
+        self.OriginB = OriginB
+        self.DestinationB = DestinationB
+        self.aDist = aDist
+        self.aTime = aTime
+        self.bDist = bDist
+        self.bTime = bTime
+
+class FullOverlapResult(RouteBase):
+    """
+    Represents a detailed overlap result including full route segmentation and overlap metrics.
+
+    Inherits from RouteBase.
+
+    Attributes:
+        overlapDist (float, optional): Distance of the overlapping segment.
+        overlapTime (float, optional): Duration of the overlapping segment.
+        aBeforeDist, bBeforeDist (float, optional): Distance before overlap.
+        aBeforeTime, bBeforeTime (float, optional): Time before overlap.
+        aAfterDist, bAfterDist (float, optional): Distance after overlap.
+        aAfterTime, bAfterTime (float, optional): Time after overlap.
+    """
+    def __init__(
+        self,
+        overlapDist: Optional[float] = None,
+        overlapTime: Optional[float] = None,
+        aBeforeDist: Optional[float] = None,
+        aBeforeTime: Optional[float] = None,
+        bBeforeDist: Optional[float] = None,
+        bBeforeTime: Optional[float] = None,
+        aAfterDist: Optional[float] = None,
+        aAfterTime: Optional[float] = None,
+        bAfterDist: Optional[float] = None,
+        bAfterTime: Optional[float] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.overlapDist = overlapDist
+        self.overlapTime = overlapTime
+        self.aBeforeDist = aBeforeDist
+        self.aBeforeTime = aBeforeTime
+        self.bBeforeDist = bBeforeDist
+        self.bBeforeTime = bBeforeTime
+        self.aAfterDist = aAfterDist
+        self.aAfterTime = aAfterTime
+        self.bAfterDist = bAfterDist
+        self.bAfterTime = bAfterTime
+
+class SimpleOverlapResult(RouteBase):
+    """
+    Represents a simplified overlap result with only the overlapping segment info.
+
+    Inherits from RouteBase.
+
+    Attributes:
+        overlapDist (float, optional): Distance of the overlapping segment.
+        overlapTime (float, optional): Duration of the overlapping segment.
+    """
+    def __init__(
+        self,
+        overlapDist: Optional[float] = None,
+        overlapTime: Optional[float] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.overlapDist = overlapDist
+        self.overlapTime = overlapTime
+
+class IntersectionRatioResult(RouteBase):
+    """
+    Represents intersection results as ratios of overlap for Route A and Route B.
+
+    Inherits from RouteBase.
+
+    Attributes:
+        aIntersecRatio (float, optional): Overlap ratio for Route A.
+        bIntersecRatio (float, optional): Overlap ratio for Route B.
+    """
+    def __init__(
+        self,
+        aIntersecRatio: Optional[float] = None,
+        bIntersecRatio: Optional[float] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.aIntersecRatio = aIntersecRatio
+        self.bIntersecRatio = bIntersecRatio
+
 # Global cache for Google API responses
 api_response_cache = {}
 
