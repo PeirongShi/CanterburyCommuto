@@ -19,8 +19,8 @@ from pydantic import BaseModel
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
 # Import functions from modules
-from PlotMaps import plot_routes, save_map, plot_routes_and_buffers
-from HelperFunctions import generate_unique_filename
+from .PlotMaps import plot_routes, save_map, plot_routes_and_buffers
+from .HelperFunctions import generate_unique_filename
 
 class RouteBase(BaseModel):
     """Base model for route endpoints and basic metrics."""

@@ -7,6 +7,8 @@ import folium
 from IPython.display import display, IFrame
 from shapely.geometry import Polygon, mapping
 
+from HelperFunctions import generate_unique_filename
+
 # Function to save the maps
 def save_map(map_object, base_name: str) -> str:
     os.makedirs("results", exist_ok=True)
