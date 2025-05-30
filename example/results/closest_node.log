@@ -1,0 +1,18 @@
+Options:
+csv_file: origin_destination_coordinates.csv
+api_key: ********
+threshold: 50.0
+width: 100.0
+buffer: 100.0
+approximation: closer to precision
+commuting_info: yes
+colorna: home_A
+coldesta: work_A
+colorib: home_B
+colfestb: work_B
+skip_invalid: True
+save_api_info: True
+Pre-API Error Count: 0
+Post-API Error Count: 6
+Total API Calls: 19
+Generated on: 2025-05-30 19:13:32.806273
