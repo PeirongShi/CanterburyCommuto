@@ -14,9 +14,9 @@ from pydantic import BaseModel
 from shapely.geometry import Point
 
 # Import functions from modules
-from PlotMaps import plot_routes, plot_routes_and_buffers
-from HelperFunctions import generate_unique_filename, write_csv_file, generate_url
-from Computations import (
+from .PlotMaps import plot_routes, plot_routes_and_buffers
+from .HelperFunctions import generate_unique_filename, write_csv_file, generate_url
+from .Computations import (
     find_common_nodes,
     split_segments,
     calculate_segment_distances,
