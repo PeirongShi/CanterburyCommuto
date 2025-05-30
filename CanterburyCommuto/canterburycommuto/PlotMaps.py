@@ -245,3 +245,4 @@ def plot_routes_and_buffers(
     # Display the map inline
     display(IFrame(map_filename, width="100%", height="600px"))
     print(f"Map has been displayed inline and saved as '{map_filename}'.")
+

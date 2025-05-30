@@ -18,6 +18,21 @@ from pyproj import Geod, Transformer
 from pydantic import BaseModel
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
+# Global function to generate URL
+def generate_url(origin: str, destination: str, api_key: str) -> str:
+    """
+    Generates the Google Maps Directions API URL with the given parameters.
+
+    Parameters:
+    - origin (str): The starting point of the route (latitude,longitude).
+    - destination (str): The endpoint of the route (latitude,longitude).
+    - api_key (str): The API key for accessing the Google Maps Directions API.
+
+    Returns:
+    - str: The full URL for the API request.
+    """
+    return f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
+
 # Function to generate unique file names for storing the outputs and maps
 def generate_unique_filename(base_name: str, extension: str = ".csv") -> str:
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -41,3 +56,4 @@ def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)
+
