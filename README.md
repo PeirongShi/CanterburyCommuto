@@ -76,10 +76,11 @@ python -m canterburycommuto estimate origin_destination_coordinates.csv \
     --skip_invalid True
 ```
 
-Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". 
+Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". The --skip_invalid True option tells the program to skip over rows with missing or invalid data, allowing the analysis to continue uninterrupted. The --save_api_info True option enables saving API responses to a file for future reference or debugging purposes.
 
 ```bash
-python -m canterburycommuto overlap origin_destination_coordinates.csv "API_KEY" \
+!python -m canterburycommuto overlap origin_destination_coordinates.csv \
+    --api_key "API_KEY" \
     --threshold 60 \
     --width 120 \
     --buffer 150 \
@@ -92,6 +93,7 @@ python -m canterburycommuto overlap origin_destination_coordinates.csv "API_KEY"
     --output_overlap "buffer_percentage_output.csv" \
     --output_buffer "buffer_output.csv" \
     --skip_invalid True \
+    --save_api_info True \
     --yes
 ```
 
