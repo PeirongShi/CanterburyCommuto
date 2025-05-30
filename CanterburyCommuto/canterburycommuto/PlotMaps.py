@@ -1,22 +1,11 @@
-import csv
 import time
-import datetime
 import logging
-import math
 import os
-import pickle
-import random
-from typing import Dict, List, Tuple, Optional, Any
-from multiprocessing.dummy import Pool
+from typing import List, Tuple
 
 import folium
-import polyline
-import requests
-import yaml
 from IPython.display import display, IFrame
-from pyproj import Geod, Transformer
-from pydantic import BaseModel
-from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
+from shapely.geometry import Polygon, mapping
 
 from HelperFunctions import generate_unique_filename
 
@@ -111,7 +100,7 @@ def plot_routes(
     folium.Marker(
         location=coordinates_a[-1],
         icon=folium.DivIcon(
-            html=f"""
+            html="""
             <div style="font-size: 16px; color: red; transform: scale(1.4);">
                 <i class='fa fa-star'></i>
             </div>
@@ -123,7 +112,7 @@ def plot_routes(
     folium.Marker(
         location=coordinates_b[-1],
         icon=folium.DivIcon(
-            html=f"""
+            html="""
             <div style="font-size: 16px; color: green; transform: scale(1.4);">
                 <i class='fa fa-star'></i>
             </div>
