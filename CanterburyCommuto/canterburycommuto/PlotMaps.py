@@ -1,22 +1,11 @@
-import csv
 import time
-import datetime
 import logging
-import math
 import os
-import pickle
-import random
-from typing import Dict, List, Tuple, Optional, Any
-from multiprocessing.dummy import Pool
+from typing import List, Tuple
 
 import folium
-import polyline
-import requests
-import yaml
 from IPython.display import display, IFrame
-from pyproj import Geod, Transformer
-from pydantic import BaseModel
-from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
+from shapely.geometry import Polygon, mapping
 
 # Function to save the maps
 def save_map(map_object, base_name: str) -> str:
@@ -139,3 +128,118 @@ def plot_routes(
     except NameError:
         print(f"Map saved as '{map_filename}'. Open it in a browser.")
 
+# Another type of map with buffered routes.
+def plot_routes_and_buffers(
+    route_a_coords: List[Tuple[float, float]],
+    route_b_coords: List[Tuple[float, float]],
+    buffer_a: Polygon,
+    buffer_b: Polygon,
+) -> None:
+    """
+    Plot two routes and their respective buffers over an OpenStreetMap background and display it inline.
+
+    Args:
+        route_a_coords (List[Tuple[float, float]]): Route A coordinates (latitude, longitude).
+        route_b_coords (List[Tuple[float, float]]): Route B coordinates (latitude, longitude).
+        buffer_a (Polygon): Buffered polygon for Route A.
+        buffer_b (Polygon): Buffered polygon for Route B.
+
+    Returns:
+        None
+    """
+
+    # Calculate the center of the map
+    avg_lat = sum(coord[0] for coord in route_a_coords + route_b_coords) / len(
+        route_a_coords + route_b_coords
+    )
+    avg_lon = sum(coord[1] for coord in route_a_coords + route_b_coords) / len(
+        route_a_coords + route_b_coords
+    )
+
+    # Create a map centered at the average location of the routes
+    map_osm = folium.Map(location=[avg_lat, avg_lon], zoom_start=13)
+
+    # Add Route A to the map
+    folium.PolyLine(
+        locations=route_a_coords, color="red", weight=5, opacity=1, tooltip="Route A"
+    ).add_to(map_osm)
+
+    # Add Route B to the map
+    folium.PolyLine(
+        locations=route_b_coords, color="orange", weight=5, opacity=1, tooltip="Route B"
+    ).add_to(map_osm)
+
+    # Add Buffer A to the map
+    start_time = time.time()
+    buffer_a_geojson = mapping(buffer_a)
+    logging.info(f"Time to convert buffer A to GeoJSON: {time.time() - start_time:.6f} seconds")
+    folium.GeoJson(
+        buffer_a_geojson,
+        style_function=lambda x: {
+            "fillColor": "blue",
+            "color": "blue",
+            "fillOpacity": 0.5,
+            "weight": 2,
+        },
+        tooltip="Buffer A",
+    ).add_to(map_osm)
+
+    # Add Buffer B to the map
+    start_time = time.time()
+    buffer_b_geojson = mapping(buffer_b)
+    logging.info(f"Time to convert buffer B to GeoJSON: {time.time() - start_time:.6f} seconds")
+    folium.GeoJson(
+        buffer_b_geojson,
+        style_function=lambda x: {
+            "fillColor": "darkred",
+            "color": "darkred",
+            "fillOpacity": 0.5,
+            "weight": 2,
+        },
+        tooltip="Buffer B",
+    ).add_to(map_osm)
+
+    # Add markers for O1 (Origin A) and O2 (Origin B)
+    folium.Marker(
+        location=route_a_coords[0],  
+        icon=folium.Icon(color="red", icon="info-sign"), 
+        tooltip="O1 (Origin A)"
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=route_b_coords[0],  
+        icon=folium.Icon(color="green", icon="info-sign"), 
+        tooltip="O2 (Origin B)"
+    ).add_to(map_osm)
+
+    # Add markers for D1 (Destination A) and D2 (Destination B) as stars
+    folium.Marker(
+        location=route_a_coords[-1],
+        tooltip="D1 (Destination A)",
+        icon=folium.DivIcon(
+            html="""
+            <div style="font-size: 16px; color: red; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+            """
+        ),
+    ).add_to(map_osm)
+
+    folium.Marker(
+        location=route_b_coords[-1],
+        tooltip="D2 (Destination B)",
+        icon=folium.DivIcon(
+            html="""
+            <div style="font-size: 16px; color: green; transform: scale(1.4);">
+                <i class='fa fa-star'></i>
+            </div>
+            """
+        ),
+    ).add_to(map_osm)
+
+    # Save the map using save_map function
+    map_filename = save_map(map_osm, "routes_with_buffers_map")
+
+    # Display the map inline
+    display(IFrame(map_filename, width="100%", height="600px"))
+    print(f"Map has been displayed inline and saved as '{map_filename}'.")
