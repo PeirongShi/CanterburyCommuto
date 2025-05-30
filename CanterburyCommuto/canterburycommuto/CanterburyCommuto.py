@@ -19,8 +19,8 @@ from pydantic import BaseModel
 from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Point, GeometryCollection, MultiPoint
 
 # Import functions from modules
-from .PlotMaps import plot_routes, save_map, plot_routes_and_buffers
-from .HelperFunctions import generate_unique_filename
+from PlotMaps import plot_routes, save_map, plot_routes_and_buffers
+from HelperFunctions import generate_unique_filename, write_csv_file
 
 class RouteBase(BaseModel):
     """Base model for route endpoints and basic metrics."""
@@ -210,25 +210,6 @@ def read_csv_file(
             row_number += 1
 
         return mapped_data, error_count
-    
-
-# Function to write results to a CSV file
-def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
-    """
-    Writes the results to a CSV file.
-
-    Parameters:
-    - output_csv (str): The path to the output CSV file.
-    - results (list): A list of dictionaries containing the data to write.
-    - fieldnames (list): A list of field names for the CSV file.
-
-    Returns:
-    - None
-    """
-    with open(output_csv, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(results)
 
 def request_cost_estimation(
     csv_file: str,
