@@ -2916,14 +2916,19 @@ def Overlap_Function(
             # If __file__ is undefined (e.g., Jupyter), fallback to working directory
             base_dir = os.getcwd()
 
-        # Look for the config.yaml by walking up until found (max 3 levels)
-        for _ in range(3):
-            config_path = os.path.join(base_dir, "config.yaml")
+        # Try common user-friendly locations
+        possible_paths = [
+            os.path.join(os.getcwd(), "config.yaml"),  # current working directory
+            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),  # ~/.canterburycommuto/config.yaml
+            os.path.join(base_dir, "config.yaml"),  # next to the script file
+        ]
+
+        for config_path in possible_paths:
+            print(f"[DEBUG] Checking for config.yaml in: {config_path}")
             if os.path.exists(config_path):
                 break
-            base_dir = os.path.dirname(base_dir)
         else:
-            raise FileNotFoundError("config.yaml not found in parent directories and no API key provided.")
+            raise FileNotFoundError("config.yaml not found in standard locations and no API key provided.")
 
         try:
             with open(config_path, "r") as f:
