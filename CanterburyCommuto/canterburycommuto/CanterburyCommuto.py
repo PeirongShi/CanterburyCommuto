@@ -20,6 +20,7 @@ from shapely.geometry import LineString, Polygon, mapping, MultiLineString, Poin
 
 # Import functions from modules
 from PlotMaps import plot_routes, save_map, plot_routes_and_buffers
+from HelperFunctions import generate_unique_filename
 
 class RouteBase(BaseModel):
     """Base model for route endpoints and basic metrics."""
@@ -397,13 +398,6 @@ def compute_percentages(segment_value: float, total_value: float) -> float:
     - float: The percentage of the segment relative to the total, or 0 if total_value is 0.
     """
     return (segment_value / total_value) * 100 if total_value > 0 else 0
-
-
-# Function to generate unique file names for storing the outputs and maps
-def generate_unique_filename(base_name: str, extension: str = ".csv") -> str:
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    random_id = random.randint(10000, 99999)
-    return f"{base_name}-{timestamp}_{random_id}{extension}"
 
 def wrap_row(args):
     """
