@@ -1,6 +1,7 @@
 import csv
 import datetime
 import random
+from typing import Tuple, Optional
 
 # Global function to generate URL
 def generate_url(origin: str, destination: str, api_key: str) -> str:

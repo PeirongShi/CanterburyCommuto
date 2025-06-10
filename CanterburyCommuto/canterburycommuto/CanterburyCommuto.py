@@ -255,12 +255,17 @@ def read_csv_file(
 
 def request_cost_estimation(
     csv_file: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     approximation: str = "no",
     commuting_info: str = "no",
-    colorna: Optional[str] = None,
-    coldesta: Optional[str] = None,
-    colorib: Optional[str] = None,
-    colfestb: Optional[str] = None,
     skip_invalid: bool = True
 ) -> Tuple[int, float]:
     """
@@ -269,15 +274,30 @@ def request_cost_estimation(
 
     Parameters:
     - csv_file (str): Path to the input CSV file.
+    - home_a_lat : Column name for the latitude of home A.
+    - home_a_lon : Column name for the longitude of home A.
+    - work_a_lat : Column name for the latitude of work A.
+    - work_a_lon : Column name for the longitude of work A.
+    - home_b_lat : Column name for the latitude of home B.
+    - home_b_lon : Column name for the longitude of home B.
+    - work_b_lat : Column name for the latitude of work B.
+    - work_b_lon : Column name for the longitude of work B.
+    - id_column : Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - approximation (str): Approximation strategy to apply.
     - commuting_info (str): Whether commuting info is to be considered.
-    - colorna, coldesta, colorib, colfestb (str): Column names for routes.
     - skip_invalid (bool): Whether to skip invalid rows.
 
     Returns:
     - Tuple[int, float]: Estimated number of API requests and corresponding cost in USD.
     """
-    data_set, pre_api_error_count = read_csv_file(csv_file, colorna, coldesta, colorib, colfestb, skip_invalid=skip_invalid)
+    data_set, pre_api_error_count = read_csv_file(csv_file, home_a_lat, home_a_lon,
+    work_a_lat,
+    work_a_lon,
+    home_b_lat,
+    home_b_lon,
+    work_b_lat,
+    work_b_lon,
+    id_column, skip_invalid=skip_invalid)
     n = 0
 
     for row in data_set:
