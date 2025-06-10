@@ -41,3 +41,23 @@ def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
         writer.writeheader()
         writer.writerows(results)
 
+def safe_split(coord: str) -> Tuple[Optional[float], Optional[float]]:
+    """
+    Safely splits a coordinate string of the form "lat,lon" into two floats.
+
+    Parameters:
+    -----------
+    coord : str
+        A string representing a coordinate pair, formatted as "latitude,longitude".
+
+    Returns:
+    --------
+    Tuple[Optional[float], Optional[float]]
+        A tuple containing (latitude, longitude) as floats if parsing succeeds,
+        or (None, None) if the input is invalid or cannot be converted to floats.
+    """
+    try:
+        lat, lon = map(float, map(str.strip, coord.split(",")))
+        return lat, lon
+    except Exception:
+        return None, None

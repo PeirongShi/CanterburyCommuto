@@ -15,7 +15,7 @@ from shapely.geometry import Point
 
 # Import functions from modules
 from PlotMaps import plot_routes, plot_routes_and_buffers
-from HelperFunctions import generate_unique_filename, write_csv_file, generate_url
+from HelperFunctions import generate_unique_filename, write_csv_file, generate_url, safe_split
 from Computations import (
     find_common_nodes,
     split_segments,
@@ -30,16 +30,20 @@ from Computations import (
 )
 
 class RouteBase(BaseModel):
-    """Base model for route endpoints and basic metrics."""
-    OriginA: str
-    DestinationA: str
-    OriginB: str
-    DestinationB: str
+    """Base model for route endpoints (split lat/lon) and basic metrics."""
+    ID: str
+    OriginAlat: float
+    OriginAlong: float
+    DestinationAlat: float
+    DestinationAlong: float
+    OriginBlat: float
+    OriginBlong: float
+    DestinationBlat: float
+    DestinationBlong: float
     aDist: Optional[float] = None
     aTime: Optional[float] = None
     bDist: Optional[float] = None
     bTime: Optional[float] = None
-
 
 class FullOverlapResult(RouteBase):
     """Detailed result with full segment and overlap analysis."""
@@ -436,8 +440,15 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
     api_calls = 0
 
     try:
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        # Split "lat,lon" into separate variables for each endpoint
+        origin_a_lat, origin_a_lon = map(str.strip, origin_a.split(","))
+        destination_a_lat, destination_a_lon = map(str.strip, destination_a.split(","))
+        origin_b_lat, origin_b_lon = map(str.strip, origin_b.split(","))
+        destination_b_lat, destination_b_lon = map(str.strip, destination_b.split(","))
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
@@ -446,10 +457,15 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
             # Return structured full overlap result as a dictionary, along with API stats
             return (
                 FullOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,           
@@ -480,10 +496,15 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
             plot_routes(coordinates_a, coordinates_b, None, None)
             return (
                 FullOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=total_distance_a,
                     aTime=total_time_a,
                     bDist=total_distance_b,
@@ -536,10 +557,15 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
 
         return (
             FullOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=total_distance_a,
                 aTime=total_time_a,
                 bDist=total_distance_b,
@@ -563,12 +589,22 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap for row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
             return (
                 FullOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -595,11 +631,16 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True):
 def process_routes_with_csv(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     output_csv: str = "output.csv",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -616,11 +657,16 @@ def process_routes_with_csv(
     Parameters:
     - csv_file (str): Path to the input CSV file containing the route pairs.
     - api_key (str): Google Maps API key used for fetching travel route data.
+    - home_a_lat : Column name for the latitude of home A.
+    - home_a_lon : Column name for the longitude of home A.
+    - work_a_lat : Column name for the latitude of work A.
+    - work_a_lon : Column name for the longitude of work A.
+    - home_b_lat : Column name for the latitude of home B.
+    - home_b_lon : Column name for the longitude of home B.
+    - work_b_lat : Column name for the latitude of work B.
+    - work_b_lon : Column name for the longitude of work B.
+    - id_column : Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - output_csv (str): File path for saving the output CSV file (default: "output.csv").
-    - colorna (str): Column name in the CSV for the origin of route A.
-    - coldesta (str): Column name for the destination of route A.
-    - colorib (str): Column name for the origin of route B.
-    - colfestb (str): Column name for the destination of route B.
     - skip_invalid (bool): If True (default), invalid rows are logged and skipped; if False, processing halts on the first invalid row.
     - save_api_info (bool): If True, API responses are saved; if False, API responses are not saved.
 
@@ -634,10 +680,15 @@ def process_routes_with_csv(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -646,7 +697,8 @@ def process_routes_with_csv(
     )
 
     fieldnames = [
-        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
+        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
         "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
         "aBeforeDist", "aBeforeTime", "bBeforeDist", "bBeforeTime",
@@ -671,8 +723,15 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
     api_calls = 0
 
     try:
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        # Split and convert to float
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
@@ -680,10 +739,15 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
             plot_routes(coordinates_a, [], None, None)
             return (
                 SimpleOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -706,10 +770,15 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
             plot_routes(coordinates_a, coordinates_b, None, None)
             return (
                 SimpleOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=total_distance_a,
                     aTime=total_time_a,
                     bDist=total_distance_b,
@@ -740,10 +809,15 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
 
         return (
             SimpleOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=total_distance_a,
                 aTime=total_time_a,
                 bDist=total_distance_b,
@@ -758,12 +832,23 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 SimpleOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -780,11 +865,16 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True):
 def process_routes_only_overlap_with_csv(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     output_csv: str = "output.csv",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -799,10 +889,15 @@ def process_routes_only_overlap_with_csv(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -811,7 +906,8 @@ def process_routes_only_overlap_with_csv(
     )
 
     fieldnames = [
-        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
+        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
         "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
     ]
@@ -898,9 +994,13 @@ def process_row_overlap_rec_multiproc(row_and_args):
 
     try:
         row, api_key, width, threshold, skip_invalid, save_api_info = row_and_args
-
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
@@ -910,10 +1010,15 @@ def process_row_overlap_rec_multiproc(row_and_args):
             plot_routes(coordinates_a, [], None, None)
             return (
                 FullOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -949,10 +1054,15 @@ def process_row_overlap_rec_multiproc(row_and_args):
             plot_routes(coordinates_a, coordinates_b, None, None)
             return (
                 FullOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=total_distance_a,
                     aTime=total_time_a,
                     bDist=total_distance_b,
@@ -1059,10 +1169,15 @@ def process_row_overlap_rec_multiproc(row_and_args):
 
         return (
             FullOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=total_distance_a,
                 aTime=total_time_a,
                 bDist=total_distance_b,
@@ -1085,12 +1200,23 @@ def process_row_overlap_rec_multiproc(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error in process_row_overlap_rec_multiproc for row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 FullOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -1116,13 +1242,18 @@ def process_row_overlap_rec_multiproc(row_and_args):
 def overlap_rec(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     output_csv: str = "outputRec.csv",
     threshold: int = 50,
     width: int = 100,
-    colorna: Optional[str] = None,
-    coldesta: Optional[str] = None,
-    colorib: Optional[str] = None,
-    colfestb: Optional[str] = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1150,10 +1281,15 @@ def overlap_rec(
     # 1. Read input CSV
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -1182,8 +1318,6 @@ def overlap_rec(
         fieldnames = list(processed_rows[0].keys())
         write_csv_file(output_csv, processed_rows, fieldnames)
 
-    return processed_rows, pre_api_error_count, api_call_count, post_api_error_count
-
 def process_row_only_overlap_rec(row_and_args):
     """
     Processes a single row to compute only the overlapping portion of two routes
@@ -1207,8 +1341,14 @@ def process_row_only_overlap_rec(row_and_args):
     api_calls = 0
 
     try:
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
+
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
@@ -1218,10 +1358,15 @@ def process_row_only_overlap_rec(row_and_args):
             plot_routes(coordinates_a, [], None, None)
             return (
                 SimpleOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -1249,10 +1394,15 @@ def process_row_only_overlap_rec(row_and_args):
             plot_routes(coordinates_a, coordinates_b, None, None)
             return (
                 SimpleOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=total_distance_a,
                     aTime=total_time_a,
                     bDist=total_distance_b,
@@ -1320,10 +1470,15 @@ def process_row_only_overlap_rec(row_and_args):
 
         return (
             SimpleOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=total_distance_a,
                 aTime=total_time_a,
                 bDist=total_distance_b,
@@ -1338,12 +1493,23 @@ def process_row_only_overlap_rec(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 SimpleOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -1361,13 +1527,18 @@ def process_row_only_overlap_rec(row_and_args):
 def only_overlap_rec(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     output_csv: str = "outputRec.csv",
     threshold: float = 50,
     width: float = 100,
-    colorna: Optional[str] = None,
-    coldesta: Optional[str] = None,
-    colorib: Optional[str] = None,
-    colfestb: Optional[str] = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1394,10 +1565,15 @@ def only_overlap_rec(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -1419,13 +1595,12 @@ def only_overlap_rec(
         results.append(row_data)
 
     fieldnames = [
-        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
+        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
         "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
     ]
     write_csv_file(output_csv, results, fieldnames)
-
-    return results, pre_api_error_count, api_call_count, post_api_error_count
 
 def process_row_route_buffers(row_and_args):
     """
@@ -1457,16 +1632,27 @@ def process_row_route_buffers(row_and_args):
     api_calls = 0
 
     try:
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+        # Split and convert to float
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == destination_a and origin_b == destination_b:
             return (
                 IntersectionRatioResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0,
                     aTime=0,
                     bDist=0,
@@ -1483,10 +1669,15 @@ def process_row_route_buffers(row_and_args):
             route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
             return (
                 IntersectionRatioResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0,
                     aTime=0,
                     bDist=b_dist,
@@ -1503,10 +1694,15 @@ def process_row_route_buffers(row_and_args):
             route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 IntersectionRatioResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=0,
@@ -1530,10 +1726,15 @@ def process_row_route_buffers(row_and_args):
             plot_routes_and_buffers(route_a_coords, route_b_coords, buffer_a, buffer_b)
             return (
                 IntersectionRatioResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -1557,10 +1758,15 @@ def process_row_route_buffers(row_and_args):
         if intersection.is_empty:
             return (
                 IntersectionRatioResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=b_dist,
@@ -1580,10 +1786,15 @@ def process_row_route_buffers(row_and_args):
 
         return (
             IntersectionRatioResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=a_dist,
                 aTime=a_time,
                 bDist=b_dist,
@@ -1598,12 +1809,23 @@ def process_row_route_buffers(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 IntersectionRatioResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -1620,13 +1842,18 @@ def process_row_route_buffers(row_and_args):
 
 def process_routes_with_buffers(
     csv_file: str,
-    output_csv: str,
     api_key: str,
+    output_csv: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     buffer_distance: float = 100,
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1652,10 +1879,15 @@ def process_routes_with_buffers(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -1677,14 +1909,14 @@ def process_routes_with_buffers(
         post_api_error_count += api_errors
 
     fieldnames = [
-        "OriginA", "DestinationA", "OriginB", "DestinationB",
+        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
+        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
         "aDist", "aTime", "bDist", "bTime",
         "aIntersecRatio", "bIntersecRatio",
     ]
 
     write_csv_file(output_csv, results, fieldnames)
 
-    return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 # The function calculates travel metrics and overlapping segments between two routes based on their closest nodes and shared buffer intersection.
 def process_row_closest_nodes(row_and_args):
@@ -1710,16 +1942,27 @@ def process_row_closest_nodes(row_and_args):
     api_calls = 0
     try:
         row, api_key, buffer_distance, skip_invalid, save_api_info = row_and_args
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+        # Split and convert to float
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == destination_a and origin_b == destination_b:
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=0.0,
@@ -1746,10 +1989,15 @@ def process_row_closest_nodes(row_and_args):
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=b_dist,
@@ -1776,10 +2024,15 @@ def process_row_closest_nodes(row_and_args):
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=0.0,
@@ -1810,10 +2063,15 @@ def process_row_closest_nodes(row_and_args):
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -1883,10 +2141,15 @@ def process_row_closest_nodes(row_and_args):
 
         return (
             DetailedDualOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=a_dist,
                 aTime=a_time,
                 bDist=b_dist,
@@ -1911,12 +2174,23 @@ def process_row_closest_nodes(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 DetailedDualOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -1943,12 +2217,17 @@ def process_row_closest_nodes(row_and_args):
 def process_routes_with_closest_nodes(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
     output_csv: str = "output_closest_nodes.csv",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1975,10 +2254,15 @@ def process_routes_with_closest_nodes(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -2031,16 +2315,28 @@ def process_row_closest_nodes_simple(row_and_args):
     api_calls = 0
     try:
         row, api_key, buffer_distance, skip_invalid, save_api_info = row_and_args
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        # Split and convert to float
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == destination_a and origin_b == destination_b:
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=0.0,
@@ -2059,10 +2355,15 @@ def process_row_closest_nodes_simple(row_and_args):
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=b_dist,
@@ -2081,10 +2382,15 @@ def process_row_closest_nodes_simple(row_and_args):
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=0.0,
@@ -2110,10 +2416,15 @@ def process_row_closest_nodes_simple(row_and_args):
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -2160,10 +2471,15 @@ def process_row_closest_nodes_simple(row_and_args):
 
         return (
             SimpleDualOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=a_dist,
                 aTime=a_time,
                 bDist=b_dist,
@@ -2180,12 +2496,22 @@ def process_row_closest_nodes_simple(row_and_args):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
             return (
                 SimpleDualOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -2204,12 +2530,17 @@ def process_row_closest_nodes_simple(row_and_args):
 def process_routes_with_closest_nodes_simple(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
     output_csv: str = "output_closest_nodes_simple.csv",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -2236,10 +2567,15 @@ def process_routes_with_closest_nodes_simple(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -2327,16 +2663,27 @@ def process_row_exact_intersections(
     """
     api_calls = 0
     try:
+        ID = row.get("ID", "")
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+        destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+        origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+        destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
 
         if origin_a == destination_a and origin_b == destination_b:
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=0.0,
@@ -2363,10 +2710,15 @@ def process_row_exact_intersections(
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=b_dist,
@@ -2393,10 +2745,15 @@ def process_row_exact_intersections(
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=0.0,
@@ -2456,10 +2813,15 @@ def process_row_exact_intersections(
 
         return (
             DetailedDualOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=a_dist,
                 aTime=a_time,
                 bDist=b_dist,
@@ -2484,12 +2846,23 @@ def process_row_exact_intersections(
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 DetailedDualOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -2516,12 +2889,17 @@ def process_row_exact_intersections(
 def process_routes_with_exact_intersections(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
     output_csv: str = "output_exact_intersections.csv",
-    colorna: Optional[str] = None,
-    coldesta: Optional[str] = None,
-    colorib: Optional[str] = None,
-    colfestb: Optional[str] = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -2550,10 +2928,15 @@ def process_routes_with_exact_intersections(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -2630,16 +3013,27 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
 
     try:
         row, api_key, buffer_distance, save_api_info = row_and_args
+        ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
+
+        origin_a_lat, origin_a_lon = map(float, map(str.strip, origin_a.split(",")))
+        destination_a_lat, destination_a_lon = map(float, map(str.strip, destination_a.split(",")))
+        origin_b_lat, origin_b_lon = map(float, map(str.strip, origin_b.split(",")))
+        destination_b_lat, destination_b_lon = map(float, map(str.strip, destination_b.split(",")))
 
         if origin_a == destination_a and origin_b == destination_b:
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=0.0,
@@ -2658,10 +3052,15 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
             coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=0.0,
                     aTime=0.0,
                     bDist=b_dist,
@@ -2680,10 +3079,15 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=0.0,
@@ -2707,10 +3111,15 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=a_dist,
@@ -2733,10 +3142,15 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
         if not intersection_polygon:
             return (
                 SimpleDualOverlapResult(
-                    OriginA=origin_a,
-                    DestinationA=destination_a,
-                    OriginB=origin_b,
-                    DestinationB=destination_b,
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=a_dist,
                     aTime=a_time,
                     bDist=b_dist,
@@ -2773,10 +3187,15 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
 
         return (
             SimpleDualOverlapResult(
-                OriginA=origin_a,
-                DestinationA=destination_a,
-                OriginB=origin_b,
-                DestinationB=destination_b,
+                ID=ID,
+                OriginAlat=origin_a_lat,
+                OriginAlong=origin_a_lon,
+                DestinationAlat=destination_a_lat,
+                DestinationAlong=destination_a_lon,
+                OriginBlat=origin_b_lat,
+                OriginBlong=origin_b_lon,
+                DestinationBlat=destination_b_lat,
+                DestinationBlong=destination_b_lon,
                 aDist=a_dist,
                 aTime=a_time,
                 bDist=b_dist,
@@ -2793,12 +3212,23 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
     except Exception as e:
         if skip_invalid:
             logging.error(f"Error processing row {row if 'row' in locals() else 'unknown'}: {str(e)}")
+            ID = row.get("ID", "")
+            origin_a_lat, origin_a_lon = safe_split(row.get("OriginA", ""))
+            destination_a_lat, destination_a_lon = safe_split(row.get("DestinationA", ""))
+            origin_b_lat, origin_b_lon = safe_split(row.get("OriginB", ""))
+            destination_b_lat, destination_b_lon = safe_split(row.get("DestinationB", ""))
+
             return (
                 SimpleDualOverlapResult(
-                    OriginA=row.get("OriginA", ""),
-                    DestinationA=row.get("DestinationA", ""),
-                    OriginB=row.get("OriginB", ""),
-                    DestinationB=row.get("DestinationB", ""),
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
                     aDist=None,
                     aTime=None,
                     bDist=None,
@@ -2817,12 +3247,17 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
 def process_routes_with_exact_intersections_simple(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
     output_csv: str = "output_exact_intersections_simple.csv",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -2844,10 +3279,15 @@ def process_routes_with_exact_intersections_simple(
     """
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
-        colorna=colorna,
-        coldesta=coldesta,
-        colorib=colorib,
-        colfestb=colfestb,
+        home_a_lat=home_a_lat,
+        home_a_lon=home_a_lon,
+        work_a_lat=work_a_lat,
+        work_a_lon=work_a_lon,
+        home_b_lat=home_b_lat,
+        home_b_lon=home_b_lon,
+        work_b_lat=work_b_lat,
+        work_b_lon=work_b_lon,
+        id_column=id_column,
         skip_invalid=skip_invalid
     )
 
@@ -2908,16 +3348,21 @@ def write_log(file_path: str, options: dict) -> None:
 def Overlap_Function(
     csv_file: str,
     api_key: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     threshold: float = 50,
     width: float = 100,
     buffer: float = 100,
     approximation: str = "no",
     commuting_info: str = "no",
-    colorna: str = None,
-    coldesta: str = None,
-    colorib: str = None,
-    colfestb: str = None,
-    output_file: str = None,  # Single output file parameter
+    output_file: str = None,
     skip_invalid: bool = True,
     save_api_info: bool = False,
     auto_confirm: bool = False
@@ -2932,15 +3377,20 @@ def Overlap_Function(
     Parameters:
     - csv_file (str): Path to input CSV file.
     - api_key (str): Google Maps API key.
+    - home_a_lat : Column name for the latitude of home A.
+    - home_a_lon : Column name for the longitude of home A.
+    - work_a_lat : Column name for the latitude of work A.
+    - work_a_lon : Column name for the longitude of work A.
+    - home_b_lat : Column name for the latitude of home B.
+    - home_b_lon : Column name for the longitude of home B.
+    - work_b_lat : Column name for the latitude of work B.
+    - work_b_lon : Column name for the longitude of work B.
+    - id_column : Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - threshold (float): Distance threshold for overlap (if applicable).
     - width (float): Width used for line buffering (if applicable).
     - buffer (float): Buffer radius in meters.
     - approximation (str): Mode of processing (e.g., "no", "yes", "yes with buffer", etc.).
     - commuting_info (str): Whether commuting detail is needed ("yes" or "no").
-    - colorna (str): Column name for origin A.
-    - coldesta (str): Column name for destination A.
-    - colorib (str): Column name for origin B.
-    - colfestb (str): Column name for destination B.
     - output_file (str): Optional custom filename for results.
     - skip_invalid (bool): If True, skips invalid coordinates and logs the error; if False, halts on error.
     - save_api_info (bool): If True, saves API response.
@@ -2984,10 +3434,15 @@ def Overlap_Function(
         "buffer": buffer,
         "approximation": approximation,
         "commuting_info": commuting_info,
-        "colorna": colorna,
-        "coldesta": coldesta,
-        "colorib": colorib,
-        "colfestb": colfestb,
+        "home_a_lat": str,
+        "home_a_lon": str,
+        "work_a_lat": str,
+        "work_a_lon": str,
+        "home_b_lat": str,
+        "home_b_lon": str,
+        "work_b_lat": str,
+        "work_b_lon": str,
+        "id_column": Optional[str] = None,
         "skip_invalid": skip_invalid,
         "save_api_info": save_api_info,
     }
@@ -3029,7 +3484,8 @@ def Overlap_Function(
             output_file = output_file or generate_unique_filename("results/outputRec", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = overlap_rec(
                 csv_file, api_key, output_csv=output_file, threshold=threshold, width=width,
-                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
+                home_b_lon, work_b_lat, work_b_lon, id_column,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
