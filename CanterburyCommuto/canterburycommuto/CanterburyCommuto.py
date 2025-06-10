@@ -3442,7 +3442,7 @@ def Overlap_Function(
         "home_b_lon": str,
         "work_b_lat": str,
         "work_b_lon": str,
-        "id_column": Optional[str] = None,
+        "id_column": None,
         "skip_invalid": skip_invalid,
         "save_api_info": save_api_info,
     }
