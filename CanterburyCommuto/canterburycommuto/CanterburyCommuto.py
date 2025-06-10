@@ -14,9 +14,9 @@ from pydantic import BaseModel
 from shapely.geometry import Point
 
 # Import functions from modules
-from .PlotMaps import plot_routes, plot_routes_and_buffers
-from .HelperFunctions import generate_unique_filename, write_csv_file, generate_url
-from .Computations import (
+from PlotMaps import plot_routes, plot_routes_and_buffers
+from HelperFunctions import generate_unique_filename, write_csv_file, generate_url
+from Computations import (
     find_common_nodes,
     split_segments,
     calculate_segment_distances,
@@ -95,9 +95,10 @@ api_response_cache = {}
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 # The following functions also help determine if there are errors in the code. 
+
 # Point to the notebooks directory instead of the script's directory
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "notebooks"))
-log_path = os.path.join(project_root, "results", "validation_errors_timing.log")
+log_path = os.path.join(os.getcwd(), "results", "validation_errors_timing.log")
 
 # Ensure the results folder exists inside notebooks
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -136,57 +137,95 @@ def is_valid_coordinate(coord: str) -> bool:
 
 def read_csv_file(
     csv_file: str,
-    colorna: str,
-    coldesta: str,
-    colorib: str,
-    colfestb: str,
+    home_a_lat: str,
+    home_a_lon: str,
+    work_a_lat: str,
+    work_a_lon: str,
+    home_b_lat: str,
+    home_b_lon: str,
+    work_b_lat: str,
+    work_b_lon: str,
+    id_column: Optional[str] = None,
     skip_invalid: bool = True
 ) -> Tuple[List[Dict[str, str]], int]:
     """
-    Reads a CSV file and maps user-specified column names to standardized names
-    (OriginA, DestinationA, OriginB, DestinationB). Returns a list of dictionaries
-    with standardized column names. Logs any coordinate errors encountered.
-
+    Reads a CSV file with separate latitude/longitude columns for each endpoint,
+    combines them into coordinate strings, and maps to standardized names.
+    Optionally handles/generates an ID column.
     Parameters:
-    - csv_file (str): Path to the CSV file.
-    - colorna (str): Column name for the origin of route A.
-    - coldesta (str): Column name for the destination of route A.
-    - colorib (str): Column name for the origin of route B.
-    - colfestb (str): Column name for the destination of route B.
-    - skip_invalid (bool): If True, skip rows with invalid coordinates and log them.
+    -----------
+    csv_file : str
+        Path to the input CSV file.
+    home_a_lat : str
+        Column name for the latitude of home A.
+    home_a_lon : str
+        Column name for the longitude of home A.
+    work_a_lat : str
+        Column name for the latitude of work A.
+    work_a_lon : str
+        Column name for the longitude of work A.
+    home_b_lat : str
+        Column name for the latitude of home B.
+    home_b_lon : str
+        Column name for the longitude of home B.
+    work_b_lat : str
+        Column name for the latitude of work B.
+    work_b_lon : str
+        Column name for the longitude of work B.
+    id_column : Optional[str], default=None
+        Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
+    skip_invalid : bool, default=True
+        If True, rows with invalid coordinates are skipped and logged. If False, the function raises an error on invalid data.
 
     Returns:
-    - Tuple[List[Dict[str, str]], int]: List of dictionaries with standardized column names,
-      and the count of rows with invalid coordinates.
+    --------
+    Tuple[List[Dict[str, str]], int]
+        - List of dictionaries, each with standardized keys:
+            'ID', 'OriginA', 'DestinationA', 'OriginB', 'DestinationB'
+        - Integer count of rows with invalid coordinates that were skipped (0 if skip_invalid is False).
+
+    Notes:
+    ------
+    - The function expects the CSV to have 8 columns for latitude and longitude, as specified by the input arguments.
+    - The function combines each latitude/longitude pair into a single string "lat,lon" for each endpoint.
+    - The function ensures each row has an 'ID' field, either from the CSV or auto-generated.
     """
     with open(csv_file, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         csv_columns = reader.fieldnames
 
-        required_columns = [colorna, coldesta, colorib, colfestb]
+        # Check all required columns exist
+        required_columns = [
+            home_a_lat, home_a_lon, work_a_lat, work_a_lon,
+            home_b_lat, home_b_lon, work_b_lat, work_b_lon
+        ]
         for column in required_columns:
             if column not in csv_columns:
                 raise ValueError(f"Column '{column}' not found in the CSV file.")
 
-        column_mapping = {
-            colorna: "OriginA",
-            coldesta: "DestinationA",
-            colorib: "OriginB",
-            colfestb: "DestinationB",
-        }
+        rows = list(reader)
+
+        # Combine lat/lon into coordinate strings
+        for idx, row in enumerate(rows, 1):
+            row["OriginA"] = f"{row[home_a_lat].strip()},{row[home_a_lon].strip()}"
+            row["DestinationA"] = f"{row[work_a_lat].strip()},{row[work_a_lon].strip()}"
+            row["OriginB"] = f"{row[home_b_lat].strip()},{row[home_b_lon].strip()}"
+            row["DestinationB"] = f"{row[work_b_lat].strip()},{row[work_b_lon].strip()}"
+            # Handle ID column
+            if id_column and id_column in csv_columns:
+                row["ID"] = row[id_column]
+            else:
+                row["ID"] = f"R{idx}"
 
         mapped_data = []
         error_count = 0
         row_number = 1
-        for row in reader:
-            mapped_row = {
-                column_mapping.get(col, col): value for col, value in row.items()
-            }
+        for row in rows:
             coords = [
-                mapped_row["OriginA"],
-                mapped_row["DestinationA"],
-                mapped_row["OriginB"],
-                mapped_row["DestinationB"],
+                row["OriginA"],
+                row["DestinationA"],
+                row["OriginB"],
+                row["DestinationB"],
             ]
             invalids = [c for c in coords if not is_valid_coordinate(c)]
 
@@ -197,6 +236,14 @@ def read_csv_file(
                 if not skip_invalid:
                     raise ValueError(error_msg)
 
+            # Only keep standardized columns (and ID)
+            mapped_row = {
+                "ID": row["ID"],
+                "OriginA": row["OriginA"],
+                "DestinationA": row["DestinationA"],
+                "OriginB": row["OriginB"],
+                "DestinationB": row["DestinationB"],
+            }
             mapped_data.append(mapped_row)
             row_number += 1
 
@@ -210,8 +257,6 @@ def request_cost_estimation(
     coldesta: Optional[str] = None,
     colorib: Optional[str] = None,
     colfestb: Optional[str] = None,
-    output_overlap: Optional[str] = None,
-    output_buffer: Optional[str] = None,
     skip_invalid: bool = True
 ) -> Tuple[int, float]:
     """
@@ -2872,8 +2917,7 @@ def Overlap_Function(
     coldesta: str = None,
     colorib: str = None,
     colfestb: str = None,
-    output_overlap: str = None,
-    output_buffer: str = None,
+    output_file: str = None,  # Single output file parameter
     skip_invalid: bool = True,
     save_api_info: bool = False,
     auto_confirm: bool = False
@@ -2897,8 +2941,7 @@ def Overlap_Function(
     - coldesta (str): Column name for destination A.
     - colorib (str): Column name for origin B.
     - colfestb (str): Column name for destination B.
-    - output_overlap (str): Optional custom filename for overlap results.
-    - output_buffer (str): Optional custom filename for buffer results.
+    - output_file (str): Optional custom filename for results.
     - skip_invalid (bool): If True, skips invalid coordinates and logs the error; if False, halts on error.
     - save_api_info (bool): If True, saves API response.
     - auto_confirm: bool = False： If True, skips the user confirmation prompt and proceeds automatically.
@@ -2910,26 +2953,20 @@ def Overlap_Function(
 
     if not api_key:
         try:
-            # Try using __file__ if defined (script context)
             base_dir = os.path.dirname(os.path.abspath(__file__))
         except NameError:
-            # If __file__ is undefined (e.g., Jupyter), fallback to working directory
             base_dir = os.getcwd()
-
-        # Try common user-friendly locations
         possible_paths = [
-            os.path.join(os.getcwd(), "config.yaml"),  # current working directory
-            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),  # ~/.canterburycommuto/config.yaml
-            os.path.join(base_dir, "config.yaml"),  # next to the script file
+            os.path.join(os.getcwd(), "config.yaml"),
+            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),
+            os.path.join(base_dir, "config.yaml"),
         ]
-
         for config_path in possible_paths:
             print(f"[DEBUG] Checking for config.yaml in: {config_path}")
             if os.path.exists(config_path):
                 break
         else:
             raise FileNotFoundError("config.yaml not found in standard locations and no API key provided.")
-
         try:
             with open(config_path, "r") as f:
                 config = yaml.safe_load(f)
@@ -2938,7 +2975,7 @@ def Overlap_Function(
                     raise ValueError("API key not found in config.yaml.")
         except Exception as e:
             raise RuntimeError(f"Failed to read API key from config.yaml: {e}")
-    
+
     options = {
         "csv_file": csv_file,
         "api_key": "********",
@@ -2954,12 +2991,10 @@ def Overlap_Function(
         "skip_invalid": skip_invalid,
         "save_api_info": save_api_info,
     }
-    if output_overlap:
-        output_overlap = os.path.join("results", os.path.basename(output_overlap))
-    if output_buffer:
-        output_buffer = os.path.join("results", os.path.basename(output_buffer))
-
-    # Estimate request count and cost 
+    if output_file:
+        output_file = os.path.join("results", os.path.basename(output_file))
+        if not output_file.lower().endswith(".csv"):
+            output_file += ".csv"
     try:
         num_requests, estimated_cost = request_cost_estimation(
             csv_file=csv_file,
@@ -2969,20 +3004,16 @@ def Overlap_Function(
             coldesta=coldesta,
             colorib=colorib,
             colfestb=colfestb,
-            output_overlap=output_overlap,
-            output_buffer=output_buffer,
             skip_invalid=skip_invalid
         )
     except Exception as e:
         print(f"[ERROR] Unable to estimate cost: {e}")
         return
 
-    # Display estimation to user
     print(f"\n[INFO] Estimated number of API requests: {num_requests}")
     print(f"[INFO] Estimated cost: ${estimated_cost:.2f}")
     print("[NOTICE] Actual cost may be higher or lower depending on Google’s pricing tiers and route pair complexity.\n")
 
-    # Ask for user confirmation unless auto_confirm is True
     if not auto_confirm:
         user_input = input("Do you want to proceed with this operation? (yes/no): ").strip().lower()
         if user_input != "yes":
@@ -2991,86 +3022,105 @@ def Overlap_Function(
     else:
         print("[AUTO-CONFIRM] Skipping user prompt and proceeding...\n")
 
-    # Proceed with processing
     print("[PROCESSING] Proceeding with route analysis...\n")
 
     if approximation == "yes":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRec", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/outputRec", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = overlap_rec(
+                csv_file, api_key, output_csv=output_file, threshold=threshold, width=width,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_overlap, options)
-
+            write_log(output_file, options)
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRec_only_overlap", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(csv_file, api_key, output_csv=output_overlap, threshold=threshold, width=width, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/outputRec_only_overlap", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(
+                csv_file, api_key, output_csv=output_file, threshold=threshold, width=width,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_overlap, options)
+            write_log(output_file, options)
 
     elif approximation == "no":
         if commuting_info == "yes":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/outputRoutes", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_csv(
+                csv_file, api_key, output_csv=output_file, colorna=colorna, coldesta=coldesta,
+                colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_overlap, options)
-
+            write_log(output_file, options)
         elif commuting_info == "no":
-            output_overlap = output_overlap or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_only_overlap_with_csv(csv_file, api_key, output_csv=output_overlap, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/outputRoutes_only_overlap", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_only_overlap_with_csv(
+                csv_file, api_key, output_csv=output_file, colorna=colorna, coldesta=coldesta,
+                colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_overlap, options)
+            write_log(output_file, options)
 
     elif approximation == "yes with buffer":
-        output_buffer = output_buffer or generate_unique_filename("results/buffer_intersection_results", ".csv")
-        results, pre_api_errors, api_calls, post_api_errors = process_routes_with_buffers(csv_file=csv_file, output_csv=output_buffer, api_key=api_key, buffer_distance=buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+        output_file = output_file or generate_unique_filename("results/buffer_intersection_results", ".csv")
+        results, pre_api_errors, api_calls, post_api_errors = process_routes_with_buffers(
+            csv_file=csv_file, output_csv=output_file, api_key=api_key, buffer_distance=buffer,
+            colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+            skip_invalid=skip_invalid, save_api_info=save_api_info)
         options["Pre-API Error Count"] = pre_api_errors
         options["Post-API Error Count"] = post_api_errors
-        options["Total API Calls"] = api_calls    
-        write_log(output_buffer, options)
+        options["Total API Calls"] = api_calls
+        write_log(output_file, options)
 
     elif approximation == "closer to precision":
         if commuting_info == "yes":
-            output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_results", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/closest_nodes_buffer_results", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes(
+                csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_file,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_buffer, options)
-
+            write_log(output_file, options)
         elif commuting_info == "no":
-            output_buffer = output_buffer or generate_unique_filename("results/closest_nodes_buffer_only_overlap", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/closest_nodes_buffer_only_overlap", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes_simple(
+                csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_file,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_buffer, options)
+            write_log(output_file, options)
 
     elif approximation == "exact":
         if commuting_info == "yes":
-            output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_results", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/exact_intersection_buffer_results", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(
+                csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_file,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_buffer, options)
-
+            write_log(output_file, options)
         elif commuting_info == "no":
-            output_buffer = output_buffer or generate_unique_filename("results/exact_intersection_buffer_only_overlap", ".csv")
-            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections_simple(csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_buffer, colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb, skip_invalid=skip_invalid, save_api_info= save_api_info)
+            output_file = output_file or generate_unique_filename("results/exact_intersection_buffer_only_overlap", ".csv")
+            results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections_simple(
+                csv_file=csv_file, api_key=api_key, buffer_distance=buffer, output_csv=output_file,
+                colorna=colorna, coldesta=coldesta, colorib=colorib, colfestb=colfestb,
+                skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_buffer, options)
-    
+            write_log(output_file, options)
+
     if save_api_info is True:
         with open("api_response_cache.pkl", "wb") as f:
             pickle.dump(api_response_cache, f)
-
