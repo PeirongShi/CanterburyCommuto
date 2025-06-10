@@ -32,14 +32,14 @@ from Computations import (
 class RouteBase(BaseModel):
     """Base model for route endpoints (split lat/lon) and basic metrics."""
     ID: str
-    OriginAlat: float
-    OriginAlong: float
-    DestinationAlat: float
-    DestinationAlong: float
-    OriginBlat: float
-    OriginBlong: float
-    DestinationBlat: float
-    DestinationBlong: float
+    OriginAlat: Optional[float] = None
+    OriginAlong: Optional[float] = None
+    DestinationAlat: Optional[float] = None
+    DestinationAlong: Optional[float] = None
+    OriginBlat: Optional[float] = None
+    OriginBlong: Optional[float] = None
+    DestinationBlat: Optional[float] = None
+    DestinationBlong: Optional[float] = None
     aDist: Optional[float] = None
     aTime: Optional[float] = None
     bDist: Optional[float] = None
