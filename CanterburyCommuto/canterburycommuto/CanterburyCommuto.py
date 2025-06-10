@@ -1330,6 +1330,7 @@ def overlap_rec(
     if processed_rows:
         fieldnames = list(processed_rows[0].keys())
         write_csv_file(output_csv, processed_rows, fieldnames)
+    return results, pre_api_errors, api_calls, post_api_errors
 
 def process_row_only_overlap_rec(row_and_args):
     """
@@ -1614,6 +1615,7 @@ def only_overlap_rec(
         "overlapDist", "overlapTime",
     ]
     write_csv_file(output_csv, results, fieldnames)
+    return results, pre_api_errors, api_calls, post_api_errors
 
 def process_row_route_buffers(row_and_args):
     """
