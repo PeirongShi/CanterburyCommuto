@@ -290,14 +290,7 @@ def request_cost_estimation(
     Returns:
     - Tuple[int, float]: Estimated number of API requests and corresponding cost in USD.
     """
-    data_set, pre_api_error_count = read_csv_file(csv_file, home_a_lat, home_a_lon,
-    work_a_lat,
-    work_a_lon,
-    home_b_lat,
-    home_b_lon,
-    work_b_lat,
-    work_b_lon,
-    id_column, skip_invalid=skip_invalid)
+    data_set, pre_api_error_count = read_csv_file(csv_file, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column, skip_invalid=skip_invalid)
     n = 0
 
     for row in data_set:
@@ -3473,12 +3466,17 @@ def Overlap_Function(
     try:
         num_requests, estimated_cost = request_cost_estimation(
             csv_file=csv_file,
+            home_a_lat=home_a_lat,
+            home_a_lon=home_a_lon,
+            work_a_lat=work_a_lat,
+            work_a_lon=work_a_lon, 
+            home_b_lat=home_b_lat,
+            home_b_lon=home_b_lon,
+            work_b_lat= work_b_lat,
+            work_b_lon=work_b_lon,
+            id_column=id_column,
             approximation=approximation,
             commuting_info=commuting_info,
-            colorna=colorna,
-            coldesta=coldesta,
-            colorib=colorib,
-            colfestb=colfestb,
             skip_invalid=skip_invalid
         )
     except Exception as e:
