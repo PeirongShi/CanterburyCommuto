@@ -8,21 +8,32 @@ This script provides a command-line interface to:
 Usage:
 
     # Run overlap and buffer analysis:
-    python -m your_project.main overlap <csv_file> <api_key>
+    python -m canterburycommuto.main overlap
+        [--csv_file PATH] [--api_key KEY]
         [--threshold VALUE] [--width VALUE] [--buffer VALUE]
         [--approximation VALUE] [--commuting_info VALUE]
-        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME]
-        [--colorib COLUMN_NAME] [--colfestb COLUMN_NAME]
-        [--output_overlap FILENAME] [--output_buffer FILENAME]
+        [--home_a_lat COLUMN_NAME] [--home_a_lon COLUMN_NAME]
+        [--work_a_lat COLUMN_NAME] [--work_a_lon COLUMN_NAME]
+        [--home_b_lat COLUMN_NAME] [--home_b_lon COLUMN_NAME]
+        [--work_b_lat COLUMN_NAME] [--work_b_lon COLUMN_NAME]
+        [--id_column COLUMN_NAME]
+        [--output_file FILENAME]
         [--skip_invalid True|False] [--save_api_info] [--yes]
 
     # Estimate number of API requests and cost (no actual API calls):
-    python -m your_project.main estimate <csv_file>
+    python -m canterburycommuto.main estimate
+        [--csv_file PATH]
         [--approximation VALUE] [--commuting_info VALUE]
-        [--colorna COLUMN_NAME] [--coldesta COLUMN_NAME]
-        [--colorib COLUMN_NAME] [--colfestb COLUMN_NAME]
-        [--output_overlap FILENAME] [--output_buffer FILENAME]
+        [--home_a_lat COLUMN_NAME] [--home_a_lon COLUMN_NAME]
+        [--work_a_lat COLUMN_NAME] [--work_a_lon COLUMN_NAME]
+        [--home_b_lat COLUMN_NAME] [--home_b_lon COLUMN_NAME]
+        [--work_b_lat COLUMN_NAME] [--work_b_lon COLUMN_NAME]
+        [--id_column COLUMN_NAME]
         [--skip_invalid True|False]
+
+Notes:
+- All arguments are optional. If not provided, values will be loaded from config.yaml (if present) or use function defaults.
+- Do not provide empty strings as argument values; omit the flag to use config or default.
 """
 
 import argparse
@@ -38,12 +49,16 @@ def run_overlap(args):
             buffer=args.buffer,
             approximation=args.approximation,
             commuting_info=args.commuting_info,
-            colorna=args.colorna,
-            coldesta=args.coldesta,
-            colorib=args.colorib,
-            colfestb=args.colfestb,
-            output_overlap=args.output_overlap,
-            output_buffer=args.output_buffer,
+            home_a_lat=args.home_a_lat,
+            home_a_lon=args.home_a_lon,
+            work_a_lat=args.work_a_lat,
+            work_a_lon=args.work_a_lon,
+            home_b_lat=args.home_b_lat,
+            home_b_lon=args.home_b_lon,
+            work_b_lat=args.work_b_lat,
+            work_b_lon=args.work_b_lon,
+            id_column=args.id_column,
+            output_file=args.output_file,
             skip_invalid=args.skip_invalid,
             save_api_info=args.save_api_info,
             auto_confirm=args.yes
@@ -57,14 +72,17 @@ def run_estimation(args):
     try:
         n_requests, cost = request_cost_estimation(
             csv_file=args.csv_file,
+            home_a_lat=args.home_a_lat,
+            home_a_lon=args.home_a_lon,
+            work_a_lat=args.work_a_lat,
+            work_a_lon=args.work_a_lon,
+            home_b_lat=args.home_b_lat,
+            home_b_lon=args.home_b_lon,
+            work_b_lat=args.work_b_lat,
+            work_b_lon=args.work_b_lon,
+            id_column=args.id_column,
             approximation=args.approximation,
             commuting_info=args.commuting_info,
-            colorna=args.colorna,
-            coldesta=args.coldesta,
-            colorib=args.colorib,
-            colfestb=args.colfestb,
-            output_overlap=args.output_overlap,
-            output_buffer=args.output_buffer,
             skip_invalid=args.skip_invalid
         )
         print(f"Estimated API requests: {n_requests}")
@@ -78,19 +96,23 @@ def main():
 
     # Subparser for "overlap"
     overlap_parser = subparsers.add_parser("overlap", help="Analyze route overlaps and buffers.")
-    overlap_parser.add_argument("csv_file", type=str)
+    overlap_parser.add_argument("--csv_file", type=str, required=False, help="Path to the input CSV file.")
     overlap_parser.add_argument("--api_key", type=str, required=False, default=None, help="Google API key. If not provided, the tool will try to read from config.yaml.")
     overlap_parser.add_argument("--threshold", type=float, default=50.0)
     overlap_parser.add_argument("--width", type=float, default=100.0)
     overlap_parser.add_argument("--buffer", type=float, default=100.0)
     overlap_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
     overlap_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
-    overlap_parser.add_argument("--colorna", type=str)
-    overlap_parser.add_argument("--coldesta", type=str)
-    overlap_parser.add_argument("--colorib", type=str)
-    overlap_parser.add_argument("--colfestb", type=str)
-    overlap_parser.add_argument("--output_overlap", type=str)
-    overlap_parser.add_argument("--output_buffer", type=str)
+    overlap_parser.add_argument("--home_a_lat", type=str)
+    overlap_parser.add_argument("--home_a_lon", type=str)
+    overlap_parser.add_argument("--work_a_lat", type=str)
+    overlap_parser.add_argument("--work_a_lon", type=str)
+    overlap_parser.add_argument("--home_b_lat", type=str)
+    overlap_parser.add_argument("--home_b_lon", type=str)
+    overlap_parser.add_argument("--work_b_lat", type=str)
+    overlap_parser.add_argument("--work_b_lon", type=str)
+    overlap_parser.add_argument("--id_column", type=str)
+    overlap_parser.add_argument("--output_file", type=str)
     overlap_parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True)
     overlap_parser.add_argument("--save_api_info", action="store_true", help="If set, saves API responses to a pickle file (api_response_cache.pkl)")
     overlap_parser.add_argument("--yes", action="store_true")
@@ -98,15 +120,18 @@ def main():
 
     # Subparser for "estimate"
     estimate_parser = subparsers.add_parser("estimate", help="Estimate number of API requests and cost.")
-    estimate_parser.add_argument("csv_file", type=str)
+    estimate_parser.add_argument("--csv_file", type=str, required=False, help="Path to the input CSV file.")
     estimate_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
     estimate_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
-    estimate_parser.add_argument("--colorna", type=str)
-    estimate_parser.add_argument("--coldesta", type=str)
-    estimate_parser.add_argument("--colorib", type=str)
-    estimate_parser.add_argument("--colfestb", type=str)
-    estimate_parser.add_argument("--output_overlap", type=str)
-    estimate_parser.add_argument("--output_buffer", type=str)
+    estimate_parser.add_argument("--home_a_lat", type=str)
+    estimate_parser.add_argument("--home_a_lon", type=str)
+    estimate_parser.add_argument("--work_a_lat", type=str)
+    estimate_parser.add_argument("--work_a_lon", type=str)
+    estimate_parser.add_argument("--home_b_lat", type=str)
+    estimate_parser.add_argument("--home_b_lon", type=str)
+    estimate_parser.add_argument("--work_b_lat", type=str)
+    estimate_parser.add_argument("--work_b_lon", type=str)
+    estimate_parser.add_argument("--id_column", type=str)
     estimate_parser.add_argument("--skip_invalid", type=lambda x: x == "True", choices=[True, False], default=True)
     estimate_parser.set_defaults(func=run_estimation)
 
