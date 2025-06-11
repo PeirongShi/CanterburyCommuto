@@ -51,10 +51,15 @@ python CanterburyCommuto/canterburycommuto/Sample.py
 
 Otherwise, you need to create a csv file with the following columns:
 
-1. **OriginA**: The GPS coordiantes of the starting location of route A in each route pair.
-2. **DestinationA**: The GPS coordiantes of the ending location of route A in every route pair.
-3. **OriginB**: The starting location of route B.
-4. **DestinationB**: The ending location of route B.
+0. **ID** - Each observation's ID (optional).
+1. **OriginA_latitude** – The latitude of the starting location of Route A.  
+2. **OriginA_longitude** – The longitude of the starting location of Route A.  
+3. **DestinationA_latitude** – The latitude of the ending location of Route A.  
+4. **DestinationA_longitude** – The longitude of the ending location of Route A.  
+5. **OriginB_latitude** – The latitude of the starting location of Route B.  
+6. **OriginB_longitude** – The longitude of the starting location of Route B.  
+7. **DestinationB_latitude** – The latitude of the ending location of Route B.  
+8. **DestinationB_longitude** – The longitude of the ending location of Route B.
 
 Next, import the main function.
 
@@ -105,37 +110,42 @@ See example.ipynb for how to run all options of the package's major function.
 
 The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the **OpenStreetMap** background. By placing the mouse onto the markers, one is able to see the origins and destinations of route A and B marked as Origin A and Destination A in red and Origin B and Destination B in green. Distances are measured in kilometers and the time unit is minute. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the possible output variables:
 
-1. **OriginA**: The starting location of route A.
-2. **DestinationA**: The ending location of route A.
-3. **OriginB**: The starting location of route B.
-4. **DestinationB**: The ending location of route B.
+0. **ID** - Each observation's ID (optional).
+1. **OriginA_latitude** – The latitude of the starting location of Route A.  
+2. **OriginA_longitude** – The longitude of the starting location of Route A.  
+3. **DestinationA_latitude** – The latitude of the ending location of Route A.  
+4. **DestinationA_longitude** – The longitude of the ending location of Route A.  
+5. **OriginB_latitude** – The latitude of the starting location of Route B.  
+6. **OriginB_longitude** – The longitude of the starting location of Route B.  
+7. **DestinationB_latitude** – The latitude of the ending location of Route B.  
+8. **DestinationB_longitude** – The longitude of the ending location of Route B.
 
-5. **aDist**: Total distance of route A. 
-6. **aTime**: Total time to traverse route A.
-7. **bDist**: Total distance of route B.
-8. **bTime**: Total time to traverse route B.
+9. **aDist**: Total distance of route A. 
+10. **aTime**: Total time to traverse route A.
+11. **bDist**: Total distance of route B.
+12. **bTime**: Total time to traverse route B.
 
-9. **overlapDist**: Distance of the overlapping segment between route A and route B.
-10. **overlapTime**: Time to traverse the overlapping segment between route A and route B.
+13. **overlapDist**: Distance of the overlapping segment between route A and route B.
+14. **overlapTime**: Time to traverse the overlapping segment between route A and route B.
 
-11. **aBeforeDist**: Distance covered on route A before the overlap begins.
-12. **aBeforeTime**: Time spent on route A before the overlap begins.
-13. **bBeforeDist**: Distance covered on route B before the overlap begins.
-14. **bBeforeTime**: Time spent on route B before the overlap begins.
+15. **aBeforeDist**: Distance covered on route A before the overlap begins.
+16. **aBeforeTime**: Time spent on route A before the overlap begins.
+17. **bBeforeDist**: Distance covered on route B before the overlap begins.
+18. **bBeforeTime**: Time spent on route B before the overlap begins.
 
-15. **aAfterDist**: Distance covered on route A after the overlap ends.
-16. **aAfterTime**: Time spent on route A after the overlap ends.
-17. **bAfterDist**: Distance covered on route B after the overlap ends.
-18. **bAfterTime**: Time spent on route B after the overlap ends.
-19. **aIntersecRatio**: The proportion of the buffer area of Route A that intersects with the buffer of Route B. It is calculated as:
+19. **aAfterDist**: Distance covered on route A after the overlap ends.
+20. **aAfterTime**: Time spent on route A after the overlap ends.
+21. **bAfterDist**: Distance covered on route B after the overlap ends.
+22. **bAfterTime**: Time spent on route B after the overlap ends.
+23. **aIntersecRatio**: The proportion of the buffer area of Route A that intersects with the buffer of Route B. It is calculated as:
 
     `aIntersecRatio = Intersection Area / Area of A`
 
-20. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A.
-21. **aoverlapDist**: Distance of the overlapping segment on route A inside the buffer intersection with route B.  
-22. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
-23. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
-24. **boverlapTime**: Time to traverse the overlapping segment on route B.
+24. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A.
+25. **aoverlapDist**: Distance of the overlapping segment on route A inside the buffer intersection with route B.  
+26. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
+27. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
+28. **boverlapTime**: Time to traverse the overlapping segment on route B.
 
 ### Overlap Function Options
 
