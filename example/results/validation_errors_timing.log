@@ -1,0 +1,347 @@
+2025-06-11 21:34:45,462 - INFO - Time for before_a API call: 0.09 seconds
+2025-06-11 21:34:45,485 - INFO - Time for before_a API call: 0.11 seconds
+2025-06-11 21:34:45,486 - INFO - Time for before_a API call: 0.07 seconds
+2025-06-11 21:34:45,503 - INFO - Time for before_a API call: 0.11 seconds
+2025-06-11 21:34:45,570 - INFO - Time for overlap_a API call: 0.10 seconds
+2025-06-11 21:34:45,585 - INFO - Time for overlap_a API call: 0.10 seconds
+2025-06-11 21:34:45,590 - INFO - Time for overlap_a API call: 0.10 seconds
+2025-06-11 21:34:45,606 - INFO - Time for before_a API call: 0.12 seconds
+2025-06-11 21:34:45,608 - INFO - Time for overlap_a API call: 0.10 seconds
+2025-06-11 21:34:45,627 - INFO - Time for after_a API call: 0.06 seconds
+2025-06-11 21:34:45,660 - INFO - Time for after_a API call: 0.08 seconds
+2025-06-11 21:34:45,678 - INFO - Time for after_a API call: 0.09 seconds
+2025-06-11 21:34:45,687 - INFO - Time for after_a API call: 0.07 seconds
+2025-06-11 21:34:45,701 - INFO - Time for before_b API call: 0.07 seconds
+2025-06-11 21:34:45,724 - INFO - Time for overlap_a API call: 0.11 seconds
+2025-06-11 21:34:45,733 - INFO - Time for before_b API call: 0.05 seconds
+2025-06-11 21:34:45,750 - INFO - Time for before_b API call: 0.09 seconds
+2025-06-11 21:34:45,753 - INFO - Time for before_b API call: 0.07 seconds
+2025-06-11 21:34:45,768 - INFO - Time for after_b API call: 0.07 seconds
+2025-06-11 21:34:45,817 - INFO - Time for after_a API call: 0.09 seconds
+2025-06-11 21:34:45,819 - INFO - Time for after_b API call: 0.09 seconds
+2025-06-11 21:34:45,870 - INFO - Time for after_b API call: 0.12 seconds
+2025-06-11 21:34:45,874 - INFO - Time for after_b API call: 0.12 seconds
+2025-06-11 21:34:45,953 - INFO - Time for before_b API call: 0.14 seconds
+2025-06-11 21:34:46,082 - INFO - Time for after_b API call: 0.13 seconds
+2025-06-11 21:35:06,802 - INFO - Time for before_a API call: 0.07 seconds
+2025-06-11 21:35:06,814 - INFO - Time for before_a API call: 0.09 seconds
+2025-06-11 21:35:06,820 - INFO - Time for before_a API call: 0.08 seconds
+2025-06-11 21:35:06,821 - INFO - Time for before_a API call: 0.07 seconds
+2025-06-11 21:35:06,828 - INFO - Time for before_a API call: 0.09 seconds
+2025-06-11 21:35:06,858 - INFO - Time for overlap_a API call: 0.06 seconds
+2025-06-11 21:35:06,873 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:06,875 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:06,877 - INFO - Time for overlap_a API call: 0.06 seconds
+2025-06-11 21:35:06,885 - INFO - Time for overlap_a API call: 0.06 seconds
+2025-06-11 21:35:06,914 - INFO - Time for after_a API call: 0.06 seconds
+2025-06-11 21:35:06,924 - INFO - Time for after_a API call: 0.05 seconds
+2025-06-11 21:35:06,930 - INFO - Time for after_a API call: 0.05 seconds
+2025-06-11 21:35:06,936 - INFO - Time for after_a API call: 0.06 seconds
+2025-06-11 21:35:06,940 - INFO - Time for after_a API call: 0.05 seconds
+2025-06-11 21:35:06,976 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:06,988 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:07,002 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:07,003 - INFO - Time for before_b API call: 0.07 seconds
+2025-06-11 21:35:07,009 - INFO - Time for before_b API call: 0.07 seconds
+2025-06-11 21:35:07,039 - INFO - Time for after_b API call: 0.06 seconds
+2025-06-11 21:35:07,041 - INFO - Time for after_b API call: 0.05 seconds
+2025-06-11 21:35:07,074 - INFO - Time for after_b API call: 0.07 seconds
+2025-06-11 21:35:07,076 - INFO - Time for after_b API call: 0.07 seconds
+2025-06-11 21:35:07,076 - INFO - Time for after_b API call: 0.07 seconds
+2025-06-11 21:35:13,701 - INFO - API call for overlap_a took 0.05 seconds
+2025-06-11 21:35:13,720 - INFO - API call for overlap_a took 0.06 seconds
+2025-06-11 21:35:13,728 - INFO - API call for overlap_a took 0.05 seconds
+2025-06-11 21:35:13,729 - INFO - API call for overlap_a took 0.06 seconds
+2025-06-11 21:35:13,730 - INFO - API call for overlap_a took 0.05 seconds
+2025-06-11 21:35:19,409 - INFO - Time for coordinates_a API call: 0.06 seconds
+2025-06-11 21:35:19,414 - INFO - Time for same-route API call: 0.07 seconds
+2025-06-11 21:35:19,416 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:19,422 - INFO - Time for coordinates_a API call: 0.08 seconds
+2025-06-11 21:35:19,429 - INFO - Time for coordinates_a API call: 0.08 seconds
+2025-06-11 21:35:19,440 - INFO - Time for coordinates_a API call: 0.09 seconds
+2025-06-11 21:35:19,462 - INFO - Time for coordinates_a API call: 0.11 seconds
+2025-06-11 21:35:19,485 - INFO - Time for coordinates_b API call: 0.06 seconds
+2025-06-11 21:35:19,495 - INFO - Time for coordinates_b API call: 0.08 seconds
+2025-06-11 21:35:19,510 - INFO - Time for coordinates_b API call: 0.05 seconds
+2025-06-11 21:35:19,511 - INFO - Time for coordinates_b API call: 0.10 seconds
+2025-06-11 21:35:19,525 - INFO - Time for coordinates_b API call: 0.10 seconds
+2025-06-11 21:35:19,538 - INFO - Time for coordinates_b API call: 0.08 seconds
+2025-06-11 21:35:19,638 - INFO - Time for before_a API call: 0.07 seconds
+2025-06-11 21:35:19,692 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:19,707 - INFO - Time for before_a API call: 0.11 seconds
+2025-06-11 21:35:19,777 - INFO - Time for after_a API call: 0.09 seconds
+2025-06-11 21:35:19,783 - INFO - Time for before_a API call: 0.11 seconds
+2025-06-11 21:35:19,792 - INFO - Time for before_a API call: 0.08 seconds
+2025-06-11 21:35:19,830 - INFO - Time for overlap_a API call: 0.12 seconds
+2025-06-11 21:35:19,834 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:19,847 - INFO - Time for before_a API call: 0.06 seconds
+2025-06-11 21:35:19,880 - INFO - Time for overlap_a API call: 0.10 seconds
+2025-06-11 21:35:19,884 - INFO - Time for overlap_a API call: 0.09 seconds
+2025-06-11 21:35:19,895 - INFO - Time for after_a API call: 0.06 seconds
+2025-06-11 21:35:19,906 - INFO - Time for overlap_a API call: 0.06 seconds
+2025-06-11 21:35:19,924 - INFO - Time for after_b API call: 0.09 seconds
+2025-06-11 21:35:19,955 - INFO - Time for after_a API call: 0.07 seconds
+2025-06-11 21:35:19,955 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:19,957 - INFO - Time for after_a API call: 0.05 seconds
+2025-06-11 21:35:19,974 - INFO - Time for after_a API call: 0.09 seconds
+2025-06-11 21:35:20,021 - INFO - Time for before_b API call: 0.06 seconds
+2025-06-11 21:35:20,064 - INFO - Time for before_b API call: 0.09 seconds
+2025-06-11 21:35:20,068 - INFO - Time for before_b API call: 0.11 seconds
+2025-06-11 21:35:20,073 - INFO - Time for after_b API call: 0.12 seconds
+2025-06-11 21:35:20,106 - INFO - Time for after_b API call: 0.09 seconds
+2025-06-11 21:35:20,134 - INFO - Time for after_b API call: 0.07 seconds
+2025-06-11 21:35:20,156 - INFO - Time for after_b API call: 0.09 seconds
+2025-06-11 21:35:23,840 - INFO - Time for coordinates_a API call: 0.06 seconds
+2025-06-11 21:35:23,847 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:23,848 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:23,852 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:23,853 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:23,854 - INFO - Time for coordinates_a API call: 0.07 seconds
+2025-06-11 21:35:23,859 - INFO - Time for same-route API call: 0.08 seconds
+2025-06-11 21:35:23,906 - INFO - Time for coordinates_b API call: 0.06 seconds
+2025-06-11 21:35:23,910 - INFO - Time for coordinates_b API call: 0.07 seconds
+2025-06-11 21:35:23,915 - INFO - Time for coordinates_b API call: 0.07 seconds
+2025-06-11 21:35:23,919 - INFO - Time for coordinates_b API call: 0.07 seconds
+2025-06-11 21:35:23,927 - INFO - Time for coordinates_b API call: 0.07 seconds
+2025-06-11 21:35:23,933 - INFO - Time for coordinates_b API call: 0.08 seconds
+2025-06-11 21:35:24,044 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:24,088 - INFO - Time for overlap_b API call: 0.04 seconds
+2025-06-11 21:35:24,093 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:24,166 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:24,166 - INFO - Time for overlap_b API call: 0.07 seconds
+2025-06-11 21:35:24,198 - INFO - Time for overlap_a API call: 0.07 seconds
+2025-06-11 21:35:24,222 - INFO - Time for overlap_b API call: 0.06 seconds
+2025-06-11 21:35:24,249 - INFO - Time for overlap_b API call: 0.05 seconds
+2025-06-11 21:35:24,355 - INFO - Time for overlap_a API call: 0.05 seconds
+2025-06-11 21:35:24,400 - INFO - Time for overlap_b API call: 0.04 seconds
+2025-06-11 21:35:28,442 - INFO - Time to create LineString: 0.001005 seconds
+2025-06-11 21:35:28,443 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,444 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,444 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,445 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,445 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,446 - INFO - Time to create LineString: 0.000998 seconds
+2025-06-11 21:35:28,538 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,539 - INFO - Time to create LineString: 0.000998 seconds
+2025-06-11 21:35:28,557 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,558 - INFO - Time to create LineString: 0.000998 seconds
+2025-06-11 21:35:28,561 - INFO - Time to create LineString: 0.000995 seconds
+2025-06-11 21:35:28,562 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:28,569 - INFO - Time to compute buffer intersection of A and B: 0.001995 seconds
+2025-06-11 21:35:28,570 - INFO - Time to compute buffer intersection of A and B: 0.001995 seconds
+2025-06-11 21:35:28,576 - INFO - Time to convert buffer A to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:28,576 - INFO - Time to compute buffer intersection of A and B: 0.001613 seconds
+2025-06-11 21:35:28,577 - INFO - Time to convert buffer B to GeoJSON: 0.000997 seconds
+2025-06-11 21:35:28,598 - INFO - Time to compute buffer intersection of A and B: 0.002023 seconds
+2025-06-11 21:35:28,601 - INFO - Time to compute buffer intersection of A and B: 0.000996 seconds
+2025-06-11 21:35:28,603 - INFO - Time to convert buffer A to GeoJSON: 0.000997 seconds
+2025-06-11 21:35:28,604 - INFO - Time to convert buffer B to GeoJSON: 0.000996 seconds
+2025-06-11 21:35:28,624 - INFO - Time to compute buffer intersection of A and B: 0.002451 seconds
+2025-06-11 21:35:28,626 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:28,628 - INFO - Time to convert buffer B to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:28,647 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:28,648 - INFO - Time to convert buffer B to GeoJSON: 0.000997 seconds
+2025-06-11 21:35:28,672 - INFO - Time to convert buffer A to GeoJSON: 0.000338 seconds
+2025-06-11 21:35:28,673 - INFO - Time to convert buffer B to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:28,675 - INFO - Time to convert buffer A to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:28,696 - INFO - Time to convert buffer B to GeoJSON: 0.021483 seconds
+2025-06-11 21:35:28,723 - INFO - Time to convert buffer A to GeoJSON: 0.001000 seconds
+2025-06-11 21:35:28,725 - INFO - Time to convert buffer B to GeoJSON: 0.000996 seconds
+2025-06-11 21:35:32,967 - INFO - Time to fetch route A from API: 0.109664 seconds
+2025-06-11 21:35:32,969 - INFO - Time to fetch route A from API: 0.111657 seconds
+2025-06-11 21:35:32,970 - INFO - Time to fetch route A from API: 0.111614 seconds
+2025-06-11 21:35:32,970 - INFO - Time to fetch route A from API: 0.112664 seconds
+2025-06-11 21:35:32,971 - INFO - Time to fetch route A from API: 0.113653 seconds
+2025-06-11 21:35:32,976 - INFO - Time to fetch route A from API: 0.117589 seconds
+2025-06-11 21:35:32,977 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:32,984 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:32,985 - INFO - Time to convert buffer B to GeoJSON: 0.001144 seconds
+2025-06-11 21:35:33,026 - INFO - Time to fetch route B from API: 0.054583 seconds
+2025-06-11 21:35:33,046 - INFO - Time to fetch route B from API: 0.074763 seconds
+2025-06-11 21:35:33,063 - INFO - Time to fetch route B from API: 0.092780 seconds
+2025-06-11 21:35:33,069 - INFO - Time to fetch route B from API: 0.099801 seconds
+2025-06-11 21:35:33,069 - INFO - Time to fetch route B from API: 0.099801 seconds
+2025-06-11 21:35:33,096 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,116 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,117 - INFO - Time to fetch route B from API: 0.141209 seconds
+2025-06-11 21:35:33,135 - INFO - Time to create LineString: 0.001732 seconds
+2025-06-11 21:35:33,136 - INFO - Time to create LineString: 0.000992 seconds
+2025-06-11 21:35:33,137 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,138 - INFO - Time to create LineString: 0.000997 seconds
+2025-06-11 21:35:33,161 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,194 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,211 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,212 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,248 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,251 - INFO - Time to compute buffer intersection: 0.000997 seconds
+2025-06-11 21:35:33,254 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:33,254 - INFO - Time to compute buffer intersection: 0.000999 seconds
+2025-06-11 21:35:33,256 - INFO - Time to compute buffer intersection: 0.000994 seconds
+2025-06-11 21:35:33,259 - INFO - Time to compute buffer intersection: 0.000997 seconds
+2025-06-11 21:35:33,262 - INFO - Time to compute buffer intersection: 0.000000 seconds
+2025-06-11 21:35:33,265 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:33,266 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:33,284 - INFO - Time to convert buffer A to GeoJSON: 0.017031 seconds
+2025-06-11 21:35:33,286 - INFO - Time to convert buffer B to GeoJSON: 0.001198 seconds
+2025-06-11 21:35:33,286 - INFO - Time to convert buffer A to GeoJSON: 0.001198 seconds
+2025-06-11 21:35:33,287 - INFO - Time to compute buffer intersection: 0.002196 seconds
+2025-06-11 21:35:33,288 - INFO - Time to convert buffer B to GeoJSON: 0.000999 seconds
+2025-06-11 21:35:33,292 - INFO - Time to convert buffer A to GeoJSON: 0.001505 seconds
+2025-06-11 21:35:33,293 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:33,293 - INFO - Time to convert buffer A to GeoJSON: 0.000999 seconds
+2025-06-11 21:35:33,294 - INFO - Time to convert buffer B to GeoJSON: 0.000996 seconds
+2025-06-11 21:35:33,297 - INFO - Time to check route A points inside intersection: 0.009962 seconds
+2025-06-11 21:35:33,297 - INFO - Time to convert buffer A to GeoJSON: 0.001139 seconds
+2025-06-11 21:35:33,298 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:33,408 - INFO - Time to check route A points inside intersection: 0.006980 seconds
+2025-06-11 21:35:33,414 - INFO - Time to check route A points inside intersection: 0.014961 seconds
+2025-06-11 21:35:33,418 - INFO - Time to check route B points inside intersection: 0.120496 seconds
+2025-06-11 21:35:33,421 - INFO - Time to check route B points inside intersection: 0.013053 seconds
+2025-06-11 21:35:33,425 - INFO - Time to check route B points inside intersection: 0.011057 seconds
+2025-06-11 21:35:33,428 - INFO - Time to check route A points inside intersection: 0.027022 seconds
+2025-06-11 21:35:33,428 - INFO - Time to check route A points inside intersection: 0.028021 seconds
+2025-06-11 21:35:33,431 - INFO - Time to check route A points inside intersection: 0.030273 seconds
+2025-06-11 21:35:33,439 - INFO - Time to check route B points inside intersection: 0.011415 seconds
+2025-06-11 21:35:33,442 - INFO - Time to check route B points inside intersection: 0.014407 seconds
+2025-06-11 21:35:33,446 - INFO - Time to check route B points inside intersection: 0.014412 seconds
+2025-06-11 21:35:40,526 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,527 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,528 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,528 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,529 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,529 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,530 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,581 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,592 - INFO - Time to create LineString: 0.010183 seconds
+2025-06-11 21:35:40,614 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,614 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,630 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:40,638 - INFO - Time to compute buffer intersection: 0.003425 seconds
+2025-06-11 21:35:40,642 - INFO - Time to compute buffer intersection: 0.001430 seconds
+2025-06-11 21:35:40,643 - INFO - Time to compute buffer intersection: 0.001996 seconds
+2025-06-11 21:35:40,645 - INFO - Time to create LineString: 0.000997 seconds
+2025-06-11 21:35:40,648 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:40,649 - INFO - Time to convert buffer B to GeoJSON: 0.000996 seconds
+2025-06-11 21:35:40,674 - INFO - Time to compute buffer intersection: 0.002004 seconds
+2025-06-11 21:35:40,681 - INFO - Time to convert buffer A to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:40,682 - INFO - Time to compute buffer intersection: 0.001995 seconds
+2025-06-11 21:35:40,683 - INFO - Time to convert buffer B to GeoJSON: 0.001995 seconds
+2025-06-11 21:35:40,684 - INFO - Time to compute buffer intersection: 0.000998 seconds
+2025-06-11 21:35:40,702 - INFO - Time to convert buffer A to GeoJSON: 0.018501 seconds
+2025-06-11 21:35:40,703 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:40,704 - INFO - Time to convert buffer B to GeoJSON: 0.001000 seconds
+2025-06-11 21:35:40,704 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:40,709 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:40,710 - INFO - Time to convert buffer B to GeoJSON: 0.000514 seconds
+2025-06-11 21:35:40,712 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:40,713 - INFO - Time to convert buffer B to GeoJSON: 0.001033 seconds
+2025-06-11 21:35:40,714 - INFO - Time to convert buffer A to GeoJSON: 0.000166 seconds
+2025-06-11 21:35:40,715 - INFO - Time to convert buffer B to GeoJSON: 0.000507 seconds
+2025-06-11 21:35:44,727 - INFO - Time to fetch route A from API: 0.060202 seconds
+2025-06-11 21:35:44,730 - INFO - Time to fetch route A from API: 0.062515 seconds
+2025-06-11 21:35:44,733 - INFO - Time to fetch route A from API: 0.065507 seconds
+2025-06-11 21:35:44,746 - INFO - Time to fetch route A from API: 0.078700 seconds
+2025-06-11 21:35:44,748 - INFO - Time to fetch route A from API: 0.080726 seconds
+2025-06-11 21:35:44,748 - INFO - Time to fetch route A from API: 0.080726 seconds
+2025-06-11 21:35:44,777 - INFO - Time to fetch route B from API: 0.049877 seconds
+2025-06-11 21:35:44,820 - INFO - Time to fetch route A from API: 0.154155 seconds
+2025-06-11 21:35:44,822 - INFO - Time to fetch route B from API: 0.091664 seconds
+2025-06-11 21:35:44,823 - INFO - Time to fetch route B from API: 0.090674 seconds
+2025-06-11 21:35:44,865 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,866 - INFO - Time to fetch route B from API: 0.118770 seconds
+2025-06-11 21:35:44,867 - INFO - Time to fetch route B from API: 0.118739 seconds
+2025-06-11 21:35:44,912 - INFO - Time to fetch route B from API: 0.164465 seconds
+2025-06-11 21:35:44,935 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,936 - INFO - Time to fetch route B from API: 0.112298 seconds
+2025-06-11 21:35:44,957 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,959 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,960 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,961 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:44,964 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,086 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,086 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,088 - INFO - Time to create LineString: 0.001005 seconds
+2025-06-11 21:35:45,088 - INFO - Time to create LineString: 0.001005 seconds
+2025-06-11 21:35:45,090 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,114 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,116 - INFO - Time to compute buffer intersection: 0.001994 seconds
+2025-06-11 21:35:45,116 - INFO - Time to create LineString: 0.000999 seconds
+2025-06-11 21:35:45,121 - INFO - Time to compute buffer intersection: 0.003072 seconds
+2025-06-11 21:35:45,123 - INFO - Time to compute buffer intersection: 0.001995 seconds
+2025-06-11 21:35:45,128 - INFO - Time to compute buffer intersection: 0.000998 seconds
+2025-06-11 21:35:45,130 - INFO - Time to compute buffer intersection: 0.001995 seconds
+2025-06-11 21:35:45,133 - INFO - Time to compute buffer intersection: 0.001005 seconds
+2025-06-11 21:35:45,139 - INFO - Time to convert buffer A to GeoJSON: 0.000070 seconds
+2025-06-11 21:35:45,141 - INFO - Time to convert buffer B to GeoJSON: 0.000841 seconds
+2025-06-11 21:35:45,144 - INFO - Time to compute buffer intersection: 0.000983 seconds
+2025-06-11 21:35:45,145 - INFO - Time to convert buffer A to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:45,168 - INFO - Time to convert buffer B to GeoJSON: 0.000996 seconds
+2025-06-11 21:35:45,170 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:45,171 - INFO - Time to create LineString: 0.000999 seconds
+2025-06-11 21:35:45,173 - INFO - Time to convert buffer B to GeoJSON: 0.001998 seconds
+2025-06-11 21:35:45,174 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,228 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:45,229 - INFO - Time to convert buffer B to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:45,230 - INFO - Time to convert buffer A to GeoJSON: 0.000360 seconds
+2025-06-11 21:35:45,231 - INFO - Time to convert buffer B to GeoJSON: 0.000999 seconds
+2025-06-11 21:35:45,232 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,233 - INFO - Time to create LineString: 0.000998 seconds
+2025-06-11 21:35:45,236 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:45,237 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:45,240 - INFO - Time to convert buffer A to GeoJSON: 0.001507 seconds
+2025-06-11 21:35:45,241 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:45,349 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,350 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,354 - INFO - Time to create LineString: 0.001996 seconds
+2025-06-11 21:35:45,354 - INFO - Time to create LineString: 0.001996 seconds
+2025-06-11 21:35:45,354 - INFO - Time to create LineString: 0.000996 seconds
+2025-06-11 21:35:45,355 - INFO - Time to create LineString: 0.000997 seconds
+2025-06-11 21:35:45,356 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,357 - INFO - Time to create LineString: 0.001005 seconds
+2025-06-11 21:35:45,358 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:45,361 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,809 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,825 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,828 - INFO - Time to compute buffer intersection: 0.000787 seconds
+2025-06-11 21:35:50,866 - INFO - Time to convert buffer A to GeoJSON: 0.033041 seconds
+2025-06-11 21:35:50,867 - INFO - Time to convert buffer B to GeoJSON: 0.000997 seconds
+2025-06-11 21:35:50,946 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,947 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,947 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,948 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,948 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,949 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,949 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,953 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:50,970 - INFO - Time to create LineString: 0.000997 seconds
+2025-06-11 21:35:51,019 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,020 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,020 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,040 - INFO - Time to compute buffer intersection: 0.001994 seconds
+2025-06-11 21:35:51,042 - INFO - Time to create LineString: 0.000997 seconds
+2025-06-11 21:35:51,043 - INFO - Time to convert buffer A to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:51,044 - INFO - Time to convert buffer B to GeoJSON: 0.000995 seconds
+2025-06-11 21:35:51,045 - INFO - Time to compute buffer intersection: 0.000998 seconds
+2025-06-11 21:35:51,064 - INFO - Time to compute buffer intersection: 0.001000 seconds
+2025-06-11 21:35:51,067 - INFO - Time to compute buffer intersection: 0.000998 seconds
+2025-06-11 21:35:51,069 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:51,070 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:51,073 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:51,074 - INFO - Time to compute buffer intersection: 0.001997 seconds
+2025-06-11 21:35:51,074 - INFO - Time to convert buffer B to GeoJSON: 0.000519 seconds
+2025-06-11 21:35:51,076 - INFO - Time to convert buffer A to GeoJSON: 0.000994 seconds
+2025-06-11 21:35:51,077 - INFO - Time to convert buffer B to GeoJSON: 0.000997 seconds
+2025-06-11 21:35:51,079 - INFO - Time to convert buffer A to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:51,080 - INFO - Time to convert buffer B to GeoJSON: 0.000998 seconds
+2025-06-11 21:35:51,097 - INFO - Time to convert buffer A to GeoJSON: 0.015203 seconds
+2025-06-11 21:35:51,100 - INFO - Time to convert buffer B to GeoJSON: 0.000000 seconds
+2025-06-11 21:35:51,118 - INFO - Time to create LineString: 0.001324 seconds
+2025-06-11 21:35:51,167 - INFO - Time to create LineString: 0.012620 seconds
+2025-06-11 21:35:51,168 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,168 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,178 - INFO - Time to create LineString: 0.000031 seconds
+2025-06-11 21:35:51,181 - INFO - Time to create LineString: 0.002058 seconds
+2025-06-11 21:35:51,181 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,182 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,183 - INFO - Time to create LineString: 0.000000 seconds
+2025-06-11 21:35:51,186 - INFO - Time to create LineString: 0.000000 seconds
