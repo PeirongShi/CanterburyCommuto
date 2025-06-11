@@ -112,7 +112,7 @@ Then, to use CanterburyCommuto, you can run the command in a way like the exampl
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
 Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as you can manually fill in the column names corresponding to the origins and destinations of the route pairs in CanterburyCommuto. 
 
-#### For simplified execution using a configuration file and additional usage details, please refer to the `example.py` file.
+#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder.
 
 
 ### Results
