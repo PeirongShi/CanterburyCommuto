@@ -101,8 +101,8 @@ api_response_cache = {}
 # The following functions also help determine if there are errors in the code. 
 
 # Point to the notebooks directory instead of the script's directory
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "notebooks"))
 log_path = os.path.join(os.getcwd(), "results", "validation_errors_timing.log")
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
 # Ensure the results folder exists inside notebooks
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -1931,7 +1931,8 @@ def process_routes_with_buffers(
     ]
 
     write_csv_file(output_csv, results, fieldnames)
-
+    
+    return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 # The function calculates travel metrics and overlapping segments between two routes based on their closest nodes and shared buffer intersection.
 def process_row_closest_nodes(row_and_args):
@@ -3377,7 +3378,7 @@ def Overlap_Function(
     buffer: float = 100,
     approximation: str = "no",
     commuting_info: str = "no",
-    output_file: str = None,
+    output_file: Optional[str] = None,
     skip_invalid: bool = True,
     save_api_info: bool = False,
     auto_confirm: bool = False
@@ -3449,15 +3450,15 @@ def Overlap_Function(
         "buffer": buffer,
         "approximation": approximation,
         "commuting_info": commuting_info,
-        "home_a_lat": str,
-        "home_a_lon": str,
-        "work_a_lat": str,
-        "work_a_lon": str,
-        "home_b_lat": str,
-        "home_b_lon": str,
-        "work_b_lat": str,
-        "work_b_lon": str,
-        "id_column": None,
+        "home_a_lat": home_a_lat,
+        "home_a_lon": home_a_lon,
+        "work_a_lat": work_a_lat,
+        "work_a_lon": work_a_lon,
+        "home_b_lat": home_b_lat,
+        "home_b_lon": home_b_lon,
+        "work_b_lat": work_b_lat,
+        "work_b_lon": work_b_lon,
+        "id_column": id_column,
         "skip_invalid": skip_invalid,
         "save_api_info": save_api_info,
     }
