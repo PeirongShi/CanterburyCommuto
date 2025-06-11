@@ -1931,7 +1931,7 @@ def process_routes_with_buffers(
     ]
 
     write_csv_file(output_csv, results, fieldnames)
-    
+
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
 # The function calculates travel metrics and overlapping segments between two routes based on their closest nodes and shared buffer intersection.
@@ -3380,7 +3380,7 @@ def Overlap_Function(
     commuting_info: str = "no",
     output_file: Optional[str] = None,
     skip_invalid: bool = True,
-    save_api_info: bool = False,
+    save_api_info: bool = True,
     auto_confirm: bool = False
 ) -> None:
     """
@@ -3417,7 +3417,15 @@ def Overlap_Function(
     """
     os.makedirs("results", exist_ok=True)
 
-    if not api_key:
+    # --- Begin config loading logic (same as your api_key logic) ---
+    need_config = any(
+        v is None for v in [
+            csv_file, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon,
+            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column
+        ]
+    )
+    config = {}
+    if need_config:
         try:
             base_dir = os.path.dirname(os.path.abspath(__file__))
         except NameError:
@@ -3432,15 +3440,29 @@ def Overlap_Function(
             if os.path.exists(config_path):
                 break
         else:
-            raise FileNotFoundError("config.yaml not found in standard locations and no API key provided.")
+            raise FileNotFoundError("config.yaml not found in standard locations and not all required arguments provided.")
         try:
             with open(config_path, "r") as f:
                 config = yaml.safe_load(f)
-                api_key = config.get("api_key")
-                if not api_key:
-                    raise ValueError("API key not found in config.yaml.")
         except Exception as e:
-            raise RuntimeError(f"Failed to read API key from config.yaml: {e}")
+            raise RuntimeError(f"Failed to read config.yaml: {e}")
+
+    # Use manual input if provided, else config, else default
+    csv_file = csv_file or config.get("csv_file")
+    api_key = api_key or config.get("api_key")
+    home_a_lat = home_a_lat or config.get("home_a_lat")
+    home_a_lon = home_a_lon or config.get("home_a_lon")
+    work_a_lat = work_a_lat or config.get("work_a_lat")
+    work_a_lon = work_a_lon or config.get("work_a_lon")
+    home_b_lat = home_b_lat or config.get("home_b_lat")
+    home_b_lon = home_b_lon or config.get("home_b_lon")
+    work_b_lat = work_b_lat or config.get("work_b_lat")
+    work_b_lon = work_b_lon or config.get("work_b_lon")
+    id_column = id_column or config.get("id_column")
+    skip_invalid = skip_invalid if skip_invalid is not None else config.get("skip_invalid", True)
+    save_api_info = save_api_info if save_api_info is not None else config.get("save_api_info", True)
+    auto_confirm = auto_confirm if auto_confirm is not None else config.get("auto_confirm", False)
+    # --- End config loading logic ---
 
     options = {
         "csv_file": csv_file,
