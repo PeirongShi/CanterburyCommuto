@@ -290,6 +290,50 @@ def request_cost_estimation(
     Returns:
     - Tuple[int, float]: Estimated number of API requests and corresponding cost in USD.
     """
+    # --- Begin config loading logic (same as Overlap_Function) ---
+    need_config = any(
+        v is None for v in [
+            csv_file, home_a_lat, home_a_lon, work_a_lat, work_a_lon,
+            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column
+        ]
+    )
+    config = {}
+    if need_config:
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        except NameError:
+            base_dir = os.getcwd()
+        possible_paths = [
+            os.path.join(os.getcwd(), "config.yaml"),
+            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),
+            os.path.join(base_dir, "config.yaml"),
+        ]
+        for config_path in possible_paths:
+            print(f"[DEBUG] Checking for config.yaml in: {config_path}")
+            if os.path.exists(config_path):
+                break
+        else:
+            raise FileNotFoundError("config.yaml not found in standard locations and not all required arguments provided.")
+        try:
+            with open(config_path, "r") as f:
+                config = yaml.safe_load(f)
+        except Exception as e:
+            raise RuntimeError(f"Failed to read config.yaml: {e}")
+
+    # Use manual input if provided, else config, else default
+    csv_file = csv_file or (str(config.get("csv_file")) if config.get("csv_file") is not None else "")
+    home_a_lat = home_a_lat or (str(config.get("home_a_lat")) if config.get("home_a_lat") is not None else "")
+    home_a_lon = home_a_lon or (str(config.get("home_a_lon")) if config.get("home_a_lon") is not None else "")
+    work_a_lat = work_a_lat or (str(config.get("work_a_lat")) if config.get("work_a_lat") is not None else "")
+    work_a_lon = work_a_lon or (str(config.get("work_a_lon")) if config.get("work_a_lon") is not None else "")
+    home_b_lat = home_b_lat or (str(config.get("home_b_lat")) if config.get("home_b_lat") is not None else "")
+    home_b_lon = home_b_lon or (str(config.get("home_b_lon")) if config.get("home_b_lon") is not None else "")
+    work_b_lat = work_b_lat or (str(config.get("work_b_lat")) if config.get("work_b_lat") is not None else "")
+    work_b_lon = work_b_lon or (str(config.get("work_b_lon")) if config.get("work_b_lon") is not None else "")
+    id_column = id_column or config.get("id_column")
+    skip_invalid = skip_invalid if skip_invalid is not None else config.get("skip_invalid", True)
+    # --- End config loading logic ---
+
     data_set, pre_api_error_count = read_csv_file(csv_file, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column, skip_invalid=skip_invalid)
     n = 0
 
@@ -3362,16 +3406,16 @@ def write_log(file_path: str, options: dict) -> None:
 
 ## This is the main function with user interaction.
 def Overlap_Function(
-    csv_file: str,
-    api_key: str,
-    home_a_lat: str,
-    home_a_lon: str,
-    work_a_lat: str,
-    work_a_lon: str,
-    home_b_lat: str,
-    home_b_lon: str,
-    work_b_lat: str,
-    work_b_lon: str,
+    csv_file: Optional[str],
+    api_key: Optional[str],
+    home_a_lat: Optional[str],
+    home_a_lon: Optional[str],
+    work_a_lat: Optional[str],
+    work_a_lon: Optional[str],
+    home_b_lat: Optional[str],
+    home_b_lon: Optional[str],
+    work_b_lat: Optional[str],
+    work_b_lon: Optional[str],
     id_column: Optional[str] = None,
     threshold: float = 50,
     width: float = 100,
@@ -3421,7 +3465,7 @@ def Overlap_Function(
     need_config = any(
         v is None for v in [
             csv_file, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon,
-            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column
+            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column, skip_invalid, save_api_info, auto_confirm
         ]
     )
     config = {}
@@ -3448,16 +3492,16 @@ def Overlap_Function(
             raise RuntimeError(f"Failed to read config.yaml: {e}")
 
     # Use manual input if provided, else config, else default
-    csv_file = csv_file or config.get("csv_file")
-    api_key = api_key or config.get("api_key")
-    home_a_lat = home_a_lat or config.get("home_a_lat")
-    home_a_lon = home_a_lon or config.get("home_a_lon")
-    work_a_lat = work_a_lat or config.get("work_a_lat")
-    work_a_lon = work_a_lon or config.get("work_a_lon")
-    home_b_lat = home_b_lat or config.get("home_b_lat")
-    home_b_lon = home_b_lon or config.get("home_b_lon")
-    work_b_lat = work_b_lat or config.get("work_b_lat")
-    work_b_lon = work_b_lon or config.get("work_b_lon")
+    csv_file = csv_file or (str(config.get("csv_file")) if config.get("csv_file") is not None else "")
+    api_key = api_key or (str(config.get("api_key")) if config.get("api_key") is not None else "")
+    home_a_lat = home_a_lat or (str(config.get("home_a_lat")) if config.get("home_a_lat") is not None else "")
+    home_a_lon = home_a_lon or (str(config.get("home_a_lon")) if config.get("home_a_lon") is not None else "")
+    work_a_lat = work_a_lat or (str(config.get("work_a_lat")) if config.get("work_a_lat") is not None else "")
+    work_a_lon = work_a_lon or (str(config.get("work_a_lon")) if config.get("work_a_lon") is not None else "")
+    home_b_lat = home_b_lat or (str(config.get("home_b_lat")) if config.get("home_b_lat") is not None else "")
+    home_b_lon = home_b_lon or (str(config.get("home_b_lon")) if config.get("home_b_lon") is not None else "")
+    work_b_lat = work_b_lat or (str(config.get("work_b_lat")) if config.get("work_b_lat") is not None else "")
+    work_b_lon = work_b_lon or (str(config.get("work_b_lon")) if config.get("work_b_lon") is not None else "")
     id_column = id_column or config.get("id_column")
     skip_invalid = skip_invalid if skip_invalid is not None else config.get("skip_invalid", True)
     save_api_info = save_api_info if save_api_info is not None else config.get("save_api_info", True)
