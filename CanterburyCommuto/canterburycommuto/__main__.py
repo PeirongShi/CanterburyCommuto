@@ -37,6 +37,8 @@ Notes:
 """
 
 import argparse
+import os
+import yaml
 from canterburycommuto.CanterburyCommuto import Overlap_Function, request_cost_estimation
 
 def run_overlap(args):
@@ -136,6 +138,36 @@ def main():
     estimate_parser.set_defaults(func=run_estimation)
 
     args = parser.parse_args()
+
+    # --- Begin config loading logic ---
+    def load_config():
+        possible_paths = [
+            os.path.join(os.getcwd(), "config.yaml"),
+            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml"),
+        ]
+        for config_path in possible_paths:
+            if os.path.exists(config_path):
+                with open(config_path, "r") as f:
+                    return yaml.safe_load(f)
+        return {}
+
+    config = load_config()
+
+    # For each argument, if not set by user (None or argparse default), use config value if present
+    for key in vars(args):
+        # Skip internal argparse attributes
+        if key not in config:
+            continue
+        val = getattr(args, key)
+        # For booleans, argparse sets False if not present, so only override if None
+        if val is None or (isinstance(val, str) and val == ""):
+            setattr(args, key, config[key])
+        # Special handling for store_true flags (like save_api_info, yes)
+        if isinstance(val, bool) and val is False and isinstance(config[key], bool) and config[key] is True:
+            setattr(args, key, True)
+    # --- End config loading logic ---
+
     args.func(args)
 
 if __name__ == "__main__":
