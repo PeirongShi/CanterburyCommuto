@@ -14,9 +14,9 @@ from pydantic import BaseModel
 from shapely.geometry import Point
 
 # Import functions from modules
-from .PlotMaps import plot_routes, plot_routes_and_buffers
-from .HelperFunctions import generate_unique_filename, write_csv_file, generate_url, safe_split
-from .Computations import (
+from canterburycommuto.PlotMaps import plot_routes, plot_routes_and_buffers
+from canterburycommuto.HelperFunctions import generate_unique_filename, write_csv_file, generate_url, safe_split
+from canterburycommuto.Computations import (
     find_common_nodes,
     split_segments,
     calculate_segment_distances,
@@ -290,49 +290,6 @@ def request_cost_estimation(
     Returns:
     - Tuple[int, float]: Estimated number of API requests and corresponding cost in USD.
     """
-    # --- Begin config loading logic (same as Overlap_Function) ---
-    need_config = any(
-        v is None for v in [
-            csv_file, home_a_lat, home_a_lon, work_a_lat, work_a_lon,
-            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column
-        ]
-    )
-    config = {}
-    if need_config:
-        try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        except NameError:
-            base_dir = os.getcwd()
-        possible_paths = [
-            os.path.join(os.getcwd(), "config.yaml"),
-            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),
-            os.path.join(base_dir, "config.yaml"),
-        ]
-        for config_path in possible_paths:
-            print(f"[DEBUG] Checking for config.yaml in: {config_path}")
-            if os.path.exists(config_path):
-                break
-        else:
-            raise FileNotFoundError("config.yaml not found in standard locations and not all required arguments provided.")
-        try:
-            with open(config_path, "r") as f:
-                config = yaml.safe_load(f)
-        except Exception as e:
-            raise RuntimeError(f"Failed to read config.yaml: {e}")
-
-    # Use manual input if provided, else config, else default
-    csv_file = csv_file or (str(config.get("csv_file")) if config.get("csv_file") is not None else "")
-    home_a_lat = home_a_lat or (str(config.get("home_a_lat")) if config.get("home_a_lat") is not None else "")
-    home_a_lon = home_a_lon or (str(config.get("home_a_lon")) if config.get("home_a_lon") is not None else "")
-    work_a_lat = work_a_lat or (str(config.get("work_a_lat")) if config.get("work_a_lat") is not None else "")
-    work_a_lon = work_a_lon or (str(config.get("work_a_lon")) if config.get("work_a_lon") is not None else "")
-    home_b_lat = home_b_lat or (str(config.get("home_b_lat")) if config.get("home_b_lat") is not None else "")
-    home_b_lon = home_b_lon or (str(config.get("home_b_lon")) if config.get("home_b_lon") is not None else "")
-    work_b_lat = work_b_lat or (str(config.get("work_b_lat")) if config.get("work_b_lat") is not None else "")
-    work_b_lon = work_b_lon or (str(config.get("work_b_lon")) if config.get("work_b_lon") is not None else "")
-    id_column = id_column or config.get("id_column")
-    skip_invalid = skip_invalid if skip_invalid is not None else config.get("skip_invalid", True)
-    # --- End config loading logic ---
 
     data_set, pre_api_error_count = read_csv_file(csv_file, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column, skip_invalid=skip_invalid)
     n = 0
@@ -3460,53 +3417,6 @@ def Overlap_Function(
     - None
     """
     os.makedirs("results", exist_ok=True)
-
-    # --- Begin config loading logic (same as your api_key logic) ---
-    need_config = any(
-        v is None for v in [
-            csv_file, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon,
-            home_b_lat, home_b_lon, work_b_lat, work_b_lon, id_column, skip_invalid, save_api_info, auto_confirm
-        ]
-    )
-    config = {}
-    if need_config:
-        try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        except NameError:
-            base_dir = os.getcwd()
-        possible_paths = [
-            os.path.join(os.getcwd(), "config.yaml"),
-            os.path.join(os.path.expanduser("~"), ".canterburycommuto", "config.yaml"),
-            os.path.join(base_dir, "config.yaml"),
-        ]
-        for config_path in possible_paths:
-            print(f"[DEBUG] Checking for config.yaml in: {config_path}")
-            if os.path.exists(config_path):
-                break
-        else:
-            raise FileNotFoundError("config.yaml not found in standard locations and not all required arguments provided.")
-        try:
-            with open(config_path, "r") as f:
-                config = yaml.safe_load(f)
-        except Exception as e:
-            raise RuntimeError(f"Failed to read config.yaml: {e}")
-
-    # Use manual input if provided, else config, else default
-    csv_file = csv_file or (str(config.get("csv_file")) if config.get("csv_file") is not None else "")
-    api_key = api_key or (str(config.get("api_key")) if config.get("api_key") is not None else "")
-    home_a_lat = home_a_lat or (str(config.get("home_a_lat")) if config.get("home_a_lat") is not None else "")
-    home_a_lon = home_a_lon or (str(config.get("home_a_lon")) if config.get("home_a_lon") is not None else "")
-    work_a_lat = work_a_lat or (str(config.get("work_a_lat")) if config.get("work_a_lat") is not None else "")
-    work_a_lon = work_a_lon or (str(config.get("work_a_lon")) if config.get("work_a_lon") is not None else "")
-    home_b_lat = home_b_lat or (str(config.get("home_b_lat")) if config.get("home_b_lat") is not None else "")
-    home_b_lon = home_b_lon or (str(config.get("home_b_lon")) if config.get("home_b_lon") is not None else "")
-    work_b_lat = work_b_lat or (str(config.get("work_b_lat")) if config.get("work_b_lat") is not None else "")
-    work_b_lon = work_b_lon or (str(config.get("work_b_lon")) if config.get("work_b_lon") is not None else "")
-    id_column = id_column or config.get("id_column")
-    skip_invalid = skip_invalid if skip_invalid is not None else config.get("skip_invalid", True)
-    save_api_info = save_api_info if save_api_info is not None else config.get("save_api_info", True)
-    auto_confirm = auto_confirm if auto_confirm is not None else config.get("auto_confirm", False)
-    # --- End config loading logic ---
 
     options = {
         "csv_file": csv_file,
