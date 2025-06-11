@@ -24,7 +24,6 @@ from canterburycommuto.Computations import (
     filter_combinations_by_overlap,
     find_overlap_boundary_nodes,
     create_buffered_route,
-    calculate_precise_travel_segments,
     get_buffer_intersection,
     get_route_polygon_intersections,
 )
@@ -1935,6 +1934,88 @@ def process_routes_with_buffers(
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
+def calculate_precise_travel_segments(
+    route_coords: List[List[float]],
+    intersections: List[List[float]],
+    api_key: str,
+    save_api_info: bool = False
+) -> Dict[str, float]:
+    """
+    Calculates travel distances and times for segments of a route before, during,
+    and after overlaps using Google Maps Directions API.
+    Returns a dictionary with travel segment details.
+    All coordinates are in the format [latitude, longitude].
+    """
+
+    if len(intersections) < 2:
+        print(f"Only {len(intersections)} intersection(s) found, skipping during segment calculation.")
+        if len(intersections) == 1:
+            start = intersections[0]
+            before_data = get_route_data(
+                f"{route_coords[0][0]},{route_coords[0][1]}",
+                f"{start[0]},{start[1]}",
+                api_key,
+                save_api_info=save_api_info
+            )
+            after_data = get_route_data(
+                f"{start[0]},{start[1]}",
+                f"{route_coords[-1][0]},{route_coords[-1][1]}",
+                api_key,
+                save_api_info=save_api_info
+            )
+            return {
+                "before_distance": before_data[1],
+                "before_time": before_data[2],
+                "during_distance": 0.0,
+                "during_time": 0.0,
+                "after_distance": after_data[1],
+                "after_time": after_data[2],
+            }
+        else:
+            return {
+                "before_distance": 0.0,
+                "before_time": 0.0,
+                "during_distance": 0.0,
+                "during_time": 0.0,
+                "after_distance": 0.0,
+                "after_time": 0.0,
+            }
+
+    start = intersections[0]
+    end = intersections[-1]
+
+    before_data = get_route_data(
+        f"{route_coords[0][0]},{route_coords[0][1]}",
+        f"{start[0]},{start[1]}",
+        api_key,
+        save_api_info=save_api_info
+    )
+    during_data = get_route_data(
+        f"{start[0]},{start[1]}",
+        f"{end[0]},{end[1]}",
+        api_key,
+        save_api_info=save_api_info
+    )
+    after_data = get_route_data(
+        f"{end[0]},{end[1]}",
+        f"{route_coords[-1][0]},{route_coords[-1][1]}",
+        api_key,
+        save_api_info=save_api_info
+    )
+
+    print(f"Before segment: {before_data}")
+    print(f"During segment: {during_data}")
+    print(f"After segment: {after_data}")
+
+    return {
+        "before_distance": before_data[1],
+        "before_time": before_data[2],
+        "during_distance": during_data[1],
+        "during_time": during_data[2],
+        "after_distance": after_data[1],
+        "after_time": after_data[2],
+    }
+
 # The function calculates travel metrics and overlapping segments between two routes based on their closest nodes and shared buffer intersection.
 def process_row_closest_nodes(row_and_args):
     """
@@ -2794,6 +2875,7 @@ def process_row_exact_intersections(
 
         api_calls += 1
         start_time_a = time.time()
+
         coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
         logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
 
