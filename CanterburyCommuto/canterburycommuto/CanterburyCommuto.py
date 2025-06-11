@@ -3573,7 +3573,7 @@ def Overlap_Function(
                 csv_file, api_key, 
                 home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column,
-                output_csv=output_file, threshold=threshold, width=width,
+                output_csv=output_file, threshold=int(threshold), width=int(width),
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3584,7 +3584,7 @@ def Overlap_Function(
             results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(
                 csv_file, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column,
-                output_csv=output_file, threshold=threshold, width=width,
+                output_csv=output_file, threshold=int(threshold), width=int(width),
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
