@@ -51,110 +51,90 @@ python CanterburyCommuto/canterburycommuto/Sample.py
 
 Otherwise, you need to create a csv file with the following columns:
 
-0. **ID** - Each observation's ID (optional).
-1. **OriginA_latitude** – The latitude of the starting location of Route A.  
-2. **OriginA_longitude** – The longitude of the starting location of Route A.  
-3. **DestinationA_latitude** – The latitude of the ending location of Route A.  
-4. **DestinationA_longitude** – The longitude of the ending location of Route A.  
-5. **OriginB_latitude** – The latitude of the starting location of Route B.  
-6. **OriginB_longitude** – The longitude of the starting location of Route B.  
-7. **DestinationB_latitude** – The latitude of the ending location of Route B.  
-8. **DestinationB_longitude** – The longitude of the ending location of Route B.
+1. **OriginA**: The GPS coordiantes of the starting location of route A in each route pair.
+2. **DestinationA**: The GPS coordiantes of the ending location of route A in every route pair.
+3. **OriginB**: The starting location of route B.
+4. **DestinationB**: The ending location of route B.
 
 Next, import the main function.
 
 ```bash
 from canterburycommuto.CanterburyCommuto import Overlap_Function
 ```
-Before running the main function to retrieve commuting data, it's recommended to first run the estimation command. This provides an estimate of the number of Google API requests and the potential cost, assuming the free tier is exceeded. This helps users make informed decisions, as extensive API use can become costly depending on route complexity and Google's pricing. 
+
+Before running the main function to retrieve commuting data, it's recommended to first run the estimation command. This provides an estimate of the number of Google API requests and the potential cost, assuming the free tier is exceeded. This helps users make informed decisions, as extensive API use can become costly depending on route complexity and Google's pricing.
 
 ```bash
-python -m canterburycommuto estimate \
-    --csv_file origin_destination_coordinates.csv \
+python -m canterburycommuto estimate origin_destination_coordinates.csv \
     --approximation "exact" \
     --commuting_info "no" \
-    --home_a_lat "home_A" \
-    --home_a_lon "home_A_lon" \
-    --work_a_lat "work_A" \
-    --work_a_lon "work_A_lon" \
-    --home_b_lat "home_B" \
-    --home_b_lon "home_B_lon" \
-    --work_b_lat "work_B" \
-    --work_b_lon "work_B_lon" \
-    --id_column "ID" \
-    --output_file "exact_only_output.csv" \
+    --colorna "home_A" \
+    --coldesta "work_A" \
+    --colorib "home_B" \
+    --colfestb "work_B" \
+    --output_overlap "exact_only_output.csv" \
+    --output_buffer "exact_only.csv" \
     --skip_invalid True
 ```
 
-Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". The --skip_invalid True option tells the program to skip over rows with missing or invalid data, allowing the analysis to continue uninterrupted. The --save_api_info True option enables saving API responses to a file for future reference or debugging purposes.
+Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". 
 
 ```bash
-!python -m canterburycommuto overlap \
-    --csv_file origin_destination_coordinates.csv \
-    --api_key "API_KEY" \
+python -m canterburycommuto overlap origin_destination_coordinates.csv "API_KEY" \
+    --threshold 60 \
+    --width 120 \
     --buffer 150 \
     --approximation "yes with buffer" \
-    --home_a_lat "home_A" \
-    --home_a_lon "home_A_lon" \
-    --work_a_lat "work_A" \
-    --work_a_lon "work_A_lon" \
-    --home_b_lat "home_B" \
-    --home_b_lon "home_B_lon" \
-    --work_b_lat "work_B" \
-    --work_b_lon "work_B_lon" \
-    --id_column "ID" \
-    --output_file "buffer_percentage_output.csv" \
+    --commuting_info "yes" \
+    --colorna "home_A" \
+    --coldesta "work_A" \
+    --colorib "home_B" \
+    --colfestb "work_B" \
+    --output_overlap "buffer_percentage_output.csv" \
+    --output_buffer "buffer_output.csv" \
     --skip_invalid True \
-    --save_api_info True \
     --yes
 ```
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
 Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as you can manually fill in the column names corresponding to the origins and destinations of the route pairs in CanterburyCommuto. 
-
-#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder.
-
+See example.ipynb for how to run all options of the package's major function. 
 
 ### Results
 
-The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the **OpenStreetMap** background. By placing the mouse onto the markers, one is able to see the origins and destinations of route A and B marked as Origin A and Destination A in red and Origin B and Destination B in green. Distances are measured in kilometers and the time unit is minute. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the possible output variables:
+The output will be a csv file including the GPS coordinates of the route pairs' origins and destinations and the values describing the overlaps of route pairs. Graphs are also produced to visualize the commuting paths on the **OpenStreetMap** background. By placing the mouse onto the markers, one is able to see the origins and destinations of route A and B marked as O1, D1, O2, and D2. O stands for origin and D represents destination. Distances are measured in kilometers and the time unit is minute. Users are able to calculate percentages of overlaps, for instance, with the values of the following variables. As shown below, the list explaining the meaning of the output variables:
 
-0. **ID** - Each observation's ID (optional).
-1. **OriginA_latitude** – The latitude of the starting location of Route A.  
-2. **OriginA_longitude** – The longitude of the starting location of Route A.  
-3. **DestinationA_latitude** – The latitude of the ending location of Route A.  
-4. **DestinationA_longitude** – The longitude of the ending location of Route A.  
-5. **OriginB_latitude** – The latitude of the starting location of Route B.  
-6. **OriginB_longitude** – The longitude of the starting location of Route B.  
-7. **DestinationB_latitude** – The latitude of the ending location of Route B.  
-8. **DestinationB_longitude** – The longitude of the ending location of Route B.
+1. **OriginA**: The starting location of route A.
+2. **DestinationA**: The ending location of route A.
+3. **OriginB**: The starting location of route B.
+4. **DestinationB**: The ending location of route B.
 
-9. **aDist**: Total distance of route A. 
-10. **aTime**: Total time to traverse route A.
-11. **bDist**: Total distance of route B.
-12. **bTime**: Total time to traverse route B.
+5. **aDist**: Total distance of route A. 
+6. **aTime**: Total time to traverse route A.
+7. **bDist**: Total distance of route B.
+8. **bTime**: Total time to traverse route B.
 
-13. **overlapDist**: Distance of the overlapping segment between route A and route B.
-14. **overlapTime**: Time to traverse the overlapping segment between route A and route B.
+9. **overlapDist**: Distance of the overlapping segment between route A and route B.
+10. **overlapTime**: Time to traverse the overlapping segment between route A and route B.
 
-15. **aBeforeDist**: Distance covered on route A before the overlap begins.
-16. **aBeforeTime**: Time spent on route A before the overlap begins.
-17. **bBeforeDist**: Distance covered on route B before the overlap begins.
-18. **bBeforeTime**: Time spent on route B before the overlap begins.
+11. **aBeforeDist**: Distance covered on route A before the overlap begins.
+12. **aBeforeTime**: Time spent on route A before the overlap begins.
+13. **bBeforeDist**: Distance covered on route B before the overlap begins.
+14. **bBeforeTime**: Time spent on route B before the overlap begins.
 
-19. **aAfterDist**: Distance covered on route A after the overlap ends.
-20. **aAfterTime**: Time spent on route A after the overlap ends.
-21. **bAfterDist**: Distance covered on route B after the overlap ends.
-22. **bAfterTime**: Time spent on route B after the overlap ends.
-23. **aIntersecRatio**: The proportion of the buffer area of Route A that intersects with the buffer of Route B. It is calculated as:
+15. **aAfterDist**: Distance covered on route A after the overlap ends.
+16. **aAfterTime**: Time spent on route A after the overlap ends.
+17. **bAfterDist**: Distance covered on route B after the overlap ends.
+18. **bAfterTime**: Time spent on route B after the overlap ends.
+19. **aIntersecRatio**: The proportion of the buffer area of Route A that intersects with the buffer of Route B. It is calculated as:
 
     `aIntersecRatio = Intersection Area / Area of A`
 
-24. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A.
-25. **aoverlapDist**: Distance of the overlapping segment on route A inside the buffer intersection with route B.  
-26. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
-27. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
-28. **boverlapTime**: Time to traverse the overlapping segment on route B.
+20. **bIntersecRatio**: The proportion of the buffer area of Route B that intersects with the buffer of Route A.
+21. **aoverlapDist**: Distance of the overlapping segment on route A inside the buffer intersection with route B.  
+22. **aoverlapTime**: Time to traverse the overlapping segment on route A.  
+23. **boverlapDist**: Distance of the overlapping segment on route B inside the buffer intersection with route A.  
+24. **boverlapTime**: Time to traverse the overlapping segment on route B.
 
 ### Overlap Function Options
 
@@ -175,6 +155,7 @@ This Python package CanterburyCommuto is created under the instruction of Profes
 The **Specification on API Usage** section, located in doc, was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
 
 If you have any question, please open an issue.
+
 
 
 
