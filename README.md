@@ -66,37 +66,44 @@ Next, import the main function.
 ```bash
 from canterburycommuto.CanterburyCommuto import Overlap_Function
 ```
-Before running the main function to retrieve commuting data, it's recommended to first run the estimation command. This provides an estimate of the number of Google API requests and the potential cost, assuming the free tier is exceeded. This helps users make informed decisions, as extensive API use can become costly depending on route complexity and Google's pricing.
+Before running the main function to retrieve commuting data, it's recommended to first run the estimation command. This provides an estimate of the number of Google API requests and the potential cost, assuming the free tier is exceeded. This helps users make informed decisions, as extensive API use can become costly depending on route complexity and Google's pricing. 
 
 ```bash
-python -m canterburycommuto estimate origin_destination_coordinates.csv \
+python -m canterburycommuto estimate \
+    --csv_file origin_destination_coordinates.csv \
     --approximation "exact" \
     --commuting_info "no" \
-    --colorna "home_A" \
-    --coldesta "work_A" \
-    --colorib "home_B" \
-    --colfestb "work_B" \
-    --output_overlap "exact_only_output.csv" \
-    --output_buffer "exact_only.csv" \
+    --home_a_lat "home_A" \
+    --home_a_lon "home_A_lon" \
+    --work_a_lat "work_A" \
+    --work_a_lon "work_A_lon" \
+    --home_b_lat "home_B" \
+    --home_b_lon "home_B_lon" \
+    --work_b_lat "work_B" \
+    --work_b_lon "work_B_lon" \
+    --id_column "ID" \
+    --output_file "exact_only_output.csv" \
     --skip_invalid True
 ```
 
 Then, to use CanterburyCommuto, you can run the command in a way like the example illustrated below. This example chooses to create 150-meter buffers along the two routes to find the buffers' intersection ratios for each route. The output is "buffer_output.csv". The --skip_invalid True option tells the program to skip over rows with missing or invalid data, allowing the analysis to continue uninterrupted. The --save_api_info True option enables saving API responses to a file for future reference or debugging purposes.
 
 ```bash
-!python -m canterburycommuto overlap origin_destination_coordinates.csv \
+!python -m canterburycommuto overlap \
+    --csv_file origin_destination_coordinates.csv \
     --api_key "API_KEY" \
-    --threshold 60 \
-    --width 120 \
     --buffer 150 \
     --approximation "yes with buffer" \
-    --commuting_info "yes" \
-    --colorna "home_A" \
-    --coldesta "work_A" \
-    --colorib "home_B" \
-    --colfestb "work_B" \
-    --output_overlap "buffer_percentage_output.csv" \
-    --output_buffer "buffer_output.csv" \
+    --home_a_lat "home_A" \
+    --home_a_lon "home_A_lon" \
+    --work_a_lat "work_A" \
+    --work_a_lon "work_A_lon" \
+    --home_b_lat "home_B" \
+    --home_b_lon "home_B_lon" \
+    --work_b_lat "work_B" \
+    --work_b_lon "work_B_lon" \
+    --id_column "ID" \
+    --output_file "buffer_percentage_output.csv" \
     --skip_invalid True \
     --save_api_info True \
     --yes
@@ -104,7 +111,9 @@ Then, to use CanterburyCommuto, you can run the command in a way like the exampl
 
 You can run this package on as many route pairs as you wish, as long as these route pairs are stored in a csv file in a way similar to the output of Sample.py in the repository.
 Don't worry if the order of the columns in your csv file is different from that of the Sample.py output, as you can manually fill in the column names corresponding to the origins and destinations of the route pairs in CanterburyCommuto. 
-See example.ipynb for how to run all options of the package's major function. 
+
+#### For simplified execution using a configuration file and additional usage details, please refer to the `example.py` file.
+
 
 ### Results
 
