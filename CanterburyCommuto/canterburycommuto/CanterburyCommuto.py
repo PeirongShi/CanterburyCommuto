@@ -103,9 +103,6 @@ api_response_cache = {}
 log_path = os.path.join(os.getcwd(), "results", "validation_errors_timing.log")
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-# Ensure the results folder exists inside notebooks
-os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
 # Set up logging
 logging.basicConfig(
     filename=log_path,
