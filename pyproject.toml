@@ -16,7 +16,7 @@ requires = [
 "shapely",
 "pyproj",
 "folium",
-"IPython",
+"ipython",
 "pyyaml",
 "pydantic",
 ]

@@ -16,12 +16,15 @@ requires = [
 "shapely",
 "pyproj",
 "folium",
-"IPython",
+"ipython",
 "pyyaml",
 "pydantic",
 ]
 
 [project.urls]
 Home = "https://github.com/PeirongShi/CanterburyCommuto"
+
+[tool.flit.module]
+name = "canterburycommuto"
 
 
