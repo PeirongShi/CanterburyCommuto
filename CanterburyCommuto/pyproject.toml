@@ -17,6 +17,8 @@ requires = [
 "pyproj",
 "folium",
 "IPython",
+"pyyaml",
+"pydantic",
 ]
 
 [project.urls]
