@@ -673,7 +673,7 @@ def process_routes_with_csv(
     - Writes the processed route data to an output CSV file.
 
     Parameters:
-    - csv_file (str): Path to the input CSV file containing the route pairs.
+    - csv_file (str): Name of the input CSV file containing the route pairs.
     - input_dir (str): Directory where the CSV file is located.
     - api_key (str): Google Maps API key used for fetching travel route data.
     - home_a_lat : Column name for the latitude of home A.
@@ -713,7 +713,7 @@ def process_routes_with_csv(
     )
 
     results, total_api_calls, total_api_errors = process_rows(
-        data, api_key, process_row_overlap, input_dir=input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
+        data, api_key, process_row_overlap, input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
     )
 
     fieldnames = [
@@ -725,7 +725,7 @@ def process_routes_with_csv(
         "aAfterDist", "aAfterTime", "bAfterDist", "bAfterTime",
     ]
 
-    write_csv_file(input_dir, results, fieldnames)
+    write_csv_file(input_dir, results, fieldnames, output_csv)
 
     return results, pre_api_error_count, total_api_calls, total_api_errors
 
@@ -933,7 +933,7 @@ def process_routes_only_overlap_with_csv(
         "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
     ]
-    write_csv_file(input_dir, results, fieldnames)
+    write_csv_file(input_dir, results, fieldnames, output_csv)
 
     return results, pre_api_error_count, api_call_count, post_api_error_count
 
@@ -1358,7 +1358,7 @@ def overlap_rec(
     # 5. Write results to CSV
     if processed_rows:
         fieldnames = list(processed_rows[0].keys())
-        write_csv_file(input_dir, processed_rows, fieldnames)
+        write_csv_file(input_dir, processed_rows, fieldnames, output_csv)
     return results, pre_api_error_count, api_call_count, post_api_error_count
 
 def process_row_only_overlap_rec(row_and_args, input_dir=""):
@@ -1646,7 +1646,7 @@ def only_overlap_rec(
         "aDist", "aTime", "bDist", "bTime",
         "overlapDist", "overlapTime",
     ]
-    write_csv_file(input_dir, results, fieldnames)
+    write_csv_file(input_dir, results, fieldnames, output_csv)
     return results, pre_api_error_count, api_call_count, post_api_error_count
 
 def process_row_route_buffers(row_and_args):
@@ -1965,7 +1965,7 @@ def process_routes_with_buffers(
         "aIntersecRatio", "bIntersecRatio",
     ]
 
-    write_csv_file(input_dir, results, fieldnames)
+    write_csv_file(input_dir, results, fieldnames, output_csv)
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
@@ -2422,10 +2422,8 @@ def process_routes_with_closest_nodes(
 
     if results:
         fieldnames = list(results[0].keys())
-        with open(output_csv, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(results)
+        write_csv_file(input_dir=input_dir, results=results, fieldnames=fieldnames, output_file=output_csv)
+
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
@@ -2740,10 +2738,7 @@ def process_routes_with_closest_nodes_simple(
 
     if results:
         fieldnames = list(results[0].keys())
-        with open(output_csv, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(results)
+        write_csv_file(input_dir=input_dir, results=results, fieldnames=fieldnames, output_file=output_csv)
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
@@ -3140,10 +3135,8 @@ def process_routes_with_exact_intersections(
 
     if results:
         fieldnames = list(results[0].keys())
-        with open(output_csv, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(results)
+        write_csv_file(input_dir=input_dir, results=results, fieldnames=fieldnames, output_file=output_csv)
+
 
     return results, pre_api_error_count, api_call_count, post_api_error_count
 
@@ -3507,22 +3500,24 @@ def process_routes_with_exact_intersections_simple(
     return processed, pre_api_error_count, api_call_count, api_error_count
 
 # Function to write txt file for displaying inputs for the package to run.
-def write_log(file_path: str, options: dict) -> None:
+def write_log(file_path: str, options: dict, input_dir: str) -> None:
     """
     Writes a log file summarizing the inputs used for running the package.
 
     Args:
         file_path (str): Path of the main CSV result file.
         options (dict): Dictionary of options and their values.
+        input_dir (str): Directory where the input files are located.
     Returns:
         None
     """
-    # Ensure results folder exists
-    os.makedirs("results", exist_ok=True)
+    # Ensure results folder exists inside the input directory
+    results_dir = os.path.join(input_dir, "results")
+    os.makedirs(results_dir, exist_ok=True)
     base_filename = os.path.basename(file_path).replace(".csv", ".log")
 
-    # Force the log file to be saved inside the results folder
-    log_file_path = os.path.join("results", base_filename)
+    # Save the log file inside the results folder in input_dir
+    log_file_path = os.path.join(results_dir, base_filename)
 
     # Write the log file
     with open(log_file_path, "w", encoding="utf-8") as log_file:
@@ -3595,20 +3590,16 @@ def Overlap_Function(
         input_dir = os.path.abspath(input_dir)
         csv_path = os.path.join(input_dir, csv_file)
     else:
-        csv_path = os.path.abspath(csv_file)
-        input_dir = os.path.dirname(csv_path)
+        if csv_file is not None:
+            csv_path = os.path.abspath(csv_file)
+            input_dir = os.path.dirname(csv_path)
+        else:
+            raise ValueError("csv_file must not be None.")
 
     # Create a 'results' folder inside the input directory
     output_dir = os.path.join(input_dir, "results")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Always save to output_dir (which is input_dir/results)
-    if output_file:
-        # Use the user-provided name, but always in output_dir
-        output_file = os.path.join(output_dir, os.path.basename(output_file))
-        if not output_file.lower().endswith(".csv"):
-            output_file += ".csv"
-    
     options = {
         "csv_file": csv_file,
         "api_key": "********",
@@ -3668,7 +3659,7 @@ def Overlap_Function(
 
     if approximation == "yes":
         if commuting_info == "yes":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "outputRec"), ".csv")
+            output_file = output_file or generate_unique_filename("outputRec", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = overlap_rec(
                 csv_file, input_dir, api_key, 
                 home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
@@ -3678,9 +3669,9 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
         elif commuting_info == "no":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "outputRec_only_overlap"), ".csv")
+            output_file = output_file or generate_unique_filename("outputRec_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column,
@@ -3689,11 +3680,11 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
 
     elif approximation == "no":
         if commuting_info == "yes":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "outputRoutes"), ".csv")
+            output_file = output_file or generate_unique_filename("outputRoutes", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_csv(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column, output_csv=output_file, 
@@ -3701,9 +3692,10 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
         elif commuting_info == "no":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "outputRoutes_only_overlap"), ".csv")
+            output_file = output_file or generate_unique_filename("outputRoutes_only_overlap", ".csv")
+            print(f"[INFO] Output will be written to: {output_file}")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_only_overlap_with_csv(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column, output_csv=output_file,
@@ -3711,10 +3703,10 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
 
     elif approximation == "yes with buffer":
-        output_file = output_file or generate_unique_filename(os.path.join(output_dir, "buffer_intersection_results"), ".csv")
+        output_file = output_file or generate_unique_filename("buffer_intersection_results", ".csv")
         results, pre_api_errors, api_calls, post_api_errors = process_routes_with_buffers(
             csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
             home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon= work_a_lon, home_b_lat=home_b_lat,
@@ -3724,11 +3716,11 @@ def Overlap_Function(
         options["Pre-API Error Count"] = pre_api_errors
         options["Post-API Error Count"] = post_api_errors
         options["Total API Calls"] = api_calls
-        write_log(output_file, options)
+        write_log(output_file, options, input_dir)
 
     elif approximation == "closer to precision":
         if commuting_info == "yes":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "closest_nodes_buffer_results"), ".csv")
+            output_file = output_file or generate_unique_filename("closest_nodes_buffer_results", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes(
                 csv_file=csv_file, input_dir = input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
@@ -3737,9 +3729,9 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
         elif commuting_info == "no":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "closest_nodes_buffer_only_overlap"), ".csv")
+            output_file = output_file or generate_unique_filename("closest_nodes_buffer_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes_simple(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
@@ -3749,11 +3741,11 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
 
     elif approximation == "exact":
         if commuting_info == "yes":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "exact_intersection_buffer_results"), ".csv")
+            output_file = output_file or generate_unique_filename("exact_intersection_buffer_results", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
                 home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column,
@@ -3762,9 +3754,9 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
         elif commuting_info == "no":
-            output_file = output_file or generate_unique_filename(os.path.join(output_dir, "exact_intersection_buffer_only_overlap"), ".csv")
+            output_file = output_file or generate_unique_filename("exact_intersection_buffer_only_overlap", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections_simple(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
@@ -3774,7 +3766,7 @@ def Overlap_Function(
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
             options["Total API Calls"] = api_calls
-            write_log(output_file, options)
+            write_log(output_file, options, input_dir)
 
     if save_api_info is True:
         os.makedirs(output_dir, exist_ok=True)  # Ensure the results folder exists
