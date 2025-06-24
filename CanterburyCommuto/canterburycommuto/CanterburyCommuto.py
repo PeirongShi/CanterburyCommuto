@@ -2917,7 +2917,7 @@ def process_row_exact_intersections(
         
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coords, dist, time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, dist_a, time_a = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -2929,14 +2929,14 @@ def process_row_exact_intersections(
                     OriginBlong=origin_b_lon,
                     DestinationBlat=destination_b_lat,
                     DestinationBlong=destination_b_lon,
-                    aDist=dist,
-                    aTime=time,
-                    bDist=dist,
-                    bTime=time,
-                    aoverlapDist=dist,      # Overlap is the full distance of A
-                    aoverlapTime=time,      # Overlap is the full time of A
-                    boverlapDist=dist,      # Same for B
-                    boverlapTime=time,
+                    aDist=dist_a,
+                    aTime=time_a,
+                    bDist=dist_a,
+                    bTime=time_a,
+                    aoverlapDist=dist_a,      # Overlap is the full distance of A
+                    aoverlapTime=time_a,      # Overlap is the full time of A
+                    boverlapDist=dist_a,      # Same for B
+                    boverlapTime=time_a,
                     aBeforeDist=0.0,
                     aBeforeTime=0.0,
                     aAfterDist=0.0,
@@ -3137,7 +3137,6 @@ def process_routes_with_exact_intersections(
         fieldnames = list(results[0].keys())
         write_csv_file(input_dir=input_dir, results=results, fieldnames=fieldnames, output_file=output_csv)
 
-
     return results, pre_api_error_count, api_call_count, post_api_error_count
 
 def wrap_row_multiproc_simple(args):
@@ -3316,7 +3315,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
         buffer_b = create_buffered_route(coords_b, buffer_distance)
         intersection_polygon = get_buffer_intersection(buffer_a, buffer_b)
 
-        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b, ID)
+        plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b, ID, input_dir)
 
         if not intersection_polygon:
             return (
@@ -3492,10 +3491,7 @@ def process_routes_with_exact_intersections_simple(
 
     if processed:
         fieldnames = list(processed[0].keys())
-        with open(output_csv, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(processed)
+        write_csv_file(input_dir=input_dir, results=processed, fieldnames=fieldnames, output_file=output_csv)
 
     return processed, pre_api_error_count, api_call_count, api_error_count
 

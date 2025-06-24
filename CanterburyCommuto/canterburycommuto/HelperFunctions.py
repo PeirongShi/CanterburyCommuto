@@ -50,8 +50,6 @@ def write_csv_file(input_dir: str, results: list, fieldnames: list, output_file:
     # Full output path
     output_csv_path = os.path.join(results_dir, output_file)
 
-    print(f"[DEBUG] Writing {len(results)} results to {output_csv_path}")
-
     with open(output_csv_path, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
