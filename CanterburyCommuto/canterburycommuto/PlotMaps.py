@@ -10,16 +10,29 @@ from shapely.geometry import Polygon, mapping
 from canterburycommuto.HelperFunctions import generate_unique_filename
 
 # Function to save the maps
-def save_map(map_object, base_name: str) -> str:
-    os.makedirs("results", exist_ok=True)
-    filename = generate_unique_filename(os.path.join("results", base_name), ".html")
+def save_map(map_object, base_name: str, ID: str, input_dir: str) -> str:
+    """
+    Saves a map object to an HTML file in a 'results' folder inside the input directory.
+
+    Args:
+        map_object: The map object to save (e.g., a folium.Map).
+        base_name (str): The base name for the output file.
+        ID (str): The unique identifier to append to the filename.
+        input_dir (str): The directory where the input CSV is located.
+
+    Returns:
+        str: The full path to the saved HTML file.
+    """
+    output_dir = os.path.join(input_dir, "results")
+    os.makedirs(output_dir, exist_ok=True)
+    filename = generate_unique_filename(os.path.join(output_dir, f"{base_name}_{ID}"), ".html")
     map_object.save(filename)
     print(f"Map saved to: {os.path.abspath(filename)}")
     return filename
 
 # Function to plot routes to display on maps
 def plot_routes(
-    coordinates_a: list, coordinates_b: list, first_common: tuple, last_common: tuple
+    coordinates_a: list, coordinates_b: list, first_common: tuple, last_common: tuple, ID: str, input_dir: str
 ) -> None:
     """
     Plots routes A and B with common nodes highlighted over an OpenStreetMap background.
@@ -29,6 +42,8 @@ def plot_routes(
     - coordinates_b (list): A list of (latitude, longitude) tuples for route B.
     - first_common (tuple): The first common node (latitude, longitude).
     - last_common (tuple): The last common node (latitude, longitude).
+    - ID (str): The unique identifier to append to the filename.
+    - input_dir (str): The directory where the input CSV is located.
 
     Returns:
     - None
@@ -122,7 +137,7 @@ def plot_routes(
     ).add_to(map_osm)
 
     # Save the map using the save_map function
-    map_filename = save_map(map_osm, "routes_map")
+    map_filename = save_map(map_osm, "routes_map", ID, input_dir)
 
     # Display the map inline (only for Jupyter Notebooks)
     try:
@@ -136,6 +151,8 @@ def plot_routes_and_buffers(
     route_b_coords: List[Tuple[float, float]],
     buffer_a: Polygon,
     buffer_b: Polygon,
+    ID: str,
+    input_dir: str
 ) -> None:
     """
     Plot two routes and their respective buffers over an OpenStreetMap background and display it inline.
@@ -145,6 +162,8 @@ def plot_routes_and_buffers(
         route_b_coords (List[Tuple[float, float]]): Route B coordinates (latitude, longitude).
         buffer_a (Polygon): Buffered polygon for Route A.
         buffer_b (Polygon): Buffered polygon for Route B.
+        ID (str): Unique identifier to append to the filename.
+        input_dir (str): Directory where the input CSV is located.
 
     Returns:
         None
@@ -238,11 +257,11 @@ def plot_routes_and_buffers(
             """
         ),
     ).add_to(map_osm)
-
     # Save the map using save_map function
-    map_filename = save_map(map_osm, "routes_with_buffers_map")
+    map_filename = save_map(map_osm, "routes_with_buffers_map", ID, input_dir)
 
     # Display the map inline
     display(IFrame(map_filename, width="100%", height="600px"))
+    print(f"Map has been displayed inline and saved as '{map_filename}'.")
     print(f"Map has been displayed inline and saved as '{map_filename}'.")
 
