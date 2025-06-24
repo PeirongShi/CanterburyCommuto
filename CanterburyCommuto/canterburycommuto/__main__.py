@@ -9,7 +9,7 @@ Usage:
 
     # Run overlap and buffer analysis:
     python -m canterburycommuto.main overlap
-        [--csv_file PATH] [--api_key KEY]
+        [--csv_file PATH] [--input_dir PATH] [--api_key KEY]
         [--threshold VALUE] [--width VALUE] [--buffer VALUE]
         [--approximation VALUE] [--commuting_info VALUE]
         [--home_a_lat COLUMN_NAME] [--home_a_lon COLUMN_NAME]
@@ -22,7 +22,7 @@ Usage:
 
     # Estimate number of API requests and cost (no actual API calls):
     python -m canterburycommuto.main estimate
-        [--csv_file PATH]
+        [--csv_file PATH] [--input_dir PATH]
         [--approximation VALUE] [--commuting_info VALUE]
         [--home_a_lat COLUMN_NAME] [--home_a_lon COLUMN_NAME]
         [--work_a_lat COLUMN_NAME] [--work_a_lon COLUMN_NAME]
