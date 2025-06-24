@@ -345,28 +345,33 @@ def get_route_data(origin: str, destination: str, api_key: str, save_api_info: b
         - float: Total route distance in kilometers.
         - float: Total route time in minutes.
     """
-    # Use the global function to generate the URL
-    url = generate_url(origin, destination, api_key)
-    response = requests.get(url)
-    directions_data = response.json()
+    max_retries = 5
+    delay = 1  # seconds
 
-    # Save the raw response if required
-    if save_api_info:
-        api_response_cache[(origin, destination)] = directions_data
+    for attempt in range(max_retries):
+        url = generate_url(origin, destination, api_key)
+        response = requests.get(url)
+        directions_data = response.json()
 
-    if directions_data["status"] == "OK":
-        route_polyline = directions_data["routes"][0]["overview_polyline"]["points"]
-        coordinates = polyline.decode(route_polyline)
-        total_distance = (
-            directions_data["routes"][0]["legs"][0]["distance"]["value"] / 1000
-        )  # kilometers
-        total_time = (
-            directions_data["routes"][0]["legs"][0]["duration"]["value"] / 60
-        )  # minutes
-        return coordinates, total_distance, total_time
-    else:
-        print("Error fetching directions:", directions_data["status"])
-        return [], 0, 0
+        if directions_data["status"] == "OK":
+            if save_api_info:
+                api_response_cache[(origin, destination)] = directions_data
+            route_polyline = directions_data["routes"][0]["overview_polyline"]["points"]
+            coordinates = polyline.decode(route_polyline)
+            total_distance = directions_data["routes"][0]["legs"][0]["distance"]["value"] / 1000  # km
+            total_time = directions_data["routes"][0]["legs"][0]["duration"]["value"] / 60  # min
+            return coordinates, total_distance, total_time
+
+        elif directions_data["status"] == "OVER_QUERY_LIMIT":
+            print(f"Hit rate limit (attempt {attempt + 1}/{max_retries}). Retrying in {delay} sec...")
+            time.sleep(delay)
+
+        else:
+            print("Error fetching directions:", directions_data["status"])
+            return [], 0, 0
+
+    print("Exceeded maximum retries due to OVER_QUERY_LIMIT.")
+    return [], 0, 0
 
 def wrap_row(args):
     """
