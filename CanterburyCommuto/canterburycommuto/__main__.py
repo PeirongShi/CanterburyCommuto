@@ -45,6 +45,7 @@ def run_overlap(args):
     try:
         Overlap_Function(
             csv_file=args.csv_file,
+            input_dir=args.input_dir,
             api_key=args.api_key,
             threshold=args.threshold,
             width=args.width,
@@ -100,6 +101,7 @@ def main():
     # Subparser for "overlap"
     overlap_parser = subparsers.add_parser("overlap", help="Analyze route overlaps and buffers.")
     overlap_parser.add_argument("--csv_file", type=str, required=False, help="Path to the input CSV file.")
+    overlap_parser.add_argument("--input_dir", type=str, required=False, help="Directory where the input CSV file is located.")
     overlap_parser.add_argument("--api_key", type=str, required=False, default=None, help="Google API key. If not provided, the tool will try to read from config.yaml.")
     overlap_parser.add_argument("--threshold", type=float, default=50.0)
     overlap_parser.add_argument("--width", type=float, default=100.0)
