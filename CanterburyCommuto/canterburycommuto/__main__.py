@@ -74,6 +74,7 @@ def run_estimation(args):
     try:
         n_requests, cost = request_cost_estimation(
             csv_file=args.csv_file,
+            input_dir=args.input_dir,
             home_a_lat=args.home_a_lat,
             home_a_lon=args.home_a_lon,
             work_a_lat=args.work_a_lat,
@@ -123,6 +124,7 @@ def main():
     # Subparser for "estimate"
     estimate_parser = subparsers.add_parser("estimate", help="Estimate number of API requests and cost.")
     estimate_parser.add_argument("--csv_file", type=str, required=False, help="Path to the input CSV file.")
+    estimate_parser.add_argument("--input_dir", type=str, required=False, help="Directory where the input CSV file is located.")
     estimate_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
     estimate_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
     estimate_parser.add_argument("--home_a_lat", type=str)

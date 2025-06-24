@@ -37,6 +37,7 @@ def write_csv_file(output_csv: str, results: list, fieldnames: list) -> None:
     Returns:
     - None
     """
+    print(output_csv)
     with open(output_csv, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
