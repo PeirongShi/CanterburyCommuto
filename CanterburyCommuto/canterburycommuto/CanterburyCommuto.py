@@ -2874,6 +2874,41 @@ def process_row_exact_intersections(
                 api_calls,
                 0
             )
+        
+        if origin_a == origin_b and destination_a == destination_b:
+            api_calls += 1
+            coords, dist, time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            return (
+                DetailedDualOverlapResult(
+                    ID=ID,
+                    OriginAlat=origin_a_lat,
+                    OriginAlong=origin_a_lon,
+                    DestinationAlat=destination_a_lat,
+                    DestinationAlong=destination_a_lon,
+                    OriginBlat=origin_b_lat,
+                    OriginBlong=origin_b_lon,
+                    DestinationBlat=destination_b_lat,
+                    DestinationBlong=destination_b_lon,
+                    aDist=dist,
+                    aTime=time,
+                    bDist=dist,
+                    bTime=time,
+                    aoverlapDist=dist,      # Overlap is the full distance of A
+                    aoverlapTime=time,      # Overlap is the full time of A
+                    boverlapDist=dist,      # Same for B
+                    boverlapTime=time,
+                    aBeforeDist=0.0,
+                    aBeforeTime=0.0,
+                    aAfterDist=0.0,
+                    aAfterTime=0.0,
+                    bBeforeDist=0.0,
+                    bBeforeTime=0.0,
+                    bAfterDist=0.0,
+                    bAfterTime=0.0,
+                ).model_dump(),
+                api_calls,
+                0
+            )
 
         api_calls += 1
         start_time_a = time.time()
@@ -3202,11 +3237,9 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
                 0
             )
 
-        api_calls += 2
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
-
         if origin_a == origin_b and destination_a == destination_b:
+            api_calls += 1
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b)
@@ -3233,6 +3266,10 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True):
                 api_calls,
                 0
             )
+        
+        api_calls += 2
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         buffer_b = create_buffered_route(coords_b, buffer_distance)
