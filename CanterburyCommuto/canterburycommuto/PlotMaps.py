@@ -23,7 +23,7 @@ def save_map(map_object, base_name: str, ID: str, input_dir: str) -> str:
     Returns:
         str: The full path to the saved HTML file.
     """
-    output_dir = os.path.join(input_dir, "results")
+    output_dir = os.path.join(input_dir, "ResultsCommuto")
     os.makedirs(output_dir, exist_ok=True)
     filename = generate_unique_filename(os.path.join(output_dir, f"{base_name}_{ID}"), ".html")
     map_object.save(filename)

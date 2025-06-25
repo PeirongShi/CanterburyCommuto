@@ -43,8 +43,8 @@ def write_csv_file(input_dir: str, results: list, fieldnames: list, output_file:
     # Ensure input_dir is an absolute path
     input_dir = os.path.abspath(input_dir)
 
-    # Define path to the results folder inside input_dir
-    results_dir = os.path.join(input_dir, "results")
+    # Define path to the ResultsCommuto folder inside input_dir
+    results_dir = os.path.join(input_dir, "ResultsCommuto")
     os.makedirs(results_dir, exist_ok=True)
 
     # Full output path
@@ -75,3 +75,4 @@ def safe_split(coord: str) -> Tuple[Optional[float], Optional[float]]:
         return lat, lon
     except Exception:
         return None, None
+    

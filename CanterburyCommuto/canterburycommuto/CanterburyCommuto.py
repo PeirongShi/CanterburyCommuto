@@ -427,20 +427,26 @@ def process_rows(
         tuple: (processed_rows, total_api_calls, total_api_errors)
     """
     args = [(row, api_key, row_function, input_dir, skip_invalid, save_api_info) for row in data]
-    with Pool(processes=processes) as pool:
-        results = pool.map(wrap_row, args)
 
     processed_rows = []
     total_api_calls = 0
     total_api_errors = 0
+    processed_count = 0
 
-    for result in results:
-        if result is None:
-            continue
-        row_result, api_calls, api_errors = result
-        processed_rows.append(row_result)
-        total_api_calls += api_calls
-        total_api_errors += api_errors
+    try:
+        with Pool(processes=processes) as pool:
+            for result in pool.imap_unordered(wrap_row, args):
+                if result is None:
+                    continue
+                row_result, api_calls, api_errors = result
+                processed_rows.append(row_result)
+                total_api_calls += api_calls
+                total_api_errors += api_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Returning partial results...")
 
     return processed_rows, total_api_calls, total_api_errors
 
@@ -952,19 +958,14 @@ def wrap_row_multiproc(args):
             - row_function (callable): The function to process the row.
             - skip_invalid (bool): Whether to skip or raise on error.
             - save_api_info (bool): Whether to save the Google API response.
-            - *extra_args: Additional arguments (first is assumed to be input_dir).
+            - *extra_args: Additional arguments.
 
     Returns:
         tuple or None: The result of processing the row (e.g., (result_dict, api_calls, api_errors)),
                        or None if the row is skipped due to an error.
     """
     row, api_key, row_function, skip_invalid, save_api_info, *extra_args = args
-    # If input_dir is in extra_args, pass it as a keyword argument
-    if extra_args:
-        input_dir = extra_args[0]
-        return row_function((row, api_key, skip_invalid, save_api_info), input_dir=input_dir)
-    else:
-        return row_function((row, api_key, skip_invalid, save_api_info))
+    return row_function(row, api_key, *extra_args, skip_invalid, save_api_info)
 
 def process_rows_multiproc(
     data,
@@ -987,24 +988,38 @@ def process_rows_multiproc(
         (row, api_key, row_function, skip_invalid, save_api_info, *extra_args)
         for row in data
     ]
-    with Pool(processes=processes) as pool:
-        results = pool.map(wrap_row_multiproc, args)
 
     processed_rows = []
     api_call_count = 0
     api_error_count = 0
+    processed_count = 0
 
-    for result in results:
-        if result is None:
-            continue
-        row_result, row_api_calls, row_api_errors = result
-        processed_rows.append(row_result)
-        api_call_count += row_api_calls
-        api_error_count += row_api_errors
+    try:
+        with Pool(processes=processes) as pool:
+            for result in pool.imap_unordered(wrap_row_multiproc, args):
+                if result is None:
+                    continue
+                row_result, row_api_calls, row_api_errors = result
+                processed_rows.append(row_result)
+                api_call_count += row_api_calls
+                api_error_count += row_api_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Returning partial results...")
 
     return processed_rows, api_call_count, api_error_count
 
-def process_row_overlap_rec_multiproc(row_and_args):
+def process_row_overlap_rec_multiproc(
+    row: Dict[str, str],
+    api_key: str,
+    width: int,
+    threshold: int,
+    input_dir: str,
+    skip_invalid: bool,
+    save_api_info: bool
+) -> Tuple[Dict[str, Any], int, int]:
     """
     Processes a single row using the rectangular overlap method.
 
@@ -1032,7 +1047,6 @@ def process_row_overlap_rec_multiproc(row_and_args):
     api_calls = 0
 
     try:
-        row, api_key, width, threshold, input_dir, skip_invalid, save_api_info = row_and_args
         ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
@@ -1319,7 +1333,7 @@ def overlap_rec(
         post_api_error_count (int)
       )
     """
-    # 1. Read input CSV
+    # Step 1: Read input CSV
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
         input_dir=input_dir,
@@ -1335,33 +1349,32 @@ def overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    # 2. Prepare arguments for parallel processing
-    args = [(row, api_key, width, threshold, input_dir, skip_invalid, save_api_info) for row in data]
+    # Step 2: Process with multiproc + interruption support
+    processed_rows, api_call_count, post_api_error_count = process_rows_multiproc(
+        data,
+        api_key,
+        row_function=process_row_overlap_rec_multiproc,  # Pass your actual processor here
+        extra_args=(width, threshold, input_dir),
+        skip_invalid=skip_invalid,
+        save_api_info=save_api_info
+    )
 
-    # 3. Run in parallel
-    with Pool() as pool:
-        results = pool.map(process_row_overlap_rec_multiproc, args)
-
-    # 4. Post-process results
-    processed_rows = []
-    api_call_count = 0
-    post_api_error_count = 0
-
-    for result in results:
-        if result is None:
-            continue
-        row_result, calls, errors = result
-        processed_rows.append(row_result)
-        api_call_count += calls
-        post_api_error_count += errors
-
-    # 5. Write results to CSV
+    # Step 3: Write if anything was processed
     if processed_rows:
         fieldnames = list(processed_rows[0].keys())
         write_csv_file(input_dir, processed_rows, fieldnames, output_csv)
-    return results, pre_api_error_count, api_call_count, post_api_error_count
 
-def process_row_only_overlap_rec(row_and_args, input_dir=""):
+    return processed_rows, pre_api_error_count, api_call_count, post_api_error_count
+
+def process_row_only_overlap_rec(
+    row: dict,
+    api_key: str,
+    width: float,
+    threshold: float,
+    input_dir: str,
+    skip_invalid: bool,
+    save_api_info: bool
+):
     """
     Processes a single row to compute only the overlapping portion of two routes
     using the rectangular buffer approximation method.
@@ -1380,9 +1393,7 @@ def process_row_only_overlap_rec(row_and_args, input_dir=""):
             - int: Number of API calls made
             - int: Number of errors encountered (0 or 1)
     """
-    row, api_key, width, threshold, input_dir, skip_invalid, save_api_info = row_and_args
     api_calls = 0
-
     try:
         ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
@@ -1608,6 +1619,7 @@ def only_overlap_rec(
         post_api_error_count (int)
       )
     """
+    # Step 1: Read input CSV
     data, pre_api_error_count = read_csv_file(
         csv_file=csv_file,
         input_dir=input_dir,
@@ -1623,31 +1635,22 @@ def only_overlap_rec(
         skip_invalid=skip_invalid
     )
 
-    args_with_flags = [(row, api_key, width, threshold, input_dir, skip_invalid, save_api_info) for row in data]
+    # Step 2: Process rows with keyboard interrupt support
+    processed_rows, api_call_count, post_api_error_count = process_rows_multiproc(
+        data=data,
+        api_key=api_key,
+        row_function=process_row_only_overlap_rec,
+        extra_args=(width, threshold, input_dir),
+        skip_invalid=skip_invalid,
+        save_api_info=save_api_info
+    )
 
-    api_call_count = 0
-    post_api_error_count = 0
-    results = []
+    # Step 3: Write results if any were processed
+    if processed_rows:
+        fieldnames = list(processed_rows[0].keys())
+        write_csv_file(input_dir, processed_rows, fieldnames, output_csv)
 
-    with Pool() as pool:
-        raw_results = pool.map(process_row_only_overlap_rec, args_with_flags)
-
-    for res in raw_results:
-        if res is None:
-            continue
-        row_data, row_api_calls, row_errors = res
-        api_call_count += row_api_calls
-        post_api_error_count += row_errors
-        results.append(row_data)
-
-    fieldnames = [
-        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
-        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
-        "aDist", "aTime", "bDist", "bTime",
-        "overlapDist", "overlapTime",
-    ]
-    write_csv_file(input_dir, results, fieldnames, output_csv)
-    return results, pre_api_error_count, api_call_count, post_api_error_count
+    return processed_rows, pre_api_error_count, api_call_count, post_api_error_count
 
 def process_row_route_buffers(row_and_args):
     """
@@ -1943,29 +1946,34 @@ def process_routes_with_buffers(
     )
 
     args = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
-    with Pool() as pool:
-        raw_results = pool.map(process_row_route_buffers, args)
-
+    
     results = []
     total_api_calls = 0
     post_api_error_count = 0
+    processed_count = 0
 
-    for r in raw_results:
-        if r is None:
-            continue
-        result_dict, api_calls, api_errors = r
-        results.append(result_dict)
-        total_api_calls += api_calls
-        post_api_error_count += api_errors
+    try:
+        with Pool() as pool:
+            for result in pool.imap_unordered(process_row_route_buffers, args):
+                if result is None:
+                    continue
+                result_dict, api_calls, api_errors = result
+                results.append(result_dict)
+                total_api_calls += api_calls
+                post_api_error_count += api_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Writing partial results...")
 
-    fieldnames = [
-        "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
-        "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
-        "aDist", "aTime", "bDist", "bTime",
-        "aIntersecRatio", "bIntersecRatio",
-    ]
-
-    write_csv_file(input_dir, results, fieldnames, output_csv)
+    if results:
+        fieldnames = [
+            "ID", "OriginAlat", "OriginAlong", "DestinationAlat", "DestinationAlong", 
+            "OriginBlat", "OriginBlong", "DestinationBlat", "DestinationBlong",
+            "aDist", "aTime", "bDist", "bTime",
+            "aIntersecRatio", "bIntersecRatio",
+        ]
+        write_csv_file(input_dir, results, fieldnames, output_csv)
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
@@ -2405,25 +2413,28 @@ def process_routes_with_closest_nodes(
 
     args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
 
-    with Pool() as pool:
-        raw_results = pool.map(process_row_closest_nodes, args_with_flags)
-
     results = []
     total_api_calls = 0
     post_api_error_count = 0
+    processed_count = 0
 
-    for res in raw_results:
-        if res is None:
-            continue
-        row_result, api_calls, api_errors = res
-        results.append(row_result)
-        total_api_calls += api_calls
-        post_api_error_count += api_errors
+    try:
+        with Pool() as pool:
+            for res in pool.imap_unordered(process_row_closest_nodes, args_with_flags):
+                if res is None:
+                    continue
+                row_result, api_calls, api_errors = res
+                results.append(row_result)
+                total_api_calls += api_calls
+                post_api_error_count += api_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Writing partial results...")
 
     if results:
         fieldnames = list(results[0].keys())
         write_csv_file(input_dir=input_dir, results=results, fieldnames=fieldnames, output_file=output_csv)
-
 
     return results, pre_api_error_count, total_api_calls, post_api_error_count
 
@@ -2721,20 +2732,24 @@ def process_routes_with_closest_nodes_simple(
 
     args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
 
-    with Pool() as pool:
-        results_raw = pool.map(process_row_closest_nodes_simple, args_with_flags)
-
     results = []
     total_api_calls = 0
     post_api_error_count = 0
+    processed_count = 0
 
-    for r in results_raw:
-        if r is None:
-            continue
-        row_result, api_calls, api_errors = r
-        results.append(row_result)
-        total_api_calls += api_calls
-        post_api_error_count += api_errors
+    try:
+        with Pool() as pool:
+            for r in pool.imap_unordered(process_row_closest_nodes_simple, args_with_flags):
+                if r is None:
+                    continue
+                row_result, api_calls, api_errors = r
+                results.append(row_result)
+                total_api_calls += api_calls
+                post_api_error_count += api_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Writing partial results...")
 
     if results:
         fieldnames = list(results[0].keys())
@@ -3120,18 +3135,26 @@ def process_routes_with_exact_intersections(
     )
 
     args_list = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
-    
-    with Pool() as pool:
-        results_raw = pool.map(wrap_row_multiproc_exact, args_list)
 
     results = []
     api_call_count = 0
     post_api_error_count = 0
+    processed_count = 0
 
-    for result, calls, errors in results_raw:
-        results.append(result)
-        api_call_count += calls
-        post_api_error_count += errors
+    try:
+        with Pool() as pool:
+            for result in pool.imap_unordered(wrap_row_multiproc_exact, args_list):
+                if result is None:
+                    continue
+                row_result, calls, errors = result
+                results.append(row_result)
+                api_call_count += calls
+                post_api_error_count += errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Writing partial results...")
 
     if results:
         fieldnames = list(results[0].keys())
@@ -3474,20 +3497,25 @@ def process_routes_with_exact_intersections_simple(
 
     args = [(row, api_key, buffer_distance, input_dir, skip_invalid, save_api_info) for row in data]
 
-    with Pool() as pool:
-        results = pool.map(wrap_row_multiproc_simple, args)
-
     processed = []
     api_call_count = 0
     api_error_count = 0
+    processed_count = 0
 
-    for result in results:
-        if result is None:
-            continue
-        row_result, row_calls, row_errors = result
-        processed.append(row_result)
-        api_call_count += row_calls
-        api_error_count += row_errors
+    try:
+        with Pool() as pool:
+            for result in pool.imap_unordered(wrap_row_multiproc_simple, args):
+                if result is None:
+                    continue
+                row_result, row_calls, row_errors = result
+                processed.append(row_result)
+                api_call_count += row_calls
+                api_error_count += row_errors
+                processed_count += 1
+                print(f"[INFO] Processed {processed_count} row(s)...")
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPTED] Keyboard interrupt received. Writing partial results...")
 
     if processed:
         fieldnames = list(processed[0].keys())
@@ -3508,7 +3536,7 @@ def write_log(file_path: str, options: dict, input_dir: str) -> None:
         None
     """
     # Ensure results folder exists inside the input directory
-    results_dir = os.path.join(input_dir, "results")
+    results_dir = os.path.join(input_dir, "ResultsCommuto")
     os.makedirs(results_dir, exist_ok=True)
     base_filename = os.path.basename(file_path).replace(".csv", ".log")
 
@@ -3593,7 +3621,7 @@ def Overlap_Function(
             raise ValueError("csv_file must not be None.")
 
     # Create a 'results' folder inside the input directory
-    output_dir = os.path.join(input_dir, "results")
+    output_dir = os.path.join(input_dir, "ResultsCommuto")
     os.makedirs(output_dir, exist_ok=True)
 
     options = {
@@ -3765,7 +3793,7 @@ def Overlap_Function(
             write_log(output_file, options, input_dir)
 
     if save_api_info is True:
-        os.makedirs(output_dir, exist_ok=True)  # Ensure the results folder exists
+        os.makedirs(output_dir, exist_ok=True)  # Ensure the ResultsCommuto folder exists
         cache_path = os.path.join(output_dir, "api_response_cache.pkl")
         with open(cache_path, "wb") as f:
             pickle.dump(api_response_cache, f)
