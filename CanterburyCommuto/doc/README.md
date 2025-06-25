@@ -36,18 +36,50 @@ Theoretically, this project uses only the **Google Maps Directions API**. Howeve
 
 - **Fetching Route Data**:
   ```python
-  def get_route_data(origin: str, destination: str, api_key: str) -> tuple:
-      url = generate_url(origin, destination, api_key)
-      response = requests.get(url)
-      directions_data = response.json()
-      if directions_data['status'] == 'OK':
-          route_polyline = directions_data['routes'][0]['overview_polyline']['points']
-          coordinates = polyline.decode(route_polyline)
-          total_distance = directions_data['routes'][0]['legs'][0]['distance']['value'] / 1000  # km
-          total_time = directions_data['routes'][0]['legs'][0]['duration']['value'] / 60  # minutes
-          return coordinates, total_distance, total_time
-      else:
-          return [], 0, 0
+  def get_route_data(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
+    """
+    Fetches route data from the Google Maps Directions API and decodes it.
+
+    Parameters:
+    - origin (str): The starting point of the route (latitude,longitude).
+    - destination (str): The endpoint of the route (latitude,longitude).
+    - api_key (str): The API key for accessing the Google Maps Directions API.
+    - save_api_info (bool): Whether to save the raw API response in a global dictionary.
+
+    Returns:
+    - tuple:
+        - list: A list of (latitude, longitude) tuples representing the route.
+        - float: Total route distance in kilometers.
+        - float: Total route time in minutes.
+    """
+    max_retries = 5
+    delay = 1  # seconds
+
+    for attempt in range(max_retries):
+        url = generate_url(origin, destination, api_key)
+        response = requests.get(url)
+        directions_data = response.json()
+
+        if directions_data["status"] == "OK":
+            if save_api_info:
+                api_response_cache[(origin, destination)] = directions_data
+            route_polyline = directions_data["routes"][0]["overview_polyline"]["points"]
+            coordinates = polyline.decode(route_polyline)
+            total_distance = directions_data["routes"][0]["legs"][0]["distance"]["value"] / 1000  # km
+            total_time = directions_data["routes"][0]["legs"][0]["duration"]["value"] / 60  # min
+            return coordinates, total_distance, total_time
+
+        elif directions_data["status"] == "OVER_QUERY_LIMIT":
+            print(f"Hit rate limit (attempt {attempt + 1}/{max_retries}). Retrying in {delay} sec...")
+            time.sleep(delay)
+
+        else:
+            print("Error fetching directions:", directions_data["status"])
+            return [], 0, 0
+
+    print("Exceeded maximum retries due to OVER_QUERY_LIMIT.")
+    return [], 0, 0
+
   ```
 
 #### Additional Documentation
