@@ -175,6 +175,23 @@ This table summarizes the available options for the package's main function, inc
 | Buffer Route Node          | Yes                       | 6 to 8                                | This option considers the routes and buffers as lines and geometric shapes. It finds the closest nodes to the points of intersections among the buffer polygons and route lines. The overlapping information is determined based on these closest nodes. |
 | Buffer Route Intersection  | Yes                       | 9                                    | As an improved version of the Buffer Route Node method, this option directly records the GPS coordinates corresponding to the points of intersections among the buffer polygons and the route lines and then proceeds to compute the overlapping distance and time information based on these GPS coordinates. |
 
+## Additional Notes and Features
+
+### Interrupting the Script
+
+You can stop the script during execution by pressing **Ctrl + C** in the terminal or command prompt.  
+If interrupted, the script will **gracefully exit** and **save all completed results** to the `ResultsCommuto/` folder. This ensures partial progress is not lost.
+
+### Output Order and Row Identification
+
+To improve performance, the package uses **multithreading**, which may result in a slight reordering of the output rows—particularly **within processing blocks**.  
+To assist with traceability, a `row_id` field is included in the output. This allows users to easily match results back to the original input or re-sort if needed.
+
+### Output Folder Structure
+
+All results, including CSV files, maps, and logs, are now saved in a dedicated folder named `ResultsCommuto/`, located in the same directory as the input file.  
+This helps keep input and output files organized and clearly separated.
+
 ## Acknowledgment
 
 This Python package CanterburyCommuto is created under the instruction of Professor Florian Grosset and Professor Émilien Schultz. 
