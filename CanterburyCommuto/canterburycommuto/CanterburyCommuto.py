@@ -96,6 +96,8 @@ class SimpleDualOverlapResult(RouteBase):
 # Global cache for Google API responses
 api_response_cache = {}
 
+ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 # The following functions also help determine if there are errors in the code. 
 
@@ -335,49 +337,99 @@ def request_cost_estimation(
     cost = (n / 1000) * 5  # USD estimate
     return n, cost
 
-def get_route_data(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
+def generate_request_body(origin: str, destination: str) -> dict:
     """
-    Fetches route data from the Google Maps Directions API and decodes it.
+    Creates the request body for the Google Maps Routes API (v2).
 
     Parameters:
-    - origin (str): The starting point of the route (latitude,longitude).
-    - destination (str): The endpoint of the route (latitude,longitude).
-    - api_key (str): The API key for accessing the Google Maps Directions API.
-    - save_api_info (bool): Whether to save the raw API response in a global dictionary.
+    - origin (str): The starting point of the route in "latitude,longitude" format.
+    - destination (str): The endpoint of the route in "latitude,longitude" format.
+
+    Returns:
+    - dict: JSON body for the Routes API POST request.
+    """
+    origin_lat, origin_lng = map(float, origin.split(','))
+    dest_lat, dest_lng = map(float, destination.split(','))
+
+    return {
+        "origin": {
+            "location": {
+                "latLng": {
+                    "latitude": origin_lat,
+                    "longitude": origin_lng
+                }
+            }
+        },
+        "destination": {
+            "location": {
+                "latLng": {
+                    "latitude": dest_lat,
+                    "longitude": dest_lng
+                }
+            }
+        },
+        "travelMode": "DRIVE",
+        "computeAlternativeRoutes": False,
+        "routeModifiers": {
+            "avoidTolls": False
+        }
+    }
+
+def get_route_data(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
+    """
+    Fetches route data from the Google Maps Routes API (v2) and decodes the polyline.
+
+    Parameters:
+    - origin (str): Starting point ("latitude,longitude").
+    - destination (str): Endpoint ("latitude,longitude").
+    - api_key (str): Google Maps API key with Routes API enabled.
+    - save_api_info (bool): Optionally saves raw response in cache.
 
     Returns:
     - tuple:
-        - list: A list of (latitude, longitude) tuples representing the route.
-        - float: Total route distance in kilometers.
-        - float: Total route time in minutes.
+        - list of (lat, lng) tuples (route polyline)
+        - float: distance in kilometers
+        - float: time in minutes
     """
     max_retries = 5
     delay = 1  # seconds
 
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": "*"  # you can specify fields to reduce payload
+    }
+
+    body = generate_request_body(origin, destination)
+
     for attempt in range(max_retries):
-        url = generate_url(origin, destination, api_key)
-        response = requests.get(url)
-        directions_data = response.json()
+        response = requests.post(ROUTES_API_URL, json=body, headers=headers)
+        data = response.json()
 
-        if directions_data["status"] == "OK":
+        if response.status_code == 200 and "routes" in data:
             if save_api_info:
-                api_response_cache[(origin, destination)] = directions_data
-            route_polyline = directions_data["routes"][0]["overview_polyline"]["points"]
-            coordinates = polyline.decode(route_polyline)
-            total_distance = directions_data["routes"][0]["legs"][0]["distance"]["value"] / 1000  # km
-            total_time = directions_data["routes"][0]["legs"][0]["duration"]["value"] / 60  # min
-            return coordinates, total_distance, total_time
+                global api_response_cache
+                api_response_cache[(origin, destination)] = data
 
-        elif directions_data["status"] == "OVER_QUERY_LIMIT":
-            print(f"Hit rate limit (attempt {attempt + 1}/{max_retries}). Retrying in {delay} sec...")
+            route = data["routes"][0]
+            polyline_points = route["polyline"]["encodedPolyline"]
+            coordinates = polyline.decode(polyline_points)
+
+            distance_meters = int(route["legs"][0]["distanceMeters"])
+            duration_seconds = int(route["legs"][0]["duration"].replace("s", ""))
+
+            return coordinates, distance_meters / 1000, duration_seconds / 60
+
+        elif response.status_code == 429:
+            print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
             time.sleep(delay)
-
         else:
-            print("Error fetching directions:", directions_data["status"])
+            print("Error fetching route:", data)
             return [], 0, 0
 
-    print("Exceeded maximum retries due to OVER_QUERY_LIMIT.")
+    print("Exceeded maximum retries due to rate limit.")
     return [], 0, 0
+
 
 def wrap_row(args):
     """

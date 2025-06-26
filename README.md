@@ -37,7 +37,23 @@ To use CanterburyCommuto, it is necessary to have your API key ready from Google
 
 *Caveat: Do not share your Google API key to the public. Your key is related to your billing account. If abused, high costs will be incurred.*
 
-For Google Maps Routes APIs, the **essential services**—**Directions** and **Distance Matrix APIs**—each include a **free monthly usage cap of 10,000 requests**. Beyond that, usage from **10,001 to 100,000 requests** is billed at **\$5 per 1,000 requests**, and any usage **exceeding 100,000 requests** is billed at a reduced rate of **\$4 per 1,000 requests**. The **advanced versions**—**Directions Advanced** and **Distance Matrix Advanced**—offer enhanced features such as traffic-aware routing and waypoint optimization. These have a **lower free monthly cap of 5,000 requests**, with usage from **5,001 to 100,000 requests** charged at **\$10 per 1,000 requests**, and any requests **above 100,000** billed at **\$8 per 1,000 requests**.
+## Google Maps Routes API Pricing Summary
+
+Google Maps Routes API is structured into three feature tiers—**Essentials**, **Advanced (Pro)**, and **Preferred (Enterprise)**—with pricing based on usage volume and feature complexity.
+
+| Tier       | Free Monthly Quota | 1–100K Requests | 100K–500K | 500K–1M | 1M–5M | 5M+    |
+|------------|--------------------|------------------|------------|----------|--------|--------|
+| Essentials | 10,000 requests     | $5.00 / 1,000     | $4.00      | $3.00    | $1.50  | $0.38  |
+| Advanced   | 5,000 requests      | $10.00 / 1,000    | $8.00      | $6.00    | $3.00  | $0.75  |
+| Preferred  | 1,000 requests      | $15.00 / 1,000    | $12.00     | $9.00    | $4.50  | $1.14  |
+
+- **Essentials**: Basic routing (up to 10 waypoints), no traffic awareness.
+- **Advanced (Pro)**: Supports traffic-aware routing, more waypoints (11–25), and route modifiers.
+- **Preferred (Enterprise)**: Includes premium features like two-wheel vehicle routing and fleet management.
+
+All tiers offer automatic volume discounts beyond 100,000 monthly requests. Free quotas reset each month and are applied per SKU.
+
+[View official pricing documentation](https://developers.google.com/maps/billing-and-pricing/pricing#routes)
 
 This Python package uses the essential tier of the Google Maps Directions API, relying only on basic parameters and avoiding advanced features, thereby qualifying for standard usage rates.
 
