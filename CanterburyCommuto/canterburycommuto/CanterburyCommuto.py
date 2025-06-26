@@ -15,7 +15,7 @@ from shapely.geometry import Point
 
 # Import functions from modules
 from canterburycommuto.PlotMaps import plot_routes, plot_routes_and_buffers
-from canterburycommuto.HelperFunctions import generate_unique_filename, write_csv_file, generate_url, safe_split
+from canterburycommuto.HelperFunctions import generate_unique_filename, write_csv_file, safe_split
 from canterburycommuto.Computations import (
     find_common_nodes,
     split_segments,
@@ -429,7 +429,6 @@ def get_route_data(origin: str, destination: str, api_key: str, save_api_info: b
 
     print("Exceeded maximum retries due to rate limit.")
     return [], 0, 0
-
 
 def wrap_row(args):
     """
