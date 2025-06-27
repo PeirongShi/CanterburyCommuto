@@ -369,7 +369,7 @@ def generate_request_body(origin: str, destination: str) -> dict:
             }
         },
         "travelMode": "DRIVE",
-        "computeAlternativeRoutes": False,
+        "computeAlternativeRoutes": True,  # enables fallback options
         "routeModifiers": {
             "avoidTolls": False
         }
@@ -397,37 +397,49 @@ def get_route_data(origin: str, destination: str, api_key: str, save_api_info: b
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": "*"  # you can specify fields to reduce payload
+        "X-Goog-FieldMask": "routes.legs.distanceMeters,routes.legs.duration,routes.polyline.encodedPolyline"
     }
 
     body = generate_request_body(origin, destination)
 
     for attempt in range(max_retries):
-        response = requests.post(ROUTES_API_URL, json=body, headers=headers)
-        data = response.json()
+        try:
+            response = requests.post(ROUTES_API_URL, json=body, headers=headers)
+            data = response.json()
 
-        if response.status_code == 200 and "routes" in data:
-            if save_api_info:
-                global api_response_cache
-                api_response_cache[(origin, destination)] = data
+            if response.status_code == 200 and "routes" in data and data["routes"]:
+                if save_api_info:
+                    global api_response_cache
+                    api_response_cache[(origin, destination)] = data
 
-            route = data["routes"][0]
-            polyline_points = route["polyline"]["encodedPolyline"]
-            coordinates = polyline.decode(polyline_points)
+                # Pick the shortest route if alternatives are present
+                route = min(data["routes"], key=lambda r: r["legs"][0].get("distanceMeters", float("inf")))
 
-            distance_meters = int(route["legs"][0]["distanceMeters"])
-            duration_seconds = int(route["legs"][0]["duration"].replace("s", ""))
+                polyline_points = route["polyline"]["encodedPolyline"]
+                coordinates = polyline.decode(polyline_points)
 
-            return coordinates, distance_meters / 1000, duration_seconds / 60
+                legs = route.get("legs", [])
+                if not legs:
+                    raise ValueError("No legs found in route.")
 
-        elif response.status_code == 429:
-            print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
-            time.sleep(delay)
-        else:
-            print("Error fetching route:", data)
+                distance_meters = int(legs[0]["distanceMeters"])
+                duration_seconds = int(legs[0]["duration"].replace("s", ""))
+
+                return coordinates, distance_meters / 1000, duration_seconds / 60
+
+            elif response.status_code == 429:
+                print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
+                time.sleep(delay)
+
+            else:
+                print("Error fetching route:", data)
+                return [], 0, 0
+
+        except Exception as e:
+            print(f"Exception during route extraction: {e}")
             return [], 0, 0
 
-    print("Exceeded maximum retries due to rate limit.")
+    print("Exceeded maximum retries due to rate limit or repeated failure.")
     return [], 0, 0
 
 def wrap_row(args):
@@ -3356,6 +3368,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
             coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
+            coords_b = coords_a
             plot_routes_and_buffers(coords_a, coords_b, buffer_a, buffer_b, ID, input_dir)
             return (
                 SimpleDualOverlapResult(
