@@ -52,6 +52,7 @@ def run_overlap(args):
             buffer=args.buffer,
             approximation=args.approximation,
             commuting_info=args.commuting_info,
+            method=args.method,
             home_a_lat=args.home_a_lat,
             home_a_lon=args.home_a_lon,
             work_a_lat=args.work_a_lat,
@@ -108,6 +109,7 @@ def main():
     overlap_parser.add_argument("--buffer", type=float, default=100.0)
     overlap_parser.add_argument("--approximation", type=str, choices=["yes", "no", "yes with buffer", "closer to precision", "exact"], default="no")
     overlap_parser.add_argument("--commuting_info", type=str, choices=["yes", "no"], default="no")
+    overlap_parser.add_argument("--method", type=str, choices=["google", "graphhopper"], default=None, help="Routing method to use.")
     overlap_parser.add_argument("--home_a_lat", type=str)
     overlap_parser.add_argument("--home_a_lon", type=str)
     overlap_parser.add_argument("--work_a_lat", type=str)

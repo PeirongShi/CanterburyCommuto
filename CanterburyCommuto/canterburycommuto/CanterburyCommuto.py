@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 import pickle
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Callable
 from multiprocessing.dummy import Pool
 
 import polyline
@@ -96,7 +96,11 @@ class SimpleDualOverlapResult(RouteBase):
 # Global cache for Google API responses
 api_response_cache = {}
 
-ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+# Global URL for Google Maps Routes API (v2)
+GOOGLE_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+
+# Global URL for local GraphHopper server (assumes user followed setup)
+GRAPHOPPER_BASE_URL = "http://localhost:8989"
 
 # Function to read a csv file and then asks the users to manually enter their corresponding column variables with respect to OriginA, DestinationA, OriginB, and DestinationB.
 # The following functions also help determine if there are errors in the code. 
@@ -375,7 +379,7 @@ def generate_request_body(origin: str, destination: str) -> dict:
         }
     }
 
-def get_route_data(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
+def get_route_data_google(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
     """
     Fetches route data from the Google Maps Routes API (v2) and decodes the polyline.
 
@@ -404,7 +408,7 @@ def get_route_data(origin: str, destination: str, api_key: str, save_api_info: b
 
     for attempt in range(max_retries):
         try:
-            response = requests.post(ROUTES_API_URL, json=body, headers=headers)
+            response = requests.post(GOOGLE_API_URL, json=body, headers=headers)
             data = response.json()
 
             if response.status_code == 200 and "routes" in data and data["routes"]:
@@ -442,56 +446,148 @@ def get_route_data(origin: str, destination: str, api_key: str, save_api_info: b
     print("Exceeded maximum retries due to rate limit or repeated failure.")
     return [], 0, 0
 
-def wrap_row(args):
+def get_route_data_graphhopper(origin: str, destination: str, profile: str = "car", save_api_info: bool = False) -> tuple:
+    """
+    Fetches route data from a locally hosted GraphHopper server.
+
+    Parameters:
+    - origin (str): Starting point in "latitude,longitude" format.
+    - destination (str): Endpoint in "latitude,longitude" format.
+    - profile (str): Travel mode profile (e.g., "car", "bike", "foot").
+    - save_api_info (bool): Whether to store raw API response globally.
+
+    Returns:
+    - tuple:
+        - list of (latitude, longitude) tuples
+        - float: distance in km
+        - float: time in minutes
+    """
+    url = f"{GRAPHOPPER_BASE_URL}/route"
+    params = {
+        "point": [origin, destination],
+        "profile": profile,
+        "locale": "en",
+        "calc_points": "true",
+        "points_encoded": "false"
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+
+        if save_api_info:
+            global api_response_cache
+            api_response_cache[(origin, destination)] = data
+
+        if "paths" not in data or not data["paths"]:
+            print("No route found.")
+            return [], 0, 0
+
+        path = data["paths"][0]
+        coords = path["points"]["coordinates"]  # [lon, lat] format
+        coordinates = [(lat, lon) for lon, lat in coords]  # Convert to (lat, lon)
+
+        distance_km = path["distance"] / 1000
+        time_min = path["time"] / 60000
+
+        return coordinates, distance_km, time_min
+
+    except Exception as e:
+        print(f"GraphHopper error: {e}")
+        return [], 0, 0
+
+def get_route_data(origin: str, destination: str, method: str = "google", api_key: Optional[str] = None, save_api_info: bool = False) -> tuple:
+    """
+    Unified routing interface supporting Google and GraphHopper.
+
+    Parameters:
+    - origin (str): "latitude,longitude"
+    - destination (str): "latitude,longitude"
+    - method (str): "google" or "graphhopper"
+    - api_key (str): Required for Google
+    - save_api_info (bool): Cache raw response
+
+    Returns:
+    - tuple: (coordinates, distance_km, time_min)
+    """
+    if method == "google":
+        if api_key is None:
+            raise ValueError("API key is required for Google Maps method.")
+        return get_route_data_google(origin, destination, api_key, save_api_info)
+
+    elif method == "graphhopper":
+        return get_route_data_graphhopper(origin, destination, save_api_info=save_api_info)
+
+    else:
+        raise ValueError("Method must be 'google' or 'graphhopper'.")
+
+def wrap_row(args): 
     """
     Wraps a single row-processing task for multithreading.
 
     Args:
         args (tuple): A tuple containing:
-            - row (dict): The data row to process.
+            - row (dict): A dictionary representing a single row of data with keys:
             - api_key (str): API key for route data fetching.
-            - row_function (callable): Function to apply to the row.
-            - input_dir (str): Directory containing the input CSV file.
-            - skip_invalid (bool): Whether to skip errors or halt on first error.
-            - save_api_info (bool): Whether to save the Google API response.
+            - row_function (callable): Function that processes a single row.
+            - input_dir (str): Directory containing the input CSV file's folder.
+            - skip_invalid (bool): If True, skips rows with errors; if False, raises an error.
+            - save_api_info (bool): If True, saves API response.
+            - method (str): "google" or "graphhopper"
 
     Returns:
-        dict or None: Result of processing the row, or None if skipped.
+        dict or None
     """
-    row, api_key, row_function, input_dir, skip_invalid, save_api_info = args
+    row, api_key, row_function, input_dir, skip_invalid, save_api_info, method = args
     return row_function(
         (row, api_key, save_api_info),
+        method=method,
         skip_invalid=skip_invalid,
         input_dir=input_dir
     )
 
 def process_rows(
-    data,
-    api_key,
-    row_function,
-    input_dir="",
-    processes=None,
-    skip_invalid=True,
-    save_api_info=False
-):
+    data: List[Dict[str, Any]],
+    api_key: str,
+    row_function: Callable[
+        [Tuple[Dict[str, Any], str, bool], str, bool, str],
+        Tuple[Dict[str, Any], int, int]
+    ],
+    method: str,
+    input_dir: str = "",
+    processes: Optional[int] = None,
+    skip_invalid: bool = True,
+    save_api_info: bool = False
+) -> Tuple[List[Dict[str, Any]], int, int]:
     """
-    Processes rows using multithreading by applying a row_function to each row.
+    Processes a list of data rows using multiprocessing, applying a row_function to each row.
+
+    Each row is passed to a wrapper function that supplies additional context like the API key,
+    method, input directory, and flags for error handling and API info saving.
 
     Args:
-        data (list): List of row dictionaries.
-        api_key (str): API key for route data fetching.
-        row_function (callable): Function that processes a single row.
-        input_dir (str): Directory containing the input CSV file.
-        processes (int, optional): Number of threads to use.
-        skip_invalid (bool, optional): If True, logs and skips rows with errors.
-        save_api_info (bool, optional): If True, saves API response.
+        data (List[Dict[str, Any]]): List of input rows (each as a dictionary).
+        api_key (str): API key used by the row processing function (e.g., for route services).
+        row_function (Callable): Function to apply to each row. Must accept a tuple of 
+            (row, api_key, save_api_info) and keyword args: method, skip_invalid, input_dir.
+        method (str): Routing method to use, e.g., "google" or "graphhopper".
+        input_dir (str, optional): Path to input directory containing reference data or files.
+        processes (Optional[int], optional): Number of parallel worker processes. Defaults to CPU count.
+        skip_invalid (bool, optional): If True, skips rows that raise errors. If False, raises on error.
+        save_api_info (bool, optional): If True, saves the raw API response along with row output.
 
     Returns:
-        tuple: (processed_rows, total_api_calls, total_api_errors)
+        Tuple[List[Dict[str, Any]], int, int]:
+            - List of successfully processed rows (as dictionaries).
+            - Total number of API calls made.
+            - Total number of API-related errors encountered.
     """
-    args = [(row, api_key, row_function, input_dir, skip_invalid, save_api_info) for row in data]
+    args = [
+        (row, api_key, row_function, input_dir, skip_invalid, save_api_info, method)
+        for row in data
+    ]
 
-    processed_rows = []
+    processed_rows: List[Dict[str, Any]] = []
     total_api_calls = 0
     total_api_errors = 0
     processed_count = 0
@@ -513,12 +609,15 @@ def process_rows(
 
     return processed_rows, total_api_calls, total_api_errors
 
-def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True, input_dir=""):
+def process_row_overlap(row_and_api_key_and_flag, method, skip_invalid=True, input_dir=""):
     """
     Processes one pair of routes, finds overlap, segments travel, and handles errors based on skip_invalid.
 
     Args:
         row_and_api_key_and_flag (tuple): (row, api_key, save_api_info)
+        method (str): "google" or "graphhopper"
+        skip_invalid (bool): If True, skips rows with errors; if False, raises an error.
+        input_dir (str): Directory containing the folder of the input CSV file.
 
     Returns:
         tuple: (result_dict, api_calls, api_errors)
@@ -539,8 +638,8 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True, input_dir="
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
-            plot_routes(coordinates_a, [], None, None, ID, input_dir)
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
+            plot_routes(coordinates_a, [], (), (), ID, input_dir)
             # Return structured full overlap result as a dictionary, along with API stats
             return (
                 FullOverlapResult(
@@ -573,14 +672,14 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True, input_dir="
             )
         
         api_calls += 1
-        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info)
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
         api_calls += 1
-        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key, save_api_info)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, method, api_key, save_api_info)
 
         first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
 
         if not first_common_node or not last_common_node:
-            plot_routes(coordinates_a, coordinates_b, None, None, ID, input_dir)
+            plot_routes(coordinates_a, coordinates_b, (), (), ID, input_dir)
             return (
                 FullOverlapResult(
                     ID=ID,
@@ -616,28 +715,28 @@ def process_row_overlap(row_and_api_key_and_flag, skip_invalid=True, input_dir="
 
         api_calls += 1
         start_time = time.time()
-        _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", api_key, save_api_info)
+        _, before_a_distance, before_a_time = get_route_data(origin_a, f"{before_a[-1][0]},{before_a[-1][1]}", method, api_key, save_api_info)
         logging.info(f"Time for before_a API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
         _, overlap_a_distance, overlap_a_time = get_route_data(
-            f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", api_key, save_api_info)
+            f"{overlap_a[0][0]},{overlap_a[0][1]}", f"{overlap_a[-1][0]},{overlap_a[-1][1]}", method, api_key, save_api_info)
         logging.info(f"Time for overlap_a API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
-        _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, api_key, save_api_info)
+        _, after_a_distance, after_a_time = get_route_data(f"{after_a[0][0]},{after_a[0][1]}", destination_a, method, api_key, save_api_info)
         logging.info(f"Time for after_a API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
-        _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", api_key, save_api_info)
+        _, before_b_distance, before_b_time = get_route_data(origin_b, f"{before_b[-1][0]},{before_b[-1][1]}", method, api_key, save_api_info)
         logging.info(f"Time for before_b API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
-        _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, api_key, save_api_info)
+        _, after_b_distance, after_b_time = get_route_data(f"{after_b[0][0]},{after_b[0][1]}", destination_b, method, api_key, save_api_info)
         logging.info(f"Time for after_b API call: {time.time() - start_time:.2f} seconds")
 
         plot_routes(coordinates_a, coordinates_b, first_common_node, last_common_node, ID, input_dir)
@@ -727,10 +826,11 @@ def process_routes_with_csv(
     work_b_lat: str,
     work_b_lon: str,
     id_column: Optional[str] = None,
+    method: str = "google",
     output_csv: str = "output.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
-) -> tuple:
+) -> Tuple[List[Dict[str, any]], int, int, int]:
     """
     Processes route pairs from a CSV file using a row-processing function and writes results to a new CSV file.
 
@@ -754,6 +854,7 @@ def process_routes_with_csv(
     - work_b_lat : Column name for the latitude of work B.
     - work_b_lon : Column name for the longitude of work B.
     - id_column : Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
+    - method (str): Routing method to use, either "google" or "graphhopper".
     - output_csv (str): File path for saving the output CSV file (default: "output.csv").
     - skip_invalid (bool): If True (default), invalid rows are logged and skipped; if False, processing halts on the first invalid row.
     - save_api_info (bool): If True, API responses are saved; if False, API responses are not saved.
@@ -782,7 +883,7 @@ def process_routes_with_csv(
     )
 
     results, total_api_calls, total_api_errors = process_rows(
-        data, api_key, process_row_overlap, input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
+        data, api_key, process_row_overlap, method=method, input_dir=input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
     )
 
     fieldnames = [
@@ -799,7 +900,7 @@ def process_routes_with_csv(
     return results, pre_api_error_count, total_api_calls, total_api_errors
 
 
-def process_row_only_overlap(row_api_and_flag, skip_invalid=True, input_dir=""):
+def process_row_only_overlap(row_api_and_flag, method, skip_invalid=True, input_dir=""):
     """
     Processes a single route pair to compute overlapping travel segments.
 
@@ -824,8 +925,8 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True, input_dir=""):
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
-            plot_routes(coordinates_a, [], None, None, ID, input_dir)
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
+            plot_routes(coordinates_a, [], (), (), ID, input_dir)
             return (
                 SimpleOverlapResult(
                     ID=ID,
@@ -849,14 +950,14 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True, input_dir=""):
             )
 
         api_calls += 1
-        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info)
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
         api_calls += 1
-        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key, save_api_info)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, method, api_key, save_api_info)
 
         first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
 
         if not first_common_node or not last_common_node:
-            plot_routes(coordinates_a, coordinates_b, None, None, ID, input_dir)
+            plot_routes(coordinates_a, coordinates_b, (), (), ID, input_dir)
             return (
                 SimpleOverlapResult(
                     ID=ID,
@@ -887,6 +988,7 @@ def process_row_only_overlap(row_api_and_flag, skip_invalid=True, input_dir=""):
         _, overlap_a_distance, overlap_a_time = get_route_data(
             f"{overlap_a[0][0]},{overlap_a[0][1]}",
             f"{overlap_a[-1][0]},{overlap_a[-1][1]}",
+            method,
             api_key,
             save_api_info
         )
@@ -964,6 +1066,7 @@ def process_routes_only_overlap_with_csv(
     work_b_lat: str,
     work_b_lon: str,
     id_column: Optional[str] = None,
+    method: str = "google",
     output_csv: str = "output.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
@@ -993,7 +1096,7 @@ def process_routes_only_overlap_with_csv(
     )
 
     results, api_call_count, post_api_error_count = process_rows(
-        data, api_key, process_row_only_overlap, input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
+        data, api_key, process_row_only_overlap, method, input_dir, skip_invalid=skip_invalid, save_api_info=save_api_info
     )
 
     fieldnames = [
@@ -1079,6 +1182,7 @@ def process_row_overlap_rec_multiproc(
     api_key: str,
     width: int,
     threshold: int,
+    method: str,
     input_dir: str,
     skip_invalid: bool,
     save_api_info: bool
@@ -1121,9 +1225,9 @@ def process_row_overlap_rec_multiproc(
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
             start_time = time.time()
-            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info)
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
             logging.info(f"Time for same-route API call: {time.time() - start_time:.2f} seconds")
-            plot_routes(coordinates_a, [], None, None, ID, input_dir)
+            plot_routes(coordinates_a, [], (), (), ID, input_dir)
             return (
                 FullOverlapResult(
                     ID=ID,
@@ -1156,18 +1260,18 @@ def process_row_overlap_rec_multiproc(
 
         api_calls += 1
         start_time = time.time()
-        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info)
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, method, api_key, save_api_info)
         logging.info(f"Time for coordinates_a API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
-        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key, save_api_info)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, method, api_key, save_api_info)
         logging.info(f"Time for coordinates_b API call: {time.time() - start_time:.2f} seconds")
 
         first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
 
         if not first_common_node or not last_common_node:
-            plot_routes(coordinates_a, coordinates_b, None, None, ID, input_dir)
+            plot_routes(coordinates_a, coordinates_b, (), (), ID, input_dir)
             return (
                 FullOverlapResult(
                     ID=ID,
@@ -1236,6 +1340,7 @@ def process_row_overlap_rec_multiproc(
         _, before_a_dist, before_a_time = get_route_data(
             origin_a,
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
+            method,
             api_key,
             save_api_info
         )
@@ -1246,6 +1351,7 @@ def process_row_overlap_rec_multiproc(
         _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
+            method,
             api_key,
             save_api_info
         )
@@ -1256,6 +1362,7 @@ def process_row_overlap_rec_multiproc(
         _, after_a_dist, after_a_time = get_route_data(
             f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
             destination_a,
+            method,
             api_key,
             save_api_info
         )
@@ -1266,6 +1373,7 @@ def process_row_overlap_rec_multiproc(
         _, before_b_dist, before_b_time = get_route_data(
             origin_b,
             f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
+            method,
             api_key,
             save_api_info
         )
@@ -1276,6 +1384,7 @@ def process_row_overlap_rec_multiproc(
         _, after_b_dist, after_b_time = get_route_data(
             f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
             destination_b,
+            method,
             api_key,
             save_api_info
         )
@@ -1371,6 +1480,7 @@ def overlap_rec(
     output_csv: str = "outputRec.csv",
     threshold: int = 50,
     width: int = 100,
+    method: str = "google",
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1381,10 +1491,19 @@ def overlap_rec(
     - csv_file (str): Name of the input CSV file.
     - input_dir (str): Directory where the CSV file is located.
     - api_key (str): Google API key for routing.
+    - home_a_lat (str): Column name for the latitude of home A.
+    - home_a_lon (str): Column name for the longitude of home A.
+    - work_a_lat (str): Column name for the latitude of work A.
+    - work_a_lon (str): Column name for the longitude of work A.
+    - home_b_lat (str): Column name for the latitude of home B.
+    - home_b_lon (str): Column name for the longitude of home B.
+    - work_b_lat (str): Column name for the latitude of work B.
+    - work_b_lon (str): Column name for the longitude of work B.
+    - id_column (Optional[str]): Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - output_csv (str): Path for the output CSV file.
     - threshold (int): Overlap threshold distance.
     - width (int): Buffer width for rectangular overlap.
-    - colorna, coldesta, colorib, colfestb (str): Column names for route endpoints.
+    - method (str): Routing method to use, either "google" or "graphhopper".
     - skip_invalid (bool): If True, skips invalid rows and logs them.
     - save_api_info (bool): If True, save API response.
 
@@ -1417,7 +1536,7 @@ def overlap_rec(
         data,
         api_key,
         row_function=process_row_overlap_rec_multiproc,  # Pass your actual processor here
-        extra_args=(width, threshold, input_dir),
+        extra_args=(width, threshold, method, input_dir),
         skip_invalid=skip_invalid,
         save_api_info=save_api_info
     )
@@ -1434,6 +1553,7 @@ def process_row_only_overlap_rec(
     api_key: str,
     width: float,
     threshold: float,
+    method: str,
     input_dir: str,
     skip_invalid: bool,
     save_api_info: bool
@@ -1448,7 +1568,10 @@ def process_row_only_overlap_rec(
             - api_key (str): Google Maps API key
             - width (int): Width of buffer for overlap detection
             - threshold (int): Distance threshold for overlap detection
+            - method (str): Routing method to use (e.g., "driving", "walking")
+            - input_dir (str): Directory for saving output files
             - skip_invalid (bool): Whether to skip errors or halt on first error
+            - save_api_info (bool): Whether to save the Google API response
 
     Returns:
         tuple:
@@ -1470,9 +1593,9 @@ def process_row_only_overlap_rec(
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
             start_time = time.time()
-            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coordinates_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             logging.info(f"Time for same-route API call: {time.time() - start_time:.2f} seconds")
-            plot_routes(coordinates_a, [], None, None, ID, input_dir)
+            plot_routes(coordinates_a, [], (), (), ID, input_dir)
             return (
                 SimpleOverlapResult(
                     ID=ID,
@@ -1497,12 +1620,12 @@ def process_row_only_overlap_rec(
 
         api_calls += 1
         start_time = time.time()
-        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        coordinates_a, total_distance_a, total_time_a = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time for coordinates_a API call: {time.time() - start_time:.2f} seconds")
 
         api_calls += 1
         start_time = time.time()
-        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        coordinates_b, total_distance_b, total_time_b = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time for coordinates_b API call: {time.time() - start_time:.2f} seconds")
 
         first_common_node, last_common_node = find_common_nodes(coordinates_a, coordinates_b)
@@ -1568,6 +1691,7 @@ def process_row_only_overlap_rec(
         _, overlap_a_dist, overlap_a_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_a'][0]},{boundary_nodes['first_node_before_overlap']['node_a'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_a'][0]},{boundary_nodes['last_node_after_overlap']['node_a'][1]}",
+            method,
             api_key,
             save_api_info=save_api_info
         )
@@ -1578,6 +1702,7 @@ def process_row_only_overlap_rec(
         _, overlap_b_dist, overlap_b_time = get_route_data(
             f"{boundary_nodes['first_node_before_overlap']['node_b'][0]},{boundary_nodes['first_node_before_overlap']['node_b'][1]}",
             f"{boundary_nodes['last_node_after_overlap']['node_b'][0]},{boundary_nodes['last_node_after_overlap']['node_b'][1]}",
+            method,
             api_key,
             save_api_info=save_api_info
         )
@@ -1657,6 +1782,7 @@ def only_overlap_rec(
     output_csv: str = "outputRec.csv",
     threshold: float = 50,
     width: float = 100,
+    method: str = "google",
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1667,10 +1793,19 @@ def only_overlap_rec(
     - csv_file (str): Name of the input CSV file.
     - input_dir (str): Directory where the CSV file is located.
     - api_key (str): Google API key for route requests.
+    - home_a_lat (str): Column name for the latitude of home A.
+    - home_a_lon (str): Column name for the longitude of home A.
+    - work_a_lat (str): Column name for the latitude of work A.
+    - work_a_lon (str): Column name for the longitude of work A.
+    - home_b_lat (str): Column name for the latitude of home B.
+    - home_b_lon (str): Column name for the longitude of home B.
+    - work_b_lat (str): Column name for the latitude of work B.
+    - work_b_lon (str): Column name for the longitude of work B.
+    - id_column (Optional[str]): Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - output_csv (str): Output path for results.
     - threshold (float): Distance threshold for overlap detection.
     - width (float): Width of the rectangular overlap zone.
-    - colorna, coldesta, colorib, colfestb (str): Column names for route coordinates.
+    - method (str): Routing method to use ("google" or "graphhopper").
     - skip_invalid (bool): If True, skips rows with invalid input and logs them.
     - save_api_info (bool): If True, saves API response.
 
@@ -1703,7 +1838,7 @@ def only_overlap_rec(
         data=data,
         api_key=api_key,
         row_function=process_row_only_overlap_rec,
-        extra_args=(width, threshold, input_dir),
+        extra_args=(width, threshold, method, input_dir),
         skip_invalid=skip_invalid,
         save_api_info=save_api_info
     )
@@ -1734,7 +1869,10 @@ def process_row_route_buffers(row_and_args):
             - api_key (str): Google Maps API key
             - buffer_distance (float): Distance in meters for route buffering
             - skip_invalid (bool): Whether to skip and log errors or raise them
+            - save_api_info (bool): Whether to save the Google API response
             - input_dir (str): Directory where input files are located
+            - method (str): Routing method to use (e.g., "driving", "walking")
+        
 
     Returns:
         tuple:
@@ -1742,7 +1880,7 @@ def process_row_route_buffers(row_and_args):
             - int: Number of API calls made
             - int: 1 if skipped due to error, else 0
     """
-    row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir = row_and_args
+    row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method = row_and_args
     api_calls = 0
 
     try:
@@ -1780,7 +1918,7 @@ def process_row_route_buffers(row_and_args):
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
-            route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+            route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
             return (
                 IntersectionRatioResult(
                     ID=ID,
@@ -1805,7 +1943,7 @@ def process_row_route_buffers(row_and_args):
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
-            route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 IntersectionRatioResult(
                     ID=ID,
@@ -1829,10 +1967,10 @@ def process_row_route_buffers(row_and_args):
             )
 
         api_calls += 1
-        route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        route_a_coords, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
 
         api_calls += 1
-        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        route_b_coords, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
 
         if origin_a == origin_b and destination_a == destination_b:
             buffer_a = create_buffered_route(route_a_coords, buffer_distance)
@@ -1969,6 +2107,7 @@ def process_routes_with_buffers(
     work_b_lon: str,
     id_column: Optional[str] = None,
     buffer_distance: float = 100,
+    method: str = "google",
     skip_invalid: bool = True,
     save_api_info: bool = False
 ) -> tuple:
@@ -1980,8 +2119,17 @@ def process_routes_with_buffers(
     - input_dir (str): Directory where the CSV file is located.
     - output_csv (str): Output file for writing the results.
     - api_key (str): Google API key for route data.
+    - home_a_lat (str): Column name for the latitude of home A.
+    - home_a_lon (str): Column name for the longitude of home A.
+    - work_a_lat (str): Column name for the latitude of work A.
+    - work_a_lon (str): Column name for the longitude of work A.
+    - home_b_lat (str): Column name for the latitude of home B.
+    - home_b_lon (str): Column name for the longitude of home B.
+    - work_b_lat (str): Column name for the latitude of work B.
+    - work_b_lon (str): Column name for the longitude of work B.
+    - id_column (Optional[str]): Column name for the unique ID of each row. If None or not found, IDs are auto-generated as R1, R2, ...
     - buffer_distance (float): Distance in meters for buffering each route.
-    - colorna, coldesta, colorib, colfestb (str): Column names in the input CSV.
+    - method (str): Routing method to use ("google" or "graphhopper).
     - skip_invalid (bool): If True, skips invalid rows and logs them instead of halting.
     - save_api_info (bool): If True, saves API response.
 
@@ -2008,7 +2156,7 @@ def process_routes_with_buffers(
         skip_invalid=skip_invalid
     )
 
-    args = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
+    args = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method) for row in data]
     
     results = []
     total_api_calls = 0
@@ -2043,6 +2191,7 @@ def process_routes_with_buffers(
 def calculate_precise_travel_segments(
     route_coords: List[List[float]],
     intersections: List[List[float]],
+    method: str,
     api_key: str,
     save_api_info: bool = False
 ) -> Dict[str, float]:
@@ -2060,12 +2209,14 @@ def calculate_precise_travel_segments(
             before_data = get_route_data(
                 f"{route_coords[0][0]},{route_coords[0][1]}",
                 f"{start[0]},{start[1]}",
+                method,
                 api_key,
                 save_api_info=save_api_info
             )
             after_data = get_route_data(
                 f"{start[0]},{start[1]}",
                 f"{route_coords[-1][0]},{route_coords[-1][1]}",
+                method,
                 api_key,
                 save_api_info=save_api_info
             )
@@ -2093,18 +2244,21 @@ def calculate_precise_travel_segments(
     before_data = get_route_data(
         f"{route_coords[0][0]},{route_coords[0][1]}",
         f"{start[0]},{start[1]}",
+        method,
         api_key,
         save_api_info=save_api_info
     )
     during_data = get_route_data(
         f"{start[0]},{start[1]}",
         f"{end[0]},{end[1]}",
+        method,
         api_key,
         save_api_info=save_api_info
     )
     after_data = get_route_data(
         f"{end[0]},{end[1]}",
         f"{route_coords[-1][0]},{route_coords[-1][1]}",
+        method,
         api_key,
         save_api_info=save_api_info
     )
@@ -2141,13 +2295,14 @@ def process_row_closest_nodes(row_and_args):
             - skip_invalid (bool): Whether to skip rows with errors (default: True).
             - save_api_info (bool): Whether to save API response data (default: False).
             - input_dir (str): Directory for input files.
+            - method (str): Routing method to use (e.g., "driving", "walking").
 
     Returns:
         tuple: (result_dict, api_calls, api_errors)
     """
     api_calls = 0
     try:
-        row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir = row_and_args
+        row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method = row_and_args
         ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
@@ -2192,7 +2347,7 @@ def process_row_closest_nodes(row_and_args):
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
-            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -2227,7 +2382,7 @@ def process_row_closest_nodes(row_and_args):
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -2262,7 +2417,7 @@ def process_row_closest_nodes(row_and_args):
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             coords_b = coords_a
             buffer_b = buffer_a
@@ -2301,10 +2456,10 @@ def process_row_closest_nodes(row_and_args):
 
         api_calls += 2
         start_time_a = time.time()
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
         start_time_b = time.time()
-        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
@@ -2330,7 +2485,7 @@ def process_row_closest_nodes(row_and_args):
             if len(nodes_inside_a) >= 2:
                 entry_a, exit_a = nodes_inside_a[0], nodes_inside_a[-1]
                 api_calls += 1
-                overlap_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key, save_api_info=save_api_info)
+                overlap_a = calculate_precise_travel_segments(coords_a, [list(entry_a), list(exit_a)], method, api_key, save_api_info=save_api_info)
             else:
                 overlap_a = {"during_distance": 0.0, "during_time": 0.0,
                              "before_distance": 0.0, "before_time": 0.0,
@@ -2339,7 +2494,7 @@ def process_row_closest_nodes(row_and_args):
             if len(nodes_inside_b) >= 2:
                 entry_b, exit_b = nodes_inside_b[0], nodes_inside_b[-1]
                 api_calls += 1
-                overlap_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key, save_api_info=save_api_info)
+                overlap_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], method, api_key, save_api_info=save_api_info)
             else:
                 overlap_b = {"during_distance": 0.0, "during_time": 0.0,
                              "before_distance": 0.0, "before_time": 0.0,
@@ -2434,6 +2589,7 @@ def process_routes_with_closest_nodes(
     work_b_lon: str,
     id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
+    method: str = "google", 
     output_csv: str = "output_closest_nodes.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
@@ -2444,10 +2600,20 @@ def process_routes_with_closest_nodes(
 
     Parameters:
     - csv_file (str): Name of the input CSV file.
+    - input_dir (str): Directory where the CSV file is located.
     - api_key (str): Google API key.
+    - home_a_lat (str): Latitude for Home A.
+    - home_a_lon (str): Longitude for Home A.
+    - work_a_lat (str): Latitude for Work A.
+    - work_a_lon (str): Longitude for Work A.
+    - home_b_lat (str): Latitude for Home B.
+    - home_b_lon (str): Longitude for Home B.
+    - work_b_lat (str): Latitude for Work B.
+    - work_b_lon (str): Longitude for Work B.
+    - id_column (Optional[str]): Column name for unique IDs in the input CSV.
     - buffer_distance (float): Distance for the route buffer in meters.
+    - method (str): Routing method to use ("google" or "graphhopper").
     - output_csv (str): Path to save the output results.
-    - colorna, coldesta, colorib, colfestb (str): Column mappings for input.
     - skip_invalid (bool): If True, skips invalid input rows and logs them.
     - save_api_info (bool): If True, save API response.
 
@@ -2474,7 +2640,7 @@ def process_routes_with_closest_nodes(
         skip_invalid=skip_invalid
     )
 
-    args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
+    args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method) for row in data]
 
     results = []
     total_api_calls = 0
@@ -2519,13 +2685,14 @@ def process_row_closest_nodes_simple(row_and_args):
             - skip_invalid (bool): If True, logs and skips invalid rows on error; otherwise raises the error.
             - save_api_info (bool): If True, saves API response data.
             - input_dir (str): Directory for input files.
+            - method (str): Routing method to use (e.g., "driving", "walking").
 
     Returns:
         tuple: (result_dict, api_calls, api_errors)
     """
     api_calls = 0
     try:
-        row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir = row_and_args
+        row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method = row_and_args
         ID = row["ID"]
         origin_a, destination_a = row["OriginA"], row["DestinationA"]
         origin_b, destination_b = row["OriginB"], row["DestinationB"]
@@ -2563,7 +2730,7 @@ def process_row_closest_nodes_simple(row_and_args):
 
         if origin_a == destination_a:
             api_calls += 1
-            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
                     ID=ID,
@@ -2590,7 +2757,7 @@ def process_row_closest_nodes_simple(row_and_args):
 
         if origin_b == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
                     ID=ID,
@@ -2616,10 +2783,10 @@ def process_row_closest_nodes_simple(row_and_args):
             )
 
         api_calls += 1
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
 
         api_calls += 1
-        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
 
         if origin_a == origin_b and destination_a == destination_b:
             buffer_a = create_buffered_route(coords_a, buffer_distance)
@@ -2665,7 +2832,7 @@ def process_row_closest_nodes_simple(row_and_args):
             if len(nodes_inside_a) >= 2:
                 api_calls += 1
                 entry_a, exit_a = nodes_inside_a[0], nodes_inside_a[-1]
-                segments_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key, save_api_info=save_api_info)
+                segments_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], method, api_key, save_api_info=save_api_info)
                 overlap_a_dist = segments_a.get("during_distance", 0.0)
                 overlap_a_time = segments_a.get("during_time", 0.0)
             else:
@@ -2674,7 +2841,7 @@ def process_row_closest_nodes_simple(row_and_args):
             if len(nodes_inside_b) >= 2:
                 api_calls += 1
                 entry_b, exit_b = nodes_inside_b[0], nodes_inside_b[-1]
-                segments_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key, save_api_info=save_api_info)
+                segments_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], method, api_key, save_api_info=save_api_info)
                 overlap_b_dist = segments_b.get("during_distance", 0.0)
                 overlap_b_time = segments_b.get("during_time", 0.0)
             else:
@@ -2752,6 +2919,7 @@ def process_routes_with_closest_nodes_simple(
     work_b_lon: str,
     id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
+    method: str = "google",
     output_csv: str = "output_closest_nodes_simple.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
@@ -2764,9 +2932,18 @@ def process_routes_with_closest_nodes_simple(
     - csv_file (str): Name of the input CSV file.
     - input_dir (str): Directory containing the input CSV file.
     - api_key (str): Google API key for route data.
+    - home_a_lat (str): Latitude for Home A.
+    - home_a_lon (str): Longitude for Home A.
+    - work_a_lat (str): Latitude for Work A.
+    - work_a_lon (str): Longitude for Work A.
+    - home_b_lat (str): Latitude for Home B.
+    - home_b_lon (str): Longitude for Home B.
+    - work_b_lat (str): Latitude for Work B.
+    - work_b_lon (str): Longitude for Work B.
+    - id_column (Optional[str]): Column name for unique IDs in the input CSV.
     - buffer_distance (float): Distance used for the buffer zone.
-    - output_csv (str): Output path for CSV file with results.
-    - colorna, coldesta, colorib, colfestb (str): Column names in the CSV.
+    - method (str): Routing method to use ("google" or "graphhopper").
+    - output_csv (str): Output name for CSV file with results.
     - skip_invalid (bool): If True, skips rows with invalid coordinate values.
     - save_api_info (bool): If True, saves API response.
 
@@ -2793,7 +2970,7 @@ def process_routes_with_closest_nodes_simple(
         skip_invalid=skip_invalid
     )
 
-    args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
+    args_with_flags = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method) for row in data]
 
     results = []
     total_api_calls = 0
@@ -2846,14 +3023,17 @@ def wrap_row_multiproc_exact(args):
             - api_call_count (int): Number of API calls made.
             - api_error_flag (int): 0 if successful, 1 if error occurred and skip_invalid was True.
     """
-    row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir = args
-    result, api_calls, api_errors = process_row_exact_intersections(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir)
+    row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method = args
+    result, api_calls, api_errors = process_row_exact_intersections(
+        row, api_key, buffer_distance, method, skip_invalid, save_api_info, input_dir
+    )
     return result, api_calls, api_errors
 
 def process_row_exact_intersections(
     row: Dict[str, str],
     api_key: str,
     buffer_distance: float,
+    method: str,
     skip_invalid: bool = True,
     save_api_info: bool = False,
     input_dir: str = "",
@@ -2869,6 +3049,7 @@ def process_row_exact_intersections(
         row (dict): Dictionary with keys "OriginA", "DestinationA", "OriginB", "DestinationB".
         api_key (str): Google Maps API key.
         buffer_distance (float): Buffer distance in meters to apply to each route.
+        method (str): "google" or "graphhopper" to specify routing method.
         skip_invalid (bool): If True, logs and skips errors instead of raising them.
         save_api_info (bool): If True, saves API response.
         input_dir (str): Directory to save output plots and files.
@@ -2925,7 +3106,7 @@ def process_row_exact_intersections(
 
         if origin_a == destination_a and origin_b != destination_b:
             api_calls += 1
-            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -2960,7 +3141,7 @@ def process_row_exact_intersections(
 
         if origin_a != destination_a and origin_b == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -2995,7 +3176,7 @@ def process_row_exact_intersections(
         
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coords_a, dist_a, time_a = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, dist_a, time_a = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 DetailedDualOverlapResult(
                     ID=ID,
@@ -3031,12 +3212,12 @@ def process_row_exact_intersections(
         api_calls += 1
         start_time_a = time.time()
 
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time to fetch route A from API: {time.time() - start_time_a:.6f} seconds")
 
         api_calls += 1
         start_time_b = time.time()
-        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
         logging.info(f"Time to fetch route B from API: {time.time() - start_time_b:.6f} seconds")
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
@@ -3054,14 +3235,14 @@ def process_row_exact_intersections(
             if len(points_a) >= 2:
                 api_calls += 1
                 entry_a, exit_a = points_a[0], points_a[-1]
-                overlap_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key, save_api_info=save_api_info)
+                overlap_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], method, api_key, save_api_info=save_api_info)
             else:
                 overlap_a = {"during_distance": 0.0, "during_time": 0.0, "before_distance": 0.0, "before_time": 0.0, "after_distance": 0.0, "after_time": 0.0}
 
             if len(points_b) >= 2:
                 api_calls += 1
                 entry_b, exit_b = points_b[0], points_b[-1]
-                overlap_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key, save_api_info=save_api_info)
+                overlap_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], method, api_key, save_api_info=save_api_info)
             else:
                 overlap_b = {"during_distance": 0.0, "during_time": 0.0, "before_distance": 0.0, "before_time": 0.0, "after_distance": 0.0, "after_time": 0.0}
 
@@ -3154,6 +3335,7 @@ def process_routes_with_exact_intersections(
     work_b_lon: str,
     id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
+    method: str = "google",
     output_csv: str = "output_exact_intersections.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
@@ -3169,9 +3351,18 @@ def process_routes_with_exact_intersections(
         csv_file (str): Name of the input CSV file.
         input_dir (str): Directory containing the input CSV file.
         api_key (str): Google API key for route data.
+        home_a_lat (str): Latitude for Home A.
+        home_a_lon (str): Longitude for Home A.
+        work_a_lat (str): Latitude for Work A.
+        work_a_lon (str): Longitude for Work A.
+        home_b_lat (str): Latitude for Home B.
+        home_b_lon (str): Longitude for Home B.
+        work_b_lat (str): Latitude for Work B.
+        work_b_lon (str): Longitude for Work B.
+        id_column (Optional[str]): Column name for unique IDs in the input CSV.
         buffer_distance (float): Distance for buffer zone around each route.
+        method (str): Routing method to use ("google" or "graphhopper").
         output_csv (str): Output CSV file path.
-        colorna, coldesta, colorib, colfestb (str): Column names in the CSV.
         skip_invalid (bool): If True, skip invalid coordinate rows and log them.
         save_api_info (bool): If True, save API response.
 
@@ -3197,7 +3388,7 @@ def process_routes_with_exact_intersections(
         skip_invalid=skip_invalid
     )
 
-    args_list = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir) for row in data]
+    args_list = [(row, api_key, buffer_distance, skip_invalid, save_api_info, input_dir, method) for row in data]
 
     results = []
     api_call_count = 0
@@ -3241,14 +3432,15 @@ def wrap_row_multiproc_simple(args):
     Returns:
         tuple: A tuple of (result_dict, api_calls, api_errors)
     """
-    row, api_key, buffer_distance, input_dir, skip_invalid, save_api_info = args
+    row, api_key, buffer_distance, input_dir, skip_invalid, save_api_info, method = args
     return process_row_exact_intersections_simple(
         (row, api_key, buffer_distance, save_api_info),
         skip_invalid=skip_invalid,
-        input_dir=input_dir
+        input_dir=input_dir,
+        method=method
     )
 
-def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, input_dir=""):
+def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, input_dir="", method="google") -> Tuple[Dict[str, Any], int, int]:
     """
     Processes a single row to compute total and overlapping travel metrics between two routes
     using exact geometric intersections of buffered route polygons.
@@ -3267,6 +3459,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
             - buffer_distance (float): Buffer distance in meters
         skip_invalid (bool): If True, logs and skips errors; if False, raises them.
         input_dir (str): Directory to save output plots and files.
+        method (str): Routing method, either "google" or "graphhopper".
 
     Returns:
         tuple: A tuple of (result_dict, api_calls, api_errors)
@@ -3311,7 +3504,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
 
         if origin_a == destination_a:
             api_calls += 1
-            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+            coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
                     ID=ID,
@@ -3338,7 +3531,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
 
         if origin_b == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             return (
                 SimpleDualOverlapResult(
                     ID=ID,
@@ -3365,7 +3558,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
 
         if origin_a == origin_b and destination_a == destination_b:
             api_calls += 1
-            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
+            coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
             buffer_a = create_buffered_route(coords_a, buffer_distance)
             buffer_b = buffer_a
             coords_b = coords_a
@@ -3395,8 +3588,8 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
             )
         
         api_calls += 2
-        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, api_key, save_api_info=save_api_info)
-        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, api_key, save_api_info=save_api_info)
+        coords_a, a_dist, a_time = get_route_data(origin_a, destination_a, method, api_key, save_api_info=save_api_info)
+        coords_b, b_dist, b_time = get_route_data(origin_b, destination_b, method, api_key, save_api_info=save_api_info)
 
         buffer_a = create_buffered_route(coords_a, buffer_distance)
         buffer_b = create_buffered_route(coords_b, buffer_distance)
@@ -3435,7 +3628,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
         if len(points_a) >= 2:
             api_calls += 1
             entry_a, exit_a = points_a[0], points_a[-1]
-            segments_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], api_key, save_api_info=save_api_info)
+            segments_a = calculate_precise_travel_segments(coords_a, [entry_a, exit_a], method, api_key, save_api_info=save_api_info)
             overlap_a_dist = segments_a.get("during_distance", 0.0)
             overlap_a_time = segments_a.get("during_time", 0.0)
         else:
@@ -3444,7 +3637,7 @@ def process_row_exact_intersections_simple(row_and_args, skip_invalid=True, inpu
         if len(points_b) >= 2:
             api_calls += 1
             entry_b, exit_b = points_b[0], points_b[-1]
-            segments_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], api_key, save_api_info=save_api_info)
+            segments_b = calculate_precise_travel_segments(coords_b, [entry_b, exit_b], method, api_key, save_api_info=save_api_info)
             overlap_b_dist = segments_b.get("during_distance", 0.0)
             overlap_b_time = segments_b.get("during_time", 0.0)
         else:
@@ -3523,6 +3716,7 @@ def process_routes_with_exact_intersections_simple(
     work_b_lon: str,
     id_column: Optional[str] = None,
     buffer_distance: float = 100.0,
+    method: str = "google",
     output_csv: str = "output_exact_intersections_simple.csv",
     skip_invalid: bool = True,
     save_api_info: bool = False
@@ -3535,9 +3729,18 @@ def process_routes_with_exact_intersections_simple(
     - csv_file (str): Path to input CSV file.
     - input_dir (str): Directory containing the input CSV file.
     - api_key (str): Google API key for routing data.
+    - home_a_lat (str): Column name for the latitude of home A.
+    - home_a_lon (str): Column name for the longitude of home A.
+    - work_a_lat (str): Column name for the latitude of work A.
+    - work_a_lon (str): Column name for the longitude of work A.
+    - home_b_lat (str): Column name for the latitude of home B.
+    - home_b_lon (str): Column name for the longitude of home B.
+    - work_b_lat (str): Column name for the latitude of work B.
+    - work_b_lon (str): Column name for the longitude of work B.
+    - id_column (Optional[str]): Column name for the unique ID of each row.
     - buffer_distance (float): Distance for buffering each route.
+    - method (str): Routing method, either "google" or "graphhopper".
     - output_csv (str): File path to write the output CSV.
-    - colorna, coldesta, colorib, colfestb (str): Column names for route endpoints.
     - skip_invalid (bool): If True, skips invalid coordinate rows and logs them.
     - save_api_info (bool): If True, saves API response.
 
@@ -3559,7 +3762,7 @@ def process_routes_with_exact_intersections_simple(
         skip_invalid=skip_invalid
     )
 
-    args = [(row, api_key, buffer_distance, input_dir, skip_invalid, save_api_info) for row in data]
+    args = [(row, api_key, buffer_distance, input_dir, skip_invalid, save_api_info, method) for row in data]
 
     processed = []
     api_call_count = 0
@@ -3635,6 +3838,7 @@ def Overlap_Function(
     buffer: float = 100,
     approximation: str = "no",
     commuting_info: str = "no",
+    method: str = "google",
     output_file: Optional[str] = None,
     skip_invalid: bool = True,
     save_api_info: bool = True,
@@ -3664,11 +3868,12 @@ def Overlap_Function(
     - buffer (float): Buffer radius in meters.
     - approximation (str): Mode of processing (e.g., "no", "yes", "yes with buffer", etc.).
     - commuting_info (str): Whether commuting detail is needed ("yes" or "no").
+    - method (str): Routing method to use, either "google" or "graphhopper".
     - output_file (str): Optional custom filename for results.
     - input_dir (str): Directory for input files if not provided as a full path.
     - skip_invalid (bool): If True, skips invalid coordinates and logs the error; if False, halts on error.
     - save_api_info (bool): If True, saves API response.
-    - auto_confirm: bool = False： If True, skips the user confirmation prompt and proceeds automatically.
+    - auto_confirm (bool): If True, skips the user confirmation prompt and proceeds automatically.
 
     Returns:
     - None
@@ -3706,6 +3911,7 @@ def Overlap_Function(
         "work_b_lon": work_b_lon,
         "id_column": id_column,
         "input_dir": input_dir,
+        "method": method,
         "skip_invalid": skip_invalid,
         "save_api_info": save_api_info,
     }
@@ -3752,7 +3958,7 @@ def Overlap_Function(
                 csv_file, input_dir, api_key, 
                 home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column,
-                output_csv=output_file, threshold=int(threshold), width=int(width),
+                output_csv=output_file, threshold=int(threshold), width=int(width), method=method,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3763,7 +3969,7 @@ def Overlap_Function(
             results, pre_api_errors, api_calls, post_api_errors = only_overlap_rec(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
                 home_b_lon, work_b_lat, work_b_lon, id_column,
-                output_csv=output_file, threshold=int(threshold), width=int(width),
+                output_csv=output_file, threshold=int(threshold), width=int(width), method=method,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3775,7 +3981,7 @@ def Overlap_Function(
             output_file = output_file or generate_unique_filename("outputRoutes", ".csv")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_csv(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
-                home_b_lon, work_b_lat, work_b_lon, id_column, output_csv=output_file, 
+                home_b_lon, work_b_lat, work_b_lon, id_column, method=method, output_csv=output_file, 
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3786,7 +3992,7 @@ def Overlap_Function(
             print(f"[INFO] Output will be written to: {output_file}")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_only_overlap_with_csv(
                 csv_file, input_dir, api_key, home_a_lat, home_a_lon, work_a_lat, work_a_lon, home_b_lat,
-                home_b_lon, work_b_lat, work_b_lon, id_column, output_csv=output_file,
+                home_b_lon, work_b_lat, work_b_lon, id_column, method=method, output_csv=output_file,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3799,7 +4005,7 @@ def Overlap_Function(
             csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
             home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon= work_a_lon, home_b_lat=home_b_lat,
             home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column, 
-            output_csv=output_file, buffer_distance=buffer,
+            output_csv=output_file, buffer_distance=buffer, method=method,
             skip_invalid=skip_invalid, save_api_info=save_api_info)
         options["Pre-API Error Count"] = pre_api_errors
         options["Post-API Error Count"] = post_api_errors
@@ -3812,7 +4018,7 @@ def Overlap_Function(
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_closest_nodes(
                 csv_file=csv_file, input_dir = input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
-                home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column, buffer_distance=buffer, output_csv=output_file,
+                home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column, buffer_distance=buffer, method=method, output_csv=output_file,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3824,7 +4030,7 @@ def Overlap_Function(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
                 home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column, 
-                buffer_distance=buffer, output_csv=output_file,
+                buffer_distance=buffer, method=method, output_csv=output_file,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3837,7 +4043,7 @@ def Overlap_Function(
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
                 home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column,
-                buffer_distance=buffer, output_csv=output_file,
+                buffer_distance=buffer, method=method, output_csv=output_file,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3849,7 +4055,7 @@ def Overlap_Function(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, 
                 home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
                 home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column,
-                buffer_distance=buffer, output_csv=output_file,
+                buffer_distance=buffer, method=method, output_csv=output_file,
                 skip_invalid=skip_invalid, save_api_info=save_api_info)
             options["Pre-API Error Count"] = pre_api_errors
             options["Post-API Error Count"] = post_api_errors
@@ -3861,3 +4067,4 @@ def Overlap_Function(
         cache_path = os.path.join(output_dir, "api_response_cache.pkl")
         with open(cache_path, "wb") as f:
             pickle.dump(api_response_cache, f)
+
