@@ -109,6 +109,7 @@ Then, to use CanterburyCommuto, you can run the command in a way like the exampl
     --csv_file origin_destination_coordinates.csv \
     --input_dir "C:\Users\HUAWEI\CanterburyCommuto\CanterburyCommuto" \
     --api_key "API_KEY" \
+    --method "google" \
     --buffer 150 \
     --approximation "yes with buffer" \
     --home_a_lat "home_A" \
@@ -133,7 +134,9 @@ The parameter input_dir specifies the input directory where the source CSV file 
 
 The parameter skip_invalid is a Boolean flag that controls error handling. If set to True, the script will skip over any invalid or malformed rows in the input file and continue processing the remaining data. If set to False, the script will terminate upon encountering the first error.
 
-#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder.
+
+
+#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder. Professionally, instead of using Google Maps, you may opt for the free GraphHopper method. Please refer to `example.ipynb` for setup and usage instructions.
 
 
 ### Results
