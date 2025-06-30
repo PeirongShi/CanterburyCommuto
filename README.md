@@ -136,7 +136,7 @@ The parameter skip_invalid is a Boolean flag that controls error handling. If se
 
 
 
-#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder. Alternatively, instead of using Google Maps, you may opt for the free GraphHopper method. Please refer to `example.ipynb` for setup and usage instructions.
+#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder. As an alternative to the Google Maps API, the free and locally hosted GraphHopper method may be used. Please refer to `example.ipynb` for detailed setup and usage instructions.
 
 
 ### Results
