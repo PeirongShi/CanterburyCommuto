@@ -3916,30 +3916,38 @@ def Overlap_Function(
         "save_api_info": save_api_info,
     }
 
-    try:
-        num_requests, estimated_cost = request_cost_estimation(
-            csv_file=csv_file,
-            input_dir=input_dir,
-            home_a_lat=home_a_lat,
-            home_a_lon=home_a_lon,
-            work_a_lat=work_a_lat,
-            work_a_lon=work_a_lon, 
-            home_b_lat=home_b_lat,
-            home_b_lon=home_b_lon,
-            work_b_lat= work_b_lat,
-            work_b_lon=work_b_lon,
-            id_column=id_column,
-            approximation=approximation,
-            commuting_info=commuting_info,
-            skip_invalid=skip_invalid
-        )
-    except Exception as e:
-        print(f"[ERROR] Unable to estimate cost: {e}")
-        return
+    if csv_file is None:
+        raise ValueError("csv_file must not be None when calling request_cost_estimation.")
+    if method == "google":
+        try:
+            num_requests, estimated_cost = request_cost_estimation(
+                csv_file=csv_file,
+                input_dir=input_dir,
+                home_a_lat=home_a_lat,
+                home_a_lon=home_a_lon,
+                work_a_lat=work_a_lat,
+                work_a_lon=work_a_lon, 
+                home_b_lat=home_b_lat,
+                home_b_lon=home_b_lon,
+                work_b_lat= work_b_lat,
+                work_b_lon=work_b_lon,
+                id_column=id_column,
+                approximation=approximation,
+                commuting_info=commuting_info,
+                skip_invalid=skip_invalid
+            )
+        except Exception as e:
+            print(f"[ERROR] Unable to estimate cost: {e}")
+            return
 
-    print(f"\n[INFO] Estimated number of API requests: {num_requests}")
-    print(f"[INFO] Estimated cost: ${estimated_cost:.2f}")
-    print("[NOTICE] Actual cost may be higher or lower depending on Google’s pricing tiers and route pair complexity.\n")
+        print(f"\n[INFO] Estimated number of API requests: {num_requests}")
+        print(f"[INFO] Estimated cost: ${estimated_cost:.2f}")
+        print("[NOTICE] Actual cost may be higher or lower depending on Google’s pricing tiers and route pair complexity.\n")
+    
+    elif method == "graphhopper":
+        print("[NOTICE] GraphHopper does not provide cost estimation. Proceeding with the operation...\n")
+        num_requests = 0
+        estimated_cost = 0.0
 
     if not auto_confirm:
         user_input = input("Do you want to proceed with this operation? (yes/no): ").strip().lower()
@@ -4040,6 +4048,8 @@ def Overlap_Function(
     elif approximation == "exact":
         if commuting_info == "yes":
             output_file = output_file or generate_unique_filename("exact_intersection_buffer_results", ".csv")
+            if csv_file is None:
+                raise ValueError("csv_file must not be None when calling process_routes_with_exact_intersections.")
             results, pre_api_errors, api_calls, post_api_errors = process_routes_with_exact_intersections(
                 csv_file=csv_file, input_dir=input_dir, api_key=api_key, home_a_lat=home_a_lat, home_a_lon=home_a_lon, work_a_lat=work_a_lat, work_a_lon=work_a_lon, home_b_lat=home_b_lat,
                 home_b_lon=home_b_lon, work_b_lat=work_b_lat, work_b_lon=work_b_lon, id_column=id_column,

@@ -11,7 +11,8 @@ Usage:
     python -m canterburycommuto.main overlap
         [--csv_file PATH] [--input_dir PATH] [--api_key KEY]
         [--threshold VALUE] [--width VALUE] [--buffer VALUE]
-        [--approximation VALUE] [--commuting_info VALUE]
+        [--approximation VALUE] [--commuting_info VALUE] 
+        [--method google|graphhopper]
         [--home_a_lat COLUMN_NAME] [--home_a_lon COLUMN_NAME]
         [--work_a_lat COLUMN_NAME] [--work_a_lon COLUMN_NAME]
         [--home_b_lat COLUMN_NAME] [--home_b_lon COLUMN_NAME]
