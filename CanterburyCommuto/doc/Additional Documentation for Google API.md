@@ -28,63 +28,121 @@ Theoretically, this project uses only the **Google Maps Directions API**. Howeve
 
 ### Code Snippets Related to this API
 
-- **Generating the API URL**:
+- **Generating the API Request Body**:
   ```python
-  def generate_url(origin: str, destination: str, api_key: str) -> str:
-      return f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={api_key}"
+  def generate_request_body(origin: str, destination: str) -> dict:
+    """
+    Creates the request body for the Google Maps Routes API (v2).
+
+    Parameters:
+    - origin (str): The starting point of the route in "latitude,longitude" format.Body
+    - destination (str): The endpoint of the route in "latitude,longitude" format.
+
+    Returns:
+    - dict: JSON body for the Routes API POST request.
+    """
+    origin_lat, origin_lng = map(float, origin.split(','))
+    dest_lat, dest_lng = map(float, destination.split(','))
+
+    return {
+        "origin": {
+            "location": {
+                "latLng": {
+                    "latitude": origin_lat,
+                    "longitude": origin_lng
+                }
+            }
+        },
+        "destination": {
+            "location": {
+                "latLng": {
+                    "latitude": dest_lat,
+                    "longitude": dest_lng
+                }
+            }
+        },
+        "travelMode": "DRIVE",
+        "computeAlternativeRoutes": True,  # enables fallback options
+        "routeModifiers": {
+            "avoidTolls": False
+        }
+    }
   ```
 
 - **Fetching Route Data**:
   ```python
-  def get_route_data(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
+  def get_route_data_google(origin: str, destination: str, api_key: str, save_api_info: bool = False) -> tuple:
     """
-    Fetches route data from the Google Maps Directions API and decodes it.
+    Fetches route data from the Google Maps Routes API (v2) and decodes the polyline.
 
     Parameters:
-    - origin (str): The starting point of the route (latitude,longitude).
-    - destination (str): The endpoint of the route (latitude,longitude).
-    - api_key (str): The API key for accessing the Google Maps Directions API.
-    - save_api_info (bool): Whether to save the raw API response in a global dictionary.
+    - origin (str): Starting point ("latitude,longitude").
+    - destination (str): Endpoint ("latitude,longitude").
+    - api_key (str): Google Maps API key with Routes API enabled.
+    - save_api_info (bool): Optionally saves raw response in cache.
 
     Returns:
     - tuple:
-        - list: A list of (latitude, longitude) tuples representing the route.
-        - float: Total route distance in kilometers.
-        - float: Total route time in minutes.
+        - list of (lat, lng) tuples (route polyline)
+        - float: distance in kilometers
+        - float: time in minutes
     """
     max_retries = 5
-    delay = 1  # seconds
+    delay = 10  # seconds
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": "routes.legs.distanceMeters,routes.legs.duration,routes.polyline.encodedPolyline"
+    }
+
+    body = generate_request_body(origin, destination)
 
     for attempt in range(max_retries):
-        url = generate_url(origin, destination, api_key)
-        response = requests.get(url)
-        directions_data = response.json()
+        try:
+            response = requests.post(GOOGLE_API_URL, json=body, headers=headers)
+            data = response.json()
 
-        if directions_data["status"] == "OK":
-            if save_api_info:
-                api_response_cache[(origin, destination)] = directions_data
-            route_polyline = directions_data["routes"][0]["overview_polyline"]["points"]
-            coordinates = polyline.decode(route_polyline)
-            total_distance = directions_data["routes"][0]["legs"][0]["distance"]["value"] / 1000  # km
-            total_time = directions_data["routes"][0]["legs"][0]["duration"]["value"] / 60  # min
-            return coordinates, total_distance, total_time
+            if response.status_code == 200 and "routes" in data and data["routes"]:
+                if save_api_info:
+                    global api_response_cache
+                    api_response_cache[(origin, destination)] = data
 
-        elif directions_data["status"] == "OVER_QUERY_LIMIT":
-            print(f"Hit rate limit (attempt {attempt + 1}/{max_retries}). Retrying in {delay} sec...")
-            time.sleep(delay)
+                # Pick the shortest route if alternatives are present
+                route = min(data["routes"], key=lambda r: r["legs"][0].get("distanceMeters", float("inf")))
 
-        else:
-            print("Error fetching directions:", directions_data["status"])
+                polyline_points = route["polyline"]["encodedPolyline"]
+                coordinates = polyline.decode(polyline_points)
+
+                legs = route.get("legs", [])
+                if not legs:
+                    raise ValueError("No legs found in route.")
+
+                distance_meters = int(legs[0]["distanceMeters"])
+                duration_seconds = int(legs[0]["duration"].replace("s", ""))
+
+                return coordinates, distance_meters / 1000, duration_seconds / 60
+
+            elif response.status_code == 429:
+                print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
+                time.sleep(delay*(attempt+1))
+
+            else:
+                print("Error fetching route:", data)
+                return [], 0, 0
+
+        except Exception as e:
+            print(f"Exception during route extraction: {e}")
             return [], 0, 0
 
-    print("Exceeded maximum retries due to OVER_QUERY_LIMIT.")
+    print("Exceeded maximum retries due to rate limit or repeated failure.")
     return [], 0, 0
-
   ```
+ 
 
 #### Additional Documentation
 
-- Official Google Maps Directions API Documentation: [https://developers.google.com/maps/documentation/directions/start](https://developers.google.com/maps/documentation/directions/start)
+- Official Google Maps Routes API Documentation: [https://developers.google.com/maps/documentation/routes](https://developers.google.com/maps/documentation/routes)
 
 
 ## Function Implementation

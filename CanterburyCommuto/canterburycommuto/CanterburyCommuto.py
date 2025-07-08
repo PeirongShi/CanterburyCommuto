@@ -396,7 +396,7 @@ def get_route_data_google(origin: str, destination: str, api_key: str, save_api_
         - float: time in minutes
     """
     max_retries = 5
-    delay = 1  # seconds
+    delay = 10  # seconds
 
     headers = {
         "Content-Type": "application/json",
@@ -433,7 +433,7 @@ def get_route_data_google(origin: str, destination: str, api_key: str, save_api_
 
             elif response.status_code == 429:
                 print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
-                time.sleep(delay)
+                time.sleep(delay*(attempt+1))
 
             else:
                 print("Error fetching route:", data)
