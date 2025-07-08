@@ -106,8 +106,7 @@ The parameter input_dir specifies the input directory where the source CSV file 
 The parameter skip_invalid is a Boolean flag that controls error handling. If set to True, the script will skip over any invalid or malformed rows in the input file and continue processing the remaining data. If set to False, the script will terminate upon encountering the first error.
 
 
-
-#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder. As an alternative to the Google Maps API, the free and locally hosted GraphHopper method may be used. Please refer to `example.ipynb` for detailed setup and usage instructions.
+#### For simplified execution using a configuration file and additional usage details, please refer to the `example.ipynb` file located in the example folder: [Example Jupyter Notebook](https://github.com/PeirongShi/CanterburyCommuto/blob/main/example/example.ipynb) . As an alternative to the Google Maps API, the free and locally hosted GraphHopper method may be used. Please refer to `example.ipynb` for detailed setup and usage instructions.
 
 
 ### Results
