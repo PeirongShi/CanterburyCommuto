@@ -1,3 +1,5 @@
+## Get Google API
+
 To use CanterburyCommuto, it is necessary to have your API key ready from Google. 
 
 0. You need a Google Account.
