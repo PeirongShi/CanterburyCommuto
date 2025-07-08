@@ -1,4 +1,4 @@
-# Documentation
+# Additional Documentation
 
 ## Specification on API Usage
 
