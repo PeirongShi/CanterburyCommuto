@@ -5,3 +5,5 @@ dist/*
 .ipynb_checkpoints/
 notebooks/results/*
 config.yaml
+*.html
+*.csv
