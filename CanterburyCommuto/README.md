@@ -183,9 +183,7 @@ This helps keep input and output files organized and clearly separated.
 
 ## Acknowledgment
 
-This Python package CanterburyCommuto is created under the instruction of Professor Florian Grosset and Professor Émilien Schultz. 
-
-The **Specification on API Usage** section, located in doc, was written with assistance from OpenAI's ChatGPT, as its explanation on the details of API utilization is relatively clear. 
+The Python package CanterburyCommuto was developed under the guidance of Professor Florian Grosset-Touba and software engineer Émilien Schultz, with additional support from AI tools such as ChatGPT and GitHub Copilot.
 
 If you have any question, please open an issue.
 
